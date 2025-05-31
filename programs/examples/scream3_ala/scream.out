@@ -1,0 +1,1201 @@
+AssignProteinCharges :: Using charmm charges
+ - beta2.bgf --> beta2.bgf
+SCREAM_NEW     = /project/Biogroup/Software/scream3/
+SCREAM_NEW_LIB = /project/Biogroup/Software/scream3//lib/charmm/
+SCREAM_NEW_CNN = /project/Biogroup/Software/scream3//lib/cnn/
+SCREAM_NEW_RTF = /project/Biogroup/Software/scream3//lib/rft/
+SCREAM_NEW_CHG = charmm
+
+InputFileName           beta2.bgf
+MutateResidueInfo       A31_1 A32_1 A33_1 A34_1 A36_1 A38_1 A39_1 A40_1 A42_1 A43_1 A44_1 A45_1 A47_1 A48_1 A49_1 A52_1 A53_1 A54_1 A55_1 A58_1 A67_2 A70_2 A71_2 A72_2 A75_2 A80_2 A81_2 A82_2 A84_2 A86_2 A87_2 A89_2 A94_2 A95_2 A104_3 A105_3 A108_3 A109_3 A112_3 A114_3 A115_3 A117_3 A121_3 A124_3 A126_3 A127_3 A129_3 A132_3 A133_3 A135_3 A152_4 A153_4 A154_4 A155_4 A156_4 A157_4 A158_4 A159_4 A160_4 A163_4 A166_4 A167_4 A169_4 A171_4 A199_5 A201_5 A205_5 A208_5 A209_5 A210_5 A212_5 A213_5 A214_5 A215_5 A216_5 A217_5 A218_5 A219_5 A222_5 A223_5 A272_6 A275_6 A277_6 A278_6 A279_6 A282_6 A284_6 A286_6 A287_6 A289_6 A290_6 A291_6 A292_6 A294_6 A295_6 A297_6 A298_6 A307_7 A308_7 A309_7 A310_7 A311_7 A313_7 A314_7 A316_7 A317_7 A321_7 A324_7 A325_7 
+AdditionalLibraryInfo   
+Library                 V10
+PlacementMethod         CreateCB
+CreateCBParameters      1.81 51.1 1.55 0.5 
+UseScreamEnergyFunction YES
+UseDeltaMethod          FULL
+UseRotamerNeighborList  NO
+UseAsymmetricDelta      YES
+UseDeltaForInterResiE   YES
+FlatDeltaValue          0
+DeltaStandardDevs       0
+InnerWallScalingFactor  0
+NonPolarHCalc           YES
+ScoringFunction         
+OneEnergyFFParFile      /project/Biogroup/Software/scream3//lib/ff/dreiding-0.3.par
+DeltaParFile            /project/Biogroup/Software/scream3//lib/delta/SCREAM_delta_Total_Min.par
+EachAtomDeltaFile       /project/Biogroup/Software/scream3//lib/delta/SCREAM_EachAtomDeltaFileStub.par
+PolarOptimizationExclusions /project/Biogroup/Software/scream3//lib/delta/SCREAM_PolarOptimizationExclusionsStub.par
+LJOption                12-6
+CoulombMode             Normal
+Dielectric              2.5
+MultiplePlacementMethod ClusteringThenDoubletsThenSinglets
+CBGroundSpectrumCalc    YES
+Selections              1
+MaxSearchNumber         99999999
+AbsStericClashCutoffEL  1e+09
+StericClashCutoffEnergy 250
+StericClashCutoffDist   0.5
+MaxFinalStepRunTime     36000
+LibPath                 
+Verbosity               0
+DesignPositionAndClass  
+DesignAAClassDefns      
+JustOutputSequence      NO
+BindingSiteMode         
+FixedResidues           
+AroundAtom              
+AroundResidue           
+AroundChain             
+AroundDistance          4
+AroundDistanceDefn      SideChainOnly
+
+Number of atoms in system: 3410
+Total atoms in this system: 3410
+adding new component...
+Added new chain... 
+adding new component...
+Added new chain... 
+adding new component...
+Added new chain... 
+adding new component...
+Added new chain... 
+adding new component...
+Added new chain... 
+adding new component...
+Added new chain... 
+Initializing chain...
+New SCREAM Chain Initialized... 
+New Protein created with 7 components.
+THIS LINE INDICATES YOU USED THE GRIFFITH SCREAM VERSION
+A31_1
+A32_1
+A33_1
+A34_1
+A36_1
+A38_1
+A39_1
+A40_1
+A42_1
+A43_1
+A44_1
+A45_1
+A47_1
+A48_1
+A49_1
+A52_1
+A53_1
+A54_1
+A55_1
+A58_1
+A67_2
+A70_2
+A71_2
+A72_2
+A75_2
+A80_2
+A81_2
+A82_2
+A84_2
+A86_2
+A87_2
+A89_2
+A94_2
+A95_2
+A104_3
+A105_3
+A108_3
+A109_3
+A112_3
+A114_3
+A115_3
+A117_3
+A121_3
+A124_3
+A126_3
+A127_3
+A129_3
+A132_3
+A133_3
+A135_3
+A152_4
+A153_4
+A154_4
+A155_4
+A156_4
+A157_4
+A158_4
+A159_4
+A160_4
+A163_4
+A166_4
+A167_4
+A169_4
+A171_4
+A199_5
+A201_5
+A205_5
+A208_5
+A209_5
+A210_5
+A212_5
+A213_5
+A214_5
+A215_5
+A216_5
+A217_5
+A218_5
+A219_5
+A222_5
+A223_5
+A272_6
+A275_6
+A277_6
+A278_6
+A279_6
+A282_6
+A284_6
+A286_6
+A287_6
+A289_6
+A290_6
+A291_6
+A292_6
+A294_6
+A295_6
+A297_6
+A298_6
+A307_7
+A308_7
+A309_7
+A310_7
+A311_7
+A313_7
+A314_7
+A316_7
+A317_7
+A321_7
+A324_7
+A325_7
+Total Number of Libraries loaded:  109
+Delta value updated for 0 atoms.
+##################################
+Calculating Empty Lattice Energies
+Method used:  FULL
+##################################
+
+A38_1
+
+Rotamer 1
+ILE ==> ALA Mutation! 
+Total:   -7.25441926262
+
+A112_3
+
+Rotamer 1
+ILE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -14.8133447236
+
+A126_3
+
+Rotamer 1
+VAL ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -16.8069829135
+
+A72_2
+
+Rotamer 1
+ILE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -3.31019264062
+
+A295_6
+
+Rotamer 1
+VAL ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -8.01020573472
+
+A309_7
+
+Rotamer 1
+ILE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -5.98525456225
+
+A47_1
+
+Rotamer 1
+ILE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -16.3429003516
+
+A205_5
+
+Rotamer 1
+ILE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -8.04085366071
+
+A49_1
+
+Rotamer 1
+PHE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -7.73735938029
+
+A298_6
+
+Rotamer 1
+ILE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -8.50286508444
+
+A212_5
+
+Rotamer 1
+LEU ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -12.6803884284
+
+A286_6
+
+Rotamer 1
+TRP ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -13.7490158205
+
+A291_6
+
+Rotamer 1
+ILE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -11.0626767581
+
+A81_2
+
+Rotamer 1
+VAL ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -14.4806177373
+
+A53_1
+
+Rotamer 1
+LEU ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -6.71920441977
+
+A294_6
+
+Rotamer 1
+ILE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -12.4722258776
+
+A158_4
+
+Rotamer 1
+TRP ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -11.5875758903
+
+A217_5
+
+Rotamer 1
+PHE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -6.51853390182
+
+A55_1
+
+Rotamer 1
+ILE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -9.50618081534
+
+A324_7
+
+Rotamer 1
+LEU ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -6.27935302836
+
+A314_7
+
+Rotamer 1
+ILE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -12.4143318278
+
+A153_4
+
+Rotamer 1
+ILE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -10.1115583986
+
+A94_2
+
+Rotamer 1
+ILE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -9.55038693097
+
+A58_1
+
+Rotamer 1
+ILE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -8.48981979892
+
+A214_5
+
+Rotamer 1
+ILE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -11.4235985998
+
+A311_7
+
+Rotamer 1
+LEU ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -14.1785858073
+
+A297_6
+
+Rotamer 1
+VAL ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -10.6174493748
+
+A275_6
+
+Rotamer 1
+LEU ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -7.01779678735
+
+A109_3
+
+Rotamer 1
+TRP ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -13.3783281051
+
+A279_6
+
+Rotamer 1
+MET ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -13.8654439322
+
+A104_3
+
+Rotamer 1
+PHE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -5.00830298332
+
+A155_4
+
+Rotamer 1
+LEU ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -8.04325798253
+
+A52_1
+
+Rotamer 1
+VAL ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -11.2421022387
+
+A317_7
+
+Rotamer 1
+VAL ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -12.4038625018
+
+A277_6
+
+Rotamer 1
+ILE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   0.647864068981
+
+A32_1
+
+Rotamer 1
+TRP ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -4.67652571665
+
+A43_1
+
+Rotamer 1
+ILE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -12.5124785225
+
+A166_4
+
+Rotamer 1
+PHE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -10.2371085393
+
+A70_2
+
+Rotamer 1
+TYR ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   1.54456782499
+
+A115_3
+
+Rotamer 1
+LEU ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -15.7027541194
+
+A86_2
+
+Rotamer 1
+VAL ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -21.660311083
+
+A34_1
+
+Rotamer 1
+VAL ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -6.4277447445
+
+A124_3
+
+Rotamer 1
+LEU ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -16.6918787816
+
+A36_1
+
+Rotamer 1
+MET ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -12.6621582828
+
+A71_2
+
+Rotamer 1
+PHE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -13.8283104189
+
+A201_5
+
+Rotamer 1
+ILE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -7.68043568114
+
+A222_5
+
+Rotamer 1
+VAL ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -10.1959784425
+
+A45_1
+
+Rotamer 1
+LEU ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -10.3047937705
+
+A199_5
+
+Rotamer 1
+TYR ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   0.757241102989
+
+A218_5
+
+Rotamer 1
+VAL ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -13.6279031137
+
+A157_4
+
+Rotamer 1
+VAL ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -20.6027709808
+
+A209_5
+
+Rotamer 1
+TYR ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -9.5817641946
+
+A160_4
+
+Rotamer 1
+VAL ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -19.8260312671
+
+A163_4
+
+Rotamer 1
+LEU ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -12.2426081669
+
+A292_6
+
+Rotamer 1
+VAL ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -13.7298679995
+
+A325_7
+
+Rotamer 1
+ILE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -8.17361059559
+
+A287_6
+
+Rotamer 1
+LEU ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -12.1850044076
+
+A289_6
+
+Rotamer 1
+PHE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -18.8355806659
+
+A169_4
+
+Rotamer 1
+ILE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -19.2323516542
+
+A132_3
+
+Rotamer 1
+TYR ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -13.3438689706
+
+A40_1
+
+Rotamer 1
+MET ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -13.4880448502
+
+A129_3
+
+Rotamer 1
+VAL ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -16.4775245857
+
+A39_1
+
+Rotamer 1
+VAL ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -11.4636982025
+
+A75_2
+
+Rotamer 1
+LEU ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -16.6149544572
+
+A127_3
+
+Rotamer 1
+ILE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -17.5685887356
+
+A282_6
+
+Rotamer 1
+PHE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -19.0557371367
+
+A54_1
+
+Rotamer 1
+VAL ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -16.3399313702
+
+A210_5
+
+Rotamer 1
+VAL ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -12.0726620509
+
+A80_2
+
+Rotamer 1
+LEU ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -17.5955499533
+
+A84_2
+
+Rotamer 1
+LEU ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -10.0217434024
+
+A48_1
+
+Rotamer 1
+VAL ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -15.7019831193
+
+A121_3
+
+Rotamer 1
+ILE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -23.6472151856
+
+A290_6
+
+Rotamer 1
+PHE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -18.6915698463
+
+A284_6
+
+Rotamer 1
+LEU ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -10.9081156531
+
+A82_2
+
+Rotamer 1
+MET ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -24.8864881817
+
+A321_7
+
+Rotamer 1
+PHE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -16.2259030087
+
+A308_7
+
+Rotamer 1
+TYR ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -5.67179251381
+
+A313_7
+
+Rotamer 1
+TRP ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -16.9942159875
+
+A216_5
+
+Rotamer 1
+VAL ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -13.6777518551
+
+A159_4
+
+Rotamer 1
+ILE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -14.4985803013
+
+A31_1
+
+Rotamer 1
+VAL ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -5.94402235185
+
+A215_5
+
+Rotamer 1
+MET ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -21.9883848134
+
+A67_2
+
+Rotamer 1
+VAL ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   2.957352347
+
+A310_7
+
+Rotamer 1
+LEU ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -12.4993207976
+
+A108_3
+
+Rotamer 1
+PHE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -12.5717035208
+
+A135_3
+
+Rotamer 1
+ILE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -12.9629552354
+
+A171_4
+
+Rotamer 1
+MET ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -13.6028776607
+
+A87_2
+
+Rotamer 1
+VAL ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -20.9490871291
+
+A316_7
+
+Rotamer 1
+TYR ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -21.1477295726
+
+A213_5
+
+Rotamer 1
+VAL ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -15.1322404478
+
+A133_3
+
+Rotamer 1
+PHE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -13.2849814785
+
+A33_1
+
+Rotamer 1
+VAL ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -15.1658210213
+
+A152_4
+
+Rotamer 1
+VAL ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -3.42795930129
+
+A278_6
+
+Rotamer 1
+ILE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -18.3325330963
+
+A95_2
+
+Rotamer 1
+LEU ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -15.0988929302
+
+A114_3
+
+Rotamer 1
+VAL ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -15.6705881034
+
+A89_2
+
+Rotamer 1
+PHE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -12.6979012982
+
+A219_5
+
+Rotamer 1
+TYR ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -20.4771230602
+
+A154_4
+
+Rotamer 1
+ILE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -14.1001580311
+
+A105_3
+
+Rotamer 1
+TRP ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -4.46386168282
+
+A44_1
+
+Rotamer 1
+VAL ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -18.0438172809
+
+A156_4
+
+Rotamer 1
+MET ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -19.1706665342
+
+A117_3
+
+Rotamer 1
+VAL ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -23.4106639632
+
+A208_5
+
+Rotamer 1
+PHE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -21.1467566069
+
+A42_1
+
+Rotamer 1
+LEU ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -13.3807246542
+
+A307_7
+
+Rotamer 1
+VAL ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -10.4294948177
+
+A167_4
+
+Rotamer 1
+LEU ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -3.86267606891
+
+A223_5
+
+Rotamer 1
+PHE ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -5.1797401406
+
+A272_6
+
+Rotamer 1
+LEU ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -4.95571984207
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Initializing Data Structure for Dynamic Memory Data Structures. 
+Done sorting All Rotamer Libraries by their Empty Lattice Energies!
+Maximum number of excited rotamer configurations: 1
+Done initializing Data structures for Dynamic Memory Energy Excitation Scheme Calculation.
+Start Clash Resolution (or DeterministicClashEliminationWithSnapshotField)
+Doing ClusteringThenDoubletsThenSinglets!
+Initializing Data Structure for Dynamic Memory Data Structures. 
+Done sorting All Rotamer Libraries by their Empty Lattice Energies!
+Maximum number of excited rotamer configurations: 1
+Done initializing Data structures for Dynamic Memory Energy Excitation Scheme Calculation.
+------------------------------------
+Number of Clashes identified: 0
+All ground state clashes eliminated!
+Clash resolution finished!
++++++++++++++++++++++++++++++++++++++++++++++++
+Doing SCREAM doublet excitation.
+No further clashes needed to be resolved by doublet excitation.
+Starting round  1  of deterministicClashEliminationWithSnapshotField procedure.
+Calculating all interaction energies before this round begins:
+No Clashes identified in this round.
+No Polar Optimization/Surface Residues definitions given.  Proceeding.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Solving rest of protein.
+End round  1  of deterministicClashEliminationWithSnapshotField procedure.
+Initializing Data Structure for Dynamic Memory Data Structures. 
+Done sorting All Rotamer Libraries by their Empty Lattice Energies!
+Maximum number of excited rotamer configurations: 1
+Done initializing Data structures for Dynamic Memory Energy Excitation Scheme Calculation.
+ClashCollection Added.
+Starting HBNetworkOptimization!
+Done HBNetworkOptimization.
+before
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+SCREAM all done!  Exiting.
+Destroying ScreamModel! 
+THIS LINE INDICATES YOU USED THE GRIFFITH SCREAM VERSION
+ScreamModel destroyed.

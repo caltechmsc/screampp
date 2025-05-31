@@ -1,0 +1,27 @@
+            InputFileName beta2.cau.bgf
+        MutateResidueInfo T118_C W286_C W109_C F290_C Y308_C F208_C V86_C S204_C N312_C M82_C T195_C A200_C D113_C N293_C Y316_C H93_C Y199_C F289_C S203_C T110_C V114_C F193_C S207_C V117_C 
+    AdditionalLibraryInfo 
+                  Library V05
+          PlacementMethod CreateCB
+       CreateCBParameters 1.81 51.1 1.55 0.5
+  UseScreamEnergyFunction YES
+           UseDeltaMethod FULL
+    UseDeltaForInterResiE YES
+       UseAsymmetricDelta YES
+           FlatDeltaValue 0.000000
+        DeltaStandardDevs 0.000000
+   InnerWallScalingFactor 0.000000
+  MultiplePlacementMethod ClusteringThenDoubletsThenSinglets
+     CBGroundSpectrumCalc YES
+      KeepOriginalRotamer NO
+       OneEnergyFFParFile /project/Biogroup/Software/scream3//lib/ff/dreiding-0.3.par
+             DeltaParFile /project/Biogroup/Software/scream3//lib/delta/SCREAM_delta_Total_Min.par
+        EachAtomDeltaFile /project/Biogroup/Software/scream3//lib/delta/SCREAM_EachAtomDeltaFileStub.par
+PolarOptimizationExclusions /project/Biogroup/Software/scream3//lib/delta/SCREAM_PolarOptimizationExclusionsStub.par
+                 LJOption 12-6
+              CoulombMode Normal
+               Dielectric 2.5
+               Selections 1
+   AbsStericClashCutoffEL 999999999
+  StericClashCutoffEnergy 250
+    StericClashCutoffDist 0.5

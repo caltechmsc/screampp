@@ -1,0 +1,27 @@
+            InputFileName beta2.bgf
+        MutateResidueInfo D113_3 S203_5 S207_5 H269_6 
+    AdditionalLibraryInfo 
+                  Library V10
+          PlacementMethod CreateCB
+       CreateCBParameters 1.81 51.1 1.55 0.5
+  UseScreamEnergyFunction YES
+           UseDeltaMethod FULL
+    UseDeltaForInterResiE YES
+       UseAsymmetricDelta YES
+           FlatDeltaValue 0.000000
+        DeltaStandardDevs 0.000000
+   InnerWallScalingFactor 0.000000
+  MultiplePlacementMethod ClusteringThenDoubletsThenSinglets
+     CBGroundSpectrumCalc YES
+      KeepOriginalRotamer NO
+       OneEnergyFFParFile /project/Biogroup/Software/scream3//lib/ff/dreiding-0.3.par
+             DeltaParFile /project/Biogroup/Software/scream3//lib/delta/SCREAM_delta_Total_Min.par
+        EachAtomDeltaFile /project/Biogroup/Software/scream3//lib/delta/SCREAM_EachAtomDeltaFileStub.par
+PolarOptimizationExclusions /project/Biogroup/Software/scream3//lib/delta/SCREAM_PolarOptimizationExclusionsStub.par
+                 LJOption 12-6
+              CoulombMode Normal
+               Dielectric 2.5
+               Selections 1
+   AbsStericClashCutoffEL 999999999
+  StericClashCutoffEnergy 250
+    StericClashCutoffDist 0.5

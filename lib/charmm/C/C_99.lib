@@ -1,0 +1,36 @@
+REM C rotamer 1 (original SCWRL numbering is 1)
+REM energy 2.640 0.079 0.696 0.029 0.000 0.000 1.837 0.000 0.000 
+REM library_name SCWRL
+ATOM       1  N    CYS A    1   -0.89900   0.77200   0.72100 N_R    4 0 -0.47000
+ATOM       2  CA   CYS A    1    0.00000   0.00000   0.00000 C_3    4 0  0.07000
+ATOM       3 HCA   CYS A    1   -0.53859  -0.89038  -0.32441 H_     1 0  0.09000
+ATOM       4  C    CYS A    1    1.18400  -0.39300   0.73400 C_R    3 0  0.51000
+ATOM       5  CB   CYS A    1    0.27800   0.66300  -1.35900 C_3    4 0 -0.11000
+ATOM       6 HCB   CYS A    1   -0.66835   0.79658  -1.88309 H_     1 0  0.09000
+ATOM       7 HCB   CYS A    1    0.92659   0.00851  -1.94130 H_     1 0  0.09000
+ATOM       8  SG   CYS A    1    1.07670   2.26358  -1.14426 S_3    2 2 -0.23000
+ATOM       9 HSG   CYS A    1    0.12108   2.82155  -0.35357 H___A  1 0  0.16000
+REM C rotamer 2 (original SCWRL numbering is 2)
+REM energy 2.708 0.067 0.669 0.020 0.000 0.000 1.952 0.000 0.000 
+REM library_name SCWRL
+ATOM       1  N    CYS A    1   -0.89900   0.77200   0.72100 N_R    4 0 -0.47000
+ATOM       2  CA   CYS A    1    0.00000   0.00000   0.00000 C_3    4 0  0.07000
+ATOM       3 HCA   CYS A    1   -0.53859  -0.89038  -0.32441 H_     1 0  0.09000
+ATOM       4  C    CYS A    1    1.18400  -0.39300   0.73400 C_R    3 0  0.51000
+ATOM       5  CB   CYS A    1    0.27800   0.66300  -1.35900 C_3    4 0 -0.11000
+ATOM       6 HCB   CYS A    1    0.73631   1.63670  -1.18590 H_     1 0  0.09000
+ATOM       7 HCB   CYS A    1   -0.66816   0.79492  -1.88387 H_     1 0  0.09000
+ATOM       8  SG   CYS A    1    1.38232  -0.35153  -2.35755 S_3    2 2 -0.23000
+ATOM       9 HSG   CYS A    1    2.40577  -0.41239  -1.46391 H___A  1 0  0.16000
+REM C rotamer 3 (original SCWRL numbering is 3)
+REM energy 2.511 0.088 0.527 0.168 0.000 0.000 1.729 0.000 0.000 
+REM library_name SCWRL
+ATOM       1  N    CYS A    1   -0.89900   0.77200   0.72100 N_R    4 0 -0.47000
+ATOM       2  CA   CYS A    1    0.00000   0.00000   0.00000 C_3    4 0  0.07000
+ATOM       3 HCA   CYS A    1   -0.53859  -0.89038  -0.32441 H_     1 0  0.09000
+ATOM       4  C    CYS A    1    1.18400  -0.39300   0.73400 C_R    3 0  0.51000
+ATOM       5  CB   CYS A    1    0.27800   0.66300  -1.35900 C_3    4 0 -0.11000
+ATOM       6 HCB   CYS A    1    1.04786   0.09058  -1.87645 H_     1 0  0.09000
+ATOM       7 HCB   CYS A    1    0.63463   1.67843  -1.18634 H_     1 0  0.09000
+ATOM       8  SG   CYS A    1   -1.21320   0.71379  -2.36877 S_3    2 2 -0.23000
+ATOM       9 HSG   CYS A    1   -1.46658  -0.62241  -2.35851 H___A  1 0  0.16000

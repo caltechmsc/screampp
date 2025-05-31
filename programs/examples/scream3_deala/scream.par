@@ -1,0 +1,27 @@
+            InputFileName beta2.ala.bgf
+        MutateResidueInfo V31_1 W32_1 V33_1 V34_1 M36_1 I38_1 V39_1 M40_1 L42_1 I43_1 V44_1 L45_1 I47_1 V48_1 F49_1 V52_1 L53_1 V54_1 I55_1 I58_1 V67_2 Y70_2 F71_2 I72_2 L75_2 L80_2 V81_2 M82_2 L84_2 V86_2 V87_2 F89_2 I94_2 L95_2 F104_3 W105_3 F108_3 W109_3 I112_3 V114_3 L115_3 V117_3 I121_3 L124_3 V126_3 I127_3 V129_3 Y132_3 F133_3 I135_3 V152_4 I153_4 I154_4 L155_4 M156_4 V157_4 W158_4 I159_4 V160_4 L163_4 F166_4 L167_4 I169_4 M171_4 Y199_5 I201_5 I205_5 F208_5 Y209_5 V210_5 L212_5 V213_5 I214_5 M215_5 V216_5 F217_5 V218_5 Y219_5 V222_5 F223_5 L272_6 L275_6 I277_6 I278_6 M279_6 F282_6 L284_6 W286_6 L287_6 F289_6 F290_6 I291_6 V292_6 I294_6 V295_6 V297_6 I298_6 V307_7 Y308_7 I309_7 L310_7 L311_7 W313_7 I314_7 Y316_7 V317_7 F321_7 L324_7 I325_7 
+    AdditionalLibraryInfo 
+                  Library V05
+          PlacementMethod CreateCB
+       CreateCBParameters 1.81 51.1 1.55 0.5
+  UseScreamEnergyFunction YES
+           UseDeltaMethod FULL
+    UseDeltaForInterResiE YES
+       UseAsymmetricDelta YES
+           FlatDeltaValue 0.000000
+        DeltaStandardDevs 0.000000
+   InnerWallScalingFactor 0.000000
+  MultiplePlacementMethod ClusteringThenDoubletsThenSinglets
+     CBGroundSpectrumCalc YES
+      KeepOriginalRotamer NO
+       OneEnergyFFParFile /project/Biogroup/Software/scream3//lib/ff/dreiding-0.3.par
+             DeltaParFile /project/Biogroup/Software/scream3//lib/delta/SCREAM_delta_Total_Min.par
+        EachAtomDeltaFile /project/Biogroup/Software/scream3//lib/delta/SCREAM_EachAtomDeltaFileStub.par
+PolarOptimizationExclusions /project/Biogroup/Software/scream3//lib/delta/SCREAM_PolarOptimizationExclusionsStub.par
+                 LJOption 12-6
+              CoulombMode Normal
+               Dielectric 2.5
+               Selections 1
+   AbsStericClashCutoffEL 999999999
+  StericClashCutoffEnergy 250
+    StericClashCutoffDist 0.5

@@ -1,0 +1,431 @@
+AssignProteinCharges :: Using charmm charges
+ - beta2.bgf --> beta2.bgf
+SCREAM_NEW     = /project/Biogroup/Software/scream3/
+SCREAM_NEW_LIB = /project/Biogroup/Software/scream3//lib/charmm/
+SCREAM_NEW_CNN = /project/Biogroup/Software/scream3//lib/cnn/
+SCREAM_NEW_RTF = /project/Biogroup/Software/scream3//lib/rft/
+SCREAM_NEW_CHG = charmm
+
+InputFileName           beta2.bgf
+MutateResidueInfo       D113_3 S203_5 S207_5 H269_6 
+AdditionalLibraryInfo   
+Library                 V10
+PlacementMethod         CreateCB
+CreateCBParameters      1.81 51.1 1.55 0.5 
+UseScreamEnergyFunction YES
+UseDeltaMethod          FULL
+UseRotamerNeighborList  NO
+UseAsymmetricDelta      YES
+UseDeltaForInterResiE   YES
+FlatDeltaValue          0
+DeltaStandardDevs       0
+InnerWallScalingFactor  0
+NonPolarHCalc           YES
+ScoringFunction         
+OneEnergyFFParFile      /project/Biogroup/Software/scream3//lib/ff/dreiding-0.3.par
+DeltaParFile            /project/Biogroup/Software/scream3//lib/delta/SCREAM_delta_Total_Min.par
+EachAtomDeltaFile       /project/Biogroup/Software/scream3//lib/delta/SCREAM_EachAtomDeltaFileStub.par
+PolarOptimizationExclusions /project/Biogroup/Software/scream3//lib/delta/SCREAM_PolarOptimizationExclusionsStub.par
+LJOption                12-6
+CoulombMode             Normal
+Dielectric              2.5
+MultiplePlacementMethod ClusteringThenDoubletsThenSinglets
+CBGroundSpectrumCalc    YES
+Selections              1
+MaxSearchNumber         99999999
+AbsStericClashCutoffEL  1e+09
+StericClashCutoffEnergy 250
+StericClashCutoffDist   0.5
+MaxFinalStepRunTime     36000
+LibPath                 
+Verbosity               0
+DesignPositionAndClass  
+DesignAAClassDefns      
+JustOutputSequence      NO
+BindingSiteMode         
+FixedResidues           
+AroundAtom              
+AroundResidue           
+AroundChain             
+AroundDistance          4
+AroundDistanceDefn      SideChainOnly
+
+Number of atoms in system: 3410
+Total atoms in this system: 3410
+adding new component...
+Added new chain... 
+adding new component...
+Added new chain... 
+adding new component...
+Added new chain... 
+adding new component...
+Added new chain... 
+adding new component...
+Added new chain... 
+adding new component...
+Added new chain... 
+Initializing chain...
+New SCREAM Chain Initialized... 
+New Protein created with 7 components.
+THIS LINE INDICATES YOU USED THE GRIFFITH SCREAM VERSION
+D113_3
+S203_5
+S207_5
+H269_6
+Total Number of Libraries loaded:  4
+Delta value updated for 0 atoms.
+##################################
+Calculating Empty Lattice Energies
+Method used:  FULL
+##################################
+
+D113_3
+
+Rotamer 1
+Total:   6876.63314588
+
+Rotamer 2
+Total:   5.60408574203
+
+Rotamer 3
+Total:   300.874072414
+
+Rotamer 4
+Total:   143.134121896
+
+Rotamer 5
+Total:   4.11178966226
+
+Rotamer 6
+Total:   169.23154427
+
+Rotamer 7
+Total:   26.5643392036
+
+Rotamer 8
+Total:   257.436188579
+
+Rotamer 9
+Total:   8.84701168484
+
+Rotamer 10
+Total:   3550.15105362
+
+Rotamer 11
+Total:   69.5332132191
+
+Rotamer 12
+Total:   28.6089160901
+
+Rotamer 13
+Total:   18.069085452
+
+Rotamer 14
+Total:   1033.27301112
+
+Rotamer 15
+Total:   103.466023297
+
+S207_5
+
+Rotamer 1
+Total:   4.66187693315
+
+Rotamer 2
+Total:   4.91561653243
+
+Rotamer 3
+Total:   -1.25616332773
+
+Rotamer 4
+Total:   7.37567551224
+
+Rotamer 5
+Total:   6.71894279252
+
+Rotamer 6
+Total:   7.41646887227
+
+Rotamer 7
+Total:   -5.67463984277
+
+Rotamer 8
+Total:   -4.76163017735
+
+Rotamer 9
+Total:   -3.86272906043
+
+H269_6
+
+Rotamer 1
+HSE ==> HIS Mutation! 
+Total:   22.9743073243
+
+Rotamer 2
+Total:   27.6231323093
+
+Rotamer 3
+Total:   3.35065911885
+
+Rotamer 4
+Total:   17.2882471432
+
+Rotamer 5
+Total:   5.33574429684
+
+Rotamer 6
+Total:   24.4027167609
+
+Rotamer 7
+Total:   17.4854323233
+
+Rotamer 8
+Total:   16.1200444911
+
+Rotamer 9
+Total:   741.887716936
+
+Rotamer 10
+Total:   7.47287306262
+
+Rotamer 11
+Total:   16.014160462
+
+Rotamer 12
+Total:   16.8380162716
+
+Rotamer 13
+Total:   27.858643687
+
+Rotamer 14
+Total:   18.8641838917
+
+Rotamer 15
+Total:   18.0570549373
+
+Rotamer 16
+Total:   11.0899891336
+
+Rotamer 17
+Total:   17.2014562541
+
+Rotamer 18
+Total:   38.2575169393
+
+Rotamer 19
+Total:   29.1170900614
+
+Rotamer 20
+Total:   22.1236398678
+
+Rotamer 21
+Total:   27.5387370039
+
+Rotamer 22
+Total:   392.95520709
+
+Rotamer 23
+Total:   32.6747927107
+
+Rotamer 24
+Total:   67.0665257638
+
+Rotamer 25
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   15.0375903844
+
+Rotamer 26
+Total:   14.9767324149
+
+Rotamer 27
+Total:   25.4455654507
+
+Rotamer 28
+Total:   15.0265621223
+
+Rotamer 29
+Total:   7.59381783281
+
+Rotamer 30
+Total:   8.19616077357
+
+Rotamer 31
+Total:   6.72470445417
+
+Rotamer 32
+Total:   8.18091575811
+
+Rotamer 33
+Total:   733.352625424
+
+Rotamer 34
+Total:   21.5884666206
+
+Rotamer 35
+Total:   18.2297200916
+
+Rotamer 36
+Total:   16.8359024751
+
+Rotamer 37
+Total:   10.2737900293
+
+Rotamer 38
+Total:   37.3105500028
+
+Rotamer 39
+Total:   24.3982853957
+
+Rotamer 40
+Total:   25.0278791395
+
+Rotamer 41
+Total:   19.7004036863
+
+Rotamer 42
+Total:   20.141997241
+
+Rotamer 43
+Total:   4.31897414475
+
+Rotamer 44
+Total:   15.8962969059
+
+Rotamer 45
+Total:   17.9296297913
+
+Rotamer 46
+Total:   440.951444999
+
+Rotamer 47
+Total:   12.8854386754
+
+Rotamer 48
+Total:   55.8614783339
+
+S203_5
+
+Rotamer 1
+Total:   2.36148719093
+
+Rotamer 2
+Total:   4.27395528239
+
+Rotamer 3
+Total:   -2.03771384569
+
+Rotamer 4
+Total:   0.859576024279
+
+Rotamer 5
+Total:   -3.80587417589
+
+Rotamer 6
+Total:   -2.35082681
+
+Rotamer 7
+Total:   -4.02633584285
+
+Rotamer 8
+Total:   0.100405724178
+
+Rotamer 9
+Total:   -2.90334472202
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Initializing Data Structure for Dynamic Memory Data Structures. 
+Done sorting All Rotamer Libraries by their Empty Lattice Energies!
+Maximum number of excited rotamer configurations: 42768
+Done initializing Data structures for Dynamic Memory Energy Excitation Scheme Calculation.
+Start Clash Resolution (or DeterministicClashEliminationWithSnapshotField)
+Doing ClusteringThenDoubletsThenSinglets!
+Initializing Data Structure for Dynamic Memory Data Structures. 
+Done sorting All Rotamer Libraries by their Empty Lattice Energies!
+Maximum number of excited rotamer configurations: 35640
+Done initializing Data structures for Dynamic Memory Energy Excitation Scheme Calculation.
+------------------------------------
+HSE ==> HIS Mutation! 
+Number of Clashes identified: 0
+All ground state clashes eliminated!
+Clash resolution finished!
++++++++++++++++++++++++++++++++++++++++++++++++
+Doing SCREAM doublet excitation.
+No further clashes needed to be resolved by doublet excitation.
+Starting round  1  of deterministicClashEliminationWithSnapshotField procedure.
+Calculating all interaction energies before this round begins:
+No Clashes identified in this round.
+No Polar Optimization/Surface Residues definitions given.  Proceeding.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Solving rest of protein.
+HIS ==> HSE Mutation! 
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+End round  1  of deterministicClashEliminationWithSnapshotField procedure.
+Initializing Data Structure for Dynamic Memory Data Structures. 
+Done sorting All Rotamer Libraries by their Empty Lattice Energies!
+Maximum number of excited rotamer configurations: 35640
+Done initializing Data structures for Dynamic Memory Energy Excitation Scheme Calculation.
+ClashCollection Added.
+Starting HBNetworkOptimization!
+Done HBNetworkOptimization.
+before
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+SCREAM all done!  Exiting.
+Destroying ScreamModel! 
+THIS LINE INDICATES YOU USED THE GRIFFITH SCREAM VERSION
+ScreamModel destroyed.

@@ -1,0 +1,17 @@
+# Max reach starts from the CB atom.  Except for Y: starts from OH.  which is just 0 + 1.4 = 1.4.
+# Crude estimate: CB dist to further heavy polar atom, + half a HB distance, i.e. about 1.4
+# TYR: 5.6+1.4 = 7.0 if CB to OH.
+# Second and Third fields: defines "direction" of the rotamer.  If left out, for arbitrary rotamer libraries.
+SER 2.8 CA CB 
+THR 2.8 CA CB 
+CYS 3.2 CA CB 
+ASP 3.8 CA CB 
+GLU 4.9 CA CB 
+HIS 5.0 CA CB 
+HSE 5.0 CA CB 
+HSP 5.0 CA CB 
+LYS 6.4 CA CB 
+ASN 3.8 CA CB 
+GLN 4.9 CA CB 
+ARG 7.4 CA CB 
+TYR 1.4 CZ OH 

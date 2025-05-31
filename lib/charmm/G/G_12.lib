@@ -1,0 +1,10 @@
+REM G rotamer 1 (original sorted energy numbering is 1)
+REM energy 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 
+REM library_name 12
+ATOM       1  N    GLY A    1   -1.01900   0.54552  -0.85324 N_R    3 0 -0.47000
+ATOM       2  CA   GLY A    1    0.00000   0.00000   0.00000 C_3    4 0 -0.02000
+ATOM       3 HCA   GLY A    1   -0.37470  -0.90920   0.48219 H_     1 0  0.09000
+ATOM       4 HCA   GLY A    1    0.89152  -0.21484  -0.58998 H_     1 0  0.09000
+ATOM       5  C    GLY A    1    0.36247   0.96308   1.08277 C_R    3 0  0.51000
+PHI         -91.9284068034865
+PSI         90.0666945690303

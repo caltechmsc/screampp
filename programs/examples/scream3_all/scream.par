@@ -1,0 +1,27 @@
+            InputFileName beta2_tm1_tm2.bgf
+        MutateResidueInfo E30_1 V31_1 W32_1 V33_1 V34_1 M36_1 I38_1 V39_1 M40_1 S41_1 L42_1 I43_1 V44_1 L45_1 I47_1 V48_1 F49_1 N51_1 V52_1 L53_1 V54_1 I55_1 T56_1 I58_1 K60_1 V67_2 T68_2 N69_2 Y70_2 F71_2 I72_2 T73_2 S74_2 L75_2 C77_2 D79_2 L80_2 V81_2 M82_2 L84_2 V86_2 V87_2 F89_2 H93_2 I94_2 L95_2 M96_2 
+    AdditionalLibraryInfo 
+                  Library V05
+          PlacementMethod CreateCB
+       CreateCBParameters 1.81 51.1 1.55 0.5
+  UseScreamEnergyFunction YES
+           UseDeltaMethod FULL
+    UseDeltaForInterResiE YES
+       UseAsymmetricDelta YES
+           FlatDeltaValue 0.000000
+        DeltaStandardDevs 0.000000
+   InnerWallScalingFactor 0.000000
+  MultiplePlacementMethod ClusteringThenDoubletsThenSinglets
+     CBGroundSpectrumCalc YES
+      KeepOriginalRotamer NO
+       OneEnergyFFParFile /project/Biogroup/Software/scream3//lib/ff/dreiding-0.3.par
+             DeltaParFile /project/Biogroup/Software/scream3//lib/delta/SCREAM_delta_Total_Min.par
+        EachAtomDeltaFile /project/Biogroup/Software/scream3//lib/delta/SCREAM_EachAtomDeltaFileStub.par
+PolarOptimizationExclusions /project/Biogroup/Software/scream3//lib/delta/SCREAM_PolarOptimizationExclusionsStub.par
+                 LJOption 12-6
+              CoulombMode Normal
+               Dielectric 2.5
+               Selections 1
+   AbsStericClashCutoffEL 999999999
+  StericClashCutoffEnergy 250
+    StericClashCutoffDist 0.5

@@ -1,0 +1,10 @@
+#PBS -l nodes=1:ppn=1,mem=1gb,walltime=48:00:00
+#PBS -q workq
+#PBS -j oe
+#PBS -N scream3_deala
+#PBS -m e
+#!/bin/csh
+
+cd $PBS_O_WORKDIR
+
+../../scream3_deala.pl -a beta2.ala.bgf -r beta2.bgf

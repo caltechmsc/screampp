@@ -1,0 +1,144 @@
+mak
+compilation of vmd on ubuntu
+
+hive:
+-----------------------------
+older info at
+http://www.ks.uiuc.edu/Research/vmd/mailing_list/vmd-l/17060.html
+
+HIVE:
+tcl is version 8.4 which should be fine
+FLTK installing myself
+  ./configure --prefix=/project/Biogroup/Software/lammps/64 --enable-shared
+  make
+  make install
+opengl is in /usr/lib and usr/include/GL    ?libglu1
+netcdf
+  ./configure --prefix=/project/Biogroup/Software/lammps/64 --disable-netcdf-4 --disable-dap --enable-shared
+  make check install
+skipping babel
+
+will use binary provided with binary VMD distribution
+surf
+stride
+tachyon
+i.e. copy surf_LINUXAMD64 to the lib directory
+
+need to compile
+ACTC
+tachyon library
+
+plugins
+-----------------------------
+http://www.ks.uiuc.edu/Research/vmd/plugins/doxygen/compiling.html
+
+in the plugin source directory:
+Modify Make-arch to use libtcl8.4 not libtcl8.5
+
+make clean
+setenv NETCDFINC -I/project/Biogroup/Software/lammps/64/include
+setenv NETCDFLIB -L/project/Biogroup/Software/lammps/64/lib
+make LINUXAMD64 NETCDFINC=$NETCDFINC NETCDFLIB=$NETCDFLIB
+
+setenv PLUGINDIR $biosoft/lammps/vmd-1.9/plugins
+make distrib
+
+tachyon
+--------------------------------
+http://jedi.ks.uiuc.edu/~johns/raytracer/files/
+in tachyon/unix
+add -fPIC option to CFLAG in Make-arch:
+modify LINUX_GLX_LIBS in Make-opengl to point to /usr/X11R6/lib64
+
+make linux-64-thr-ogl
+
+cp src/tachyon.h, util.h, hash.h, tachyon_dev.h   vmd-1.9/lib/tachyon/include
+cp tachyon/compile/linux-64-thr-ogl/libtachyon.a vmd-1.9/lib/tachyon/lib_LINUXAMD64/libtachyon.a
+
+copy the binary to vmd-1.9/lib/tachyon/tachyon_LINUXAMD64
+(or can use hte stock vmd binary)
+
+actc
+------------------------------
+http://www.plunk.org/~grantham/public/actc/
+just download the package, extract
+modify the compile options to:
+
+CFLAGS=-fPIC -Wall -O6 -malign-loops=4 -malign-jumps=4 $(DEBUG)
+(fPIC is important for later including this into the shared library)
+
+cp tc.h to vmd1.9/lib/actc/include/tc.h
+cp libactc.a to vmd1.9/lib/actc/lib_LINUXAMD64/libactc.a
+
+
+vmd
+-------------------------
+http://www.ks.uiuc.edu/Research/vmd/doxygen/compiling.html
+
+in the vmd source directory:
+make linux.amd64.opengl
+
+produced configure.options
+LINUXAMD64 OPENGL FLTK TK ACTC CUDA IMD LIBSBALL XINERAMA XINPUT LIBTACHYON VRPN NETCDF TCL PYTHON PTHREADS NUMPY SILENT
+modify to:
+LINUXAMD64 OPENGL FLTK TK ACTC IMD LIBTACHYON NETCDF TCL PYTHON PTHREADS NUMPY SILENT SHARED
+note: cannot use the same director ystructure to compile the shared library and the binary (not sure why, since almost all the files are the same)
+
+modify configure file:
+
+modify the configure script:
+----------------------------
+set the installation directory: $VASEKINSTALL/vmd
+
+$fltk_dir         = "$ENV{VASEKINSTALL}";
+$fltk_library     = "-L$fltk_dir/lib";
+
+$netcdf_dir         = "$ENV{VASEKINSTALL}";
+$netcdf_library     = "-L$netcdf_dir/lib";
+
+$stock_tcl_include_dir=$ENV{"TCL_INCLUDE_DIR"} || "/usr/include";
+$stock_tcl_library_dir=$ENV{"TCL_LIBRARY_DIR"} || "/usr/lib";
+
+$stock_tk_include_dir=$ENV{"TK_INCLUDE_DIR"} || "/usr/include";
+$stock_tk_library_dir=$ENV{"TK_LIBRARY_DIR"} || "/usr/lib";
+
+tcl version 8.4 (not 8.5) at multiple places in the script
+
+$stock_python_include_dir=$ENV{"PYTHON_INCLUDE_DIR"} || "/exec/python/pythonEPD-6.3-2-rh3-x86_64/include/python2.6";
+$stock_python_library_dir=$ENV{"PYTHON_LIBRARY_DIR"} || "/exec/python/pythonEPD-6.3-2-rh3-x86_64/lib";
+
+$stock_numpy_include_dir=$ENV{"NUMPY_INCLUDE_DIR"} || "/exec/python/pythonEPD-6.3-2-rh3-x86_64/lib/python2.6/site-packages/numpy/core/include";
+$stock_numpy_library_dir=$ENV{"NUMPY_LIBRARY_DIR"} || "/exec/python/pythonEPD-6.3-2-rh3-x86_64/lib/python2.6/site-packages/numpy";
+
+$python_libs        = "-lpython2.6 -lpthread";
+
+
+I have also added the debugging flag.
+
+and type ./configure
+
+modify src/py_vmd.C
+----------------------------
+  char **vasek = argv; //vcvicek
+//vcvicek  if (!VMDinitialize(&argc, (char ***) &argv)) {
+  if (!VMDinitialize(&argc, &vasek)) { //vcvicek
+    return;
+  }
+
+
+cd src
+make veryclean
+make
+make install
+
+finally
+---------------------------------
+copy the library vmd.so somewehre in PYTHONPATH
+copy vmd/scripts/python to vasek/pyvmd
+set the enviromental variables for vmd:
+
+load custom script vmdEnvironment in vasek/pyvmd/VMD.py
+
+note: has to run ipython with -pylab option, other wise window will not open
+
+

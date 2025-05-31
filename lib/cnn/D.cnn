@@ -1,0 +1,29 @@
+ANCHOR_INFO
+TargetRotamerLibFile    D.lib
+AnchorAtoms             2 1 4 
+SideChainAtoms          5 6 7 8 9 10 
+RotamerAxis             2 5
+MatchChirality          X
+AtomsOfExactMatch       2 
+ConnectionPointAtoms    4 5 
+END_ANCHOR_INFO
+ATOM_MAPPING
+N       1         1         
+CA      2         2         
+HCA     3         3         
+C       4         4         
+CB      5         5         
+HCB     6         6         
+HCB     7         7         
+CG      8         8         
+OD1     9         9         
+OD2     10        10        
+END_ATOM_MAPPING
+FORMAT CONECT (a6,12i6)
+CONECT     5     2     6     7     8
+CONECT     6     5
+CONECT     7     5
+CONECT     8     5     9    10
+CONECT     9     8
+CONECT    10     8
+END

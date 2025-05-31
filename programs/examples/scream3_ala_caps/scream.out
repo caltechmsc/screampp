@@ -1,0 +1,231 @@
+AssignProteinCharges :: Using charmm charges
+ - beta2.bgf --> beta2.bgf
+SCREAM_NEW     = /project/Biogroup/Software/scream3/
+SCREAM_NEW_LIB = /project/Biogroup/Software/scream3//lib/charmm/
+SCREAM_NEW_CNN = /project/Biogroup/Software/scream3//lib/cnn/
+SCREAM_NEW_RTF = /project/Biogroup/Software/scream3//lib/rft/
+SCREAM_NEW_CHG = charmm
+
+InputFileName           beta2.bgf
+MutateResidueInfo       A30_1 A60_1 A147_4 A149_4 A227_5 A228_5 A267_6 A268_6 A270_6 A305_7 A306_7 A328_7 
+AdditionalLibraryInfo   
+Library                 V10
+PlacementMethod         CreateCB
+CreateCBParameters      1.81 51.1 1.55 0.5 
+UseScreamEnergyFunction YES
+UseDeltaMethod          FULL
+UseRotamerNeighborList  NO
+UseAsymmetricDelta      YES
+UseDeltaForInterResiE   YES
+FlatDeltaValue          0
+DeltaStandardDevs       0
+InnerWallScalingFactor  0
+NonPolarHCalc           YES
+ScoringFunction         
+OneEnergyFFParFile      /project/Biogroup/Software/scream3//lib/ff/dreiding-0.3.par
+DeltaParFile            /project/Biogroup/Software/scream3//lib/delta/SCREAM_delta_Total_Min.par
+EachAtomDeltaFile       /project/Biogroup/Software/scream3//lib/delta/SCREAM_EachAtomDeltaFileStub.par
+PolarOptimizationExclusions /project/Biogroup/Software/scream3//lib/delta/SCREAM_PolarOptimizationExclusionsStub.par
+LJOption                12-6
+CoulombMode             Normal
+Dielectric              2.5
+MultiplePlacementMethod ClusteringThenDoubletsThenSinglets
+CBGroundSpectrumCalc    YES
+Selections              1
+MaxSearchNumber         99999999
+AbsStericClashCutoffEL  1e+09
+StericClashCutoffEnergy 250
+StericClashCutoffDist   0.5
+MaxFinalStepRunTime     36000
+LibPath                 
+Verbosity               0
+DesignPositionAndClass  
+DesignAAClassDefns      
+JustOutputSequence      NO
+BindingSiteMode         
+FixedResidues           
+AroundAtom              
+AroundResidue           
+AroundChain             
+AroundDistance          4
+AroundDistanceDefn      SideChainOnly
+
+Number of atoms in system: 3410
+Total atoms in this system: 3410
+adding new component...
+Added new chain... 
+adding new component...
+Added new chain... 
+adding new component...
+Added new chain... 
+adding new component...
+Added new chain... 
+adding new component...
+Added new chain... 
+adding new component...
+Added new chain... 
+Initializing chain...
+New SCREAM Chain Initialized... 
+New Protein created with 7 components.
+THIS LINE INDICATES YOU USED THE GRIFFITH SCREAM VERSION
+A30_1
+A60_1
+A147_4
+A149_4
+A227_5
+A228_5
+A267_6
+A268_6
+A270_6
+A305_7
+A306_7
+A328_7
+Total Number of Libraries loaded:  12
+Delta value updated for 0 atoms.
+##################################
+Calculating Empty Lattice Energies
+Method used:  FULL
+##################################
+
+A60_1
+
+Rotamer 1
+LYS ==> ALA Mutation! 
+Total:   -6.66181639124
+
+A268_6
+
+Rotamer 1
+GLU ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   0.951652518364
+
+A306_7
+
+Rotamer 1
+GLU ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   1.2856647724
+
+A270_6
+
+Rotamer 1
+LYS ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -0.11756418555
+
+A30_1
+
+Rotamer 1
+GLU ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   1.21631030926
+
+A305_7
+
+Rotamer 1
+LYS ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -1.03183824512
+
+A149_4
+
+Rotamer 1
+LYS ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   1.51154664941
+
+A267_6
+
+Rotamer 1
+LYS ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -3.82356130483
+
+A147_4
+
+Rotamer 1
+LYS ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   7.18629901548
+
+A228_5
+
+Rotamer 1
+ARG ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -11.2460817722
+
+A227_5
+
+Rotamer 1
+LYS ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -8.7943668654
+
+A328_7
+
+Rotamer 1
+ARG ==> ALA Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Total:   -5.46932718098
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Initializing Data Structure for Dynamic Memory Data Structures. 
+Done sorting All Rotamer Libraries by their Empty Lattice Energies!
+Maximum number of excited rotamer configurations: 1
+Done initializing Data structures for Dynamic Memory Energy Excitation Scheme Calculation.
+Start Clash Resolution (or DeterministicClashEliminationWithSnapshotField)
+Doing ClusteringThenDoubletsThenSinglets!
+Initializing Data Structure for Dynamic Memory Data Structures. 
+Done sorting All Rotamer Libraries by their Empty Lattice Energies!
+Maximum number of excited rotamer configurations: 1
+Done initializing Data structures for Dynamic Memory Energy Excitation Scheme Calculation.
+------------------------------------
+Number of Clashes identified: 0
+All ground state clashes eliminated!
+Clash resolution finished!
++++++++++++++++++++++++++++++++++++++++++++++++
+Doing SCREAM doublet excitation.
+No further clashes needed to be resolved by doublet excitation.
+Starting round  1  of deterministicClashEliminationWithSnapshotField procedure.
+Calculating all interaction energies before this round begins:
+No Clashes identified in this round.
+No Polar Optimization/Surface Residues definitions given.  Proceeding.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Solving rest of protein.
+End round  1  of deterministicClashEliminationWithSnapshotField procedure.
+Initializing Data Structure for Dynamic Memory Data Structures. 
+Done sorting All Rotamer Libraries by their Empty Lattice Energies!
+Maximum number of excited rotamer configurations: 1
+Done initializing Data structures for Dynamic Memory Energy Excitation Scheme Calculation.
+ClashCollection Added.
+Starting HBNetworkOptimization!
+Done HBNetworkOptimization.
+before
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+SCREAM all done!  Exiting.
+Destroying ScreamModel! 
+THIS LINE INDICATES YOU USED THE GRIFFITH SCREAM VERSION
+ScreamModel destroyed.

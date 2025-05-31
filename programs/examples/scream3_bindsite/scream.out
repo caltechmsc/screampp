@@ -1,0 +1,10049 @@
+AssignProteinCharges :: Using charmm charges
+ - beta2.cau.bgf --> beta2.cau.bgf
+SCREAM_NEW     = /project/Biogroup/Software/scream3/
+SCREAM_NEW_LIB = /project/Biogroup/Software/scream3//lib/charmm/
+SCREAM_NEW_CNN = /project/Biogroup/Software/scream3//lib/cnn/
+SCREAM_NEW_RTF = /project/Biogroup/Software/scream3//lib/rft/
+SCREAM_NEW_CHG = charmm
+
+InputFileName           beta2.cau.bgf
+MutateResidueInfo       T118_C W286_C W109_C F290_C Y308_C F208_C V86_C S204_C N312_C M82_C T195_C A200_C D113_C N293_C Y316_C H93_C Y199_C F289_C S203_C T110_C V114_C F193_C S207_C V117_C 
+AdditionalLibraryInfo   
+Library                 V05
+PlacementMethod         CreateCB
+CreateCBParameters      1.81 51.1 1.55 0.5 
+UseScreamEnergyFunction YES
+UseDeltaMethod          FULL
+UseRotamerNeighborList  NO
+UseAsymmetricDelta      YES
+UseDeltaForInterResiE   YES
+FlatDeltaValue          0
+DeltaStandardDevs       0
+InnerWallScalingFactor  0
+NonPolarHCalc           YES
+ScoringFunction         
+OneEnergyFFParFile      /project/Biogroup/Software/scream3//lib/ff/dreiding-0.3.par
+DeltaParFile            /project/Biogroup/Software/scream3//lib/delta/SCREAM_delta_Total_Min.par
+EachAtomDeltaFile       /project/Biogroup/Software/scream3//lib/delta/SCREAM_EachAtomDeltaFileStub.par
+PolarOptimizationExclusions /project/Biogroup/Software/scream3//lib/delta/SCREAM_PolarOptimizationExclusionsStub.par
+LJOption                12-6
+CoulombMode             Normal
+Dielectric              2.5
+MultiplePlacementMethod ClusteringThenDoubletsThenSinglets
+CBGroundSpectrumCalc    YES
+Selections              1
+MaxSearchNumber         99999999
+AbsStericClashCutoffEL  1e+09
+StericClashCutoffEnergy 250
+StericClashCutoffDist   0.5
+MaxFinalStepRunTime     36000
+LibPath                 
+Verbosity               0
+DesignPositionAndClass  
+DesignAAClassDefns      
+JustOutputSequence      NO
+BindingSiteMode         
+FixedResidues           
+AroundAtom              
+AroundResidue           
+AroundChain             
+AroundDistance          4
+AroundDistanceDefn      SideChainOnly
+
+Number of atoms in system: 7209
+Total atoms in this system: 7209
+adding new component...
+Added new chain... 
+New SCREAM Ligand Initiated... 
+New Protein created with 2 components.
+THIS LINE INDICATES YOU USED THE GRIFFITH SCREAM VERSION
+T118_C
+W286_C
+W109_C
+F290_C
+Y308_C
+F208_C
+V86_C
+S204_C
+N312_C
+M82_C
+T195_C
+A200_C
+D113_C
+N293_C
+Y316_C
+H93_C
+Y199_C
+F289_C
+S203_C
+T110_C
+V114_C
+F193_C
+S207_C
+V117_C
+Total Number of Libraries loaded:  24
+Delta value updated for 0 atoms.
+##################################
+Calculating Empty Lattice Energies
+Method used:  FULL
+##################################
+
+V86_C
+
+Rotamer 1
+Total:   1803.77693856
+
+Rotamer 2
+Total:   0.917273192181
+
+Rotamer 3
+Total:   799.434631316
+
+Rotamer 4
+Total:   1822.58683667
+
+Rotamer 5
+Total:   18.8668516478
+
+Rotamer 6
+Total:   24.3741386384
+
+Rotamer 7
+Total:   2347.15129703
+
+Rotamer 8
+Total:   76.1590241285
+
+Rotamer 9
+Total:   125.966591106
+
+Rotamer 10
+Total:   4751.86093352
+
+Rotamer 11
+Total:   3460.53668105
+
+Y199_C
+
+Rotamer 1
+Total:   21071.7186024
+
+Rotamer 2
+Total:   21070.0052708
+
+Rotamer 3
+Total:   21071.2364715
+
+Rotamer 4
+Total:   21078.3777048
+
+Rotamer 5
+Total:   6914.29580763
+
+Rotamer 6
+Total:   6915.53070109
+
+Rotamer 7
+Total:   6912.59348841
+
+Rotamer 8
+Total:   6924.59190411
+
+Rotamer 9
+Total:   1.9131025635
+
+Rotamer 10
+Total:   2.73326045663
+
+Rotamer 11
+Total:   2.25192036168
+
+Rotamer 12
+Total:   1.12948482514
+
+Rotamer 13
+Total:   156782031.181
+
+Rotamer 14
+Total:   156782031.457
+
+Rotamer 15
+Total:   156782031.68
+
+Rotamer 16
+Total:   156782031.116
+
+Rotamer 17
+Total:   185.870481341
+
+Rotamer 18
+Total:   51.5765312255
+
+Rotamer 19
+Total:   55.4222873701
+
+Rotamer 20
+Total:   52.0048509384
+
+Rotamer 21
+Total:   7643.46022069
+
+Rotamer 22
+Total:   7654.99726571
+
+Rotamer 23
+Total:   7860.99245473
+
+Rotamer 24
+Total:   7643.45136635
+
+Rotamer 25
+Total:   3218.63308884
+
+Rotamer 26
+Total:   3219.87758437
+
+Rotamer 27
+Total:   3218.43799979
+
+Rotamer 28
+Total:   3222.5562622
+
+Rotamer 29
+Total:   23.4883461225
+
+Rotamer 30
+Total:   22.6525706531
+
+Rotamer 31
+Total:   17.5101833228
+
+Rotamer 32
+Total:   24.5512463169
+
+Rotamer 33
+Total:   68155.9589839
+
+Rotamer 34
+Total:   68156.3724962
+
+Rotamer 35
+Total:   68155.6027385
+
+Rotamer 36
+Total:   68156.7639996
+
+Rotamer 37
+Total:   46252.9316538
+
+Rotamer 38
+Total:   46258.6951979
+
+Rotamer 39
+Total:   46312.2973711
+
+Rotamer 40
+Total:   46254.0935742
+
+Rotamer 41
+Total:   45576.6721311
+
+Rotamer 42
+Total:   46216.028106
+
+Rotamer 43
+Total:   45690.025477
+
+Rotamer 44
+Total:   45573.2997492
+
+Rotamer 45
+Total:   437335925.247
+
+Rotamer 46
+Total:   437335926.171
+
+Rotamer 47
+Total:   437335923.766
+
+Rotamer 48
+Total:   437335923.822
+
+Rotamer 49
+Total:   78477.6383022
+
+Rotamer 50
+Total:   78480.0707088
+
+Rotamer 51
+Total:   78474.437144
+
+Rotamer 52
+Total:   79886.1398572
+
+Rotamer 53
+Total:   688.349234122
+
+Rotamer 54
+Total:   4526.58944361
+
+Rotamer 55
+Total:   687.513518557
+
+Rotamer 56
+Total:   684.842795325
+
+Rotamer 57
+Total:   6.90079824875
+
+Rotamer 58
+Total:   2.86163514666
+
+Rotamer 59
+Total:   1.47462065185
+
+Rotamer 60
+Total:   0.595843840058
+
+Rotamer 61
+Total:   3330582.3759
+
+Rotamer 62
+Total:   3320553.54902
+
+Rotamer 63
+Total:   3310986.54541
+
+Rotamer 64
+Total:   3311306.27071
+
+Rotamer 65
+Total:   2846.14150457
+
+Rotamer 66
+Total:   2871.19044874
+
+Rotamer 67
+Total:   2861.91619011
+
+Rotamer 68
+Total:   2845.23656093
+
+Rotamer 69
+Total:   71.111005721
+
+Rotamer 70
+Total:   52.5902082965
+
+Rotamer 71
+Total:   65.2865543004
+
+Rotamer 72
+Total:   50.011265066
+
+Rotamer 73
+Total:   4.98644235127
+
+Rotamer 74
+Total:   7.6425584785
+
+Rotamer 75
+Total:   4.1937751024
+
+Rotamer 76
+Total:   3.84946878384
+
+Rotamer 77
+Total:   2176385.74123
+
+Rotamer 78
+Total:   2176387.00819
+
+Rotamer 79
+Total:   2176383.70211
+
+Rotamer 80
+Total:   2176385.96387
+
+Rotamer 81
+Total:   46592.6122711
+
+Rotamer 82
+Total:   15250.7933771
+
+Rotamer 83
+Total:   18787.6526928
+
+Rotamer 84
+Total:   15256.5508183
+
+Rotamer 85
+Total:   93.1040285186
+
+Rotamer 86
+Total:   88.5301295941
+
+Rotamer 87
+Total:   90.3932752342
+
+Rotamer 88
+Total:   88.2088748788
+
+Rotamer 89
+Total:   613861639.831
+
+Rotamer 90
+Total:   613862601.112
+
+Rotamer 91
+Total:   613864968.764
+
+Rotamer 92
+Total:   614179339.162
+
+Rotamer 93
+Total:   634753.271119
+
+Rotamer 94
+Total:   634756.772234
+
+Rotamer 95
+Total:   634751.361131
+
+Rotamer 96
+Total:   634786.095277
+
+Rotamer 97
+Total:   124683.500343
+
+Rotamer 98
+Total:   124686.55631
+
+Rotamer 99
+Total:   124694.389229
+
+Rotamer 100
+Total:   124682.606911
+
+Rotamer 101
+Total:   4328304.60838
+
+Rotamer 102
+Total:   4328205.66044
+
+Rotamer 103
+Total:   4328123.01282
+
+Rotamer 104
+Total:   4553803.31081
+
+Rotamer 105
+Total:   244310.465811
+
+Rotamer 106
+Total:   244321.30339
+
+Rotamer 107
+Total:   244289.652395
+
+Rotamer 108
+Total:   247128.964089
+
+Rotamer 109
+Total:   9.87752356145
+
+Rotamer 110
+Total:   6.3888248399
+
+Rotamer 111
+Total:   5.01223860947
+
+Rotamer 112
+Total:   4.74932637069
+
+Rotamer 113
+Total:   17.2901722744
+
+Rotamer 114
+Total:   17.4319985464
+
+Rotamer 115
+Total:   18.1780901353
+
+Rotamer 116
+Total:   14.4868618493
+
+Rotamer 117
+Total:   598911319.52
+
+Rotamer 118
+Total:   598907813.744
+
+Rotamer 119
+Total:   598907808.165
+
+Rotamer 120
+Total:   598907856.612
+
+Rotamer 121
+Total:   33990486.3336
+
+Rotamer 122
+Total:   33991481.584
+
+Rotamer 123
+Total:   34154995.2331
+
+Rotamer 124
+Total:   33990467.2755
+
+Rotamer 125
+Total:   1724.53324049
+
+Rotamer 126
+Total:   1727.43784309
+
+Rotamer 127
+Total:   1726.33243141
+
+Rotamer 128
+Total:   1732.60224435
+
+Rotamer 129
+Total:   121.648590288
+
+Rotamer 130
+Total:   122.465465602
+
+Rotamer 131
+Total:   120.57182986
+
+Rotamer 132
+Total:   124.314107693
+
+Rotamer 133
+Total:   4375049.56657
+
+Rotamer 134
+Total:   3735151.23851
+
+Rotamer 135
+Total:   3735075.25089
+
+Rotamer 136
+Total:   3736393.51202
+
+Rotamer 137
+Total:   4716.86605622
+
+Rotamer 138
+Total:   515364.91569
+
+Rotamer 139
+Total:   4807.12556928
+
+Rotamer 140
+Total:   24144.8542476
+
+Rotamer 141
+Total:   8775.96909588
+
+Rotamer 142
+Total:   8787.38350556
+
+Rotamer 143
+Total:   9012.68420351
+
+Rotamer 144
+Total:   8771.33942901
+
+Rotamer 145
+Total:   703410.899429
+
+Rotamer 146
+Total:   703408.073006
+
+Rotamer 147
+Total:   703410.989314
+
+Rotamer 148
+Total:   703419.409759
+
+Rotamer 149
+Total:   30506763535.9
+
+Rotamer 150
+Total:   30506763072.3
+
+Rotamer 151
+Total:   30506762848.2
+
+Rotamer 152
+Total:   30506799188.3
+
+Rotamer 153
+Total:   16767059.2203
+
+Rotamer 154
+Total:   16780044.6192
+
+Rotamer 155
+Total:   16860603.0663
+
+Rotamer 156
+Total:   16767031.0642
+
+Rotamer 157
+Total:   567564.327246
+
+Rotamer 158
+Total:   568133.304155
+
+Rotamer 159
+Total:   567562.574943
+
+Rotamer 160
+Total:   600759.214086
+
+Rotamer 161
+Total:   2881849.05379
+
+Rotamer 162
+Total:   2867475.37625
+
+Rotamer 163
+Total:   2867428.85371
+
+Rotamer 164
+Total:   2875256.36819
+
+Rotamer 165
+Total:   787805.63269
+
+Rotamer 166
+Total:   915449.040361
+
+Rotamer 167
+Total:   71422.1949027
+
+Rotamer 168
+Total:   71475.4884885
+
+Rotamer 169
+Total:   33667.2039764
+
+Rotamer 170
+Total:   33667.9706568
+
+Rotamer 171
+Total:   33670.112472
+
+Rotamer 172
+Total:   33666.7556403
+
+Rotamer 173
+Total:   6549.08017803
+
+Rotamer 174
+Total:   8637.75353325
+
+Rotamer 175
+Total:   8009.08178857
+
+Rotamer 176
+Total:   6540.96621851
+
+Rotamer 177
+Total:   24453.6654133
+
+Rotamer 178
+Total:   24451.6498941
+
+Rotamer 179
+Total:   24453.8445979
+
+Rotamer 180
+Total:   24452.3652493
+
+Rotamer 181
+Total:   509.989617636
+
+Rotamer 182
+Total:   506.016148012
+
+Rotamer 183
+Total:   503.133626698
+
+Rotamer 184
+Total:   510.026713981
+
+Rotamer 185
+Total:   7.48299482995
+
+Rotamer 186
+Total:   3.5452036777
+
+Rotamer 187
+Total:   5.45745475379
+
+Rotamer 188
+Total:   1.47970340986
+
+Rotamer 189
+Total:   1894528.80819
+
+Rotamer 190
+Total:   1894529.46554
+
+Rotamer 191
+Total:   1894528.78785
+
+Rotamer 192
+Total:   1894529.99908
+
+Rotamer 193
+Total:   789138.34077
+
+Rotamer 194
+Total:   788537.499404
+
+Rotamer 195
+Total:   788554.972867
+
+Rotamer 196
+Total:   789352.909379
+
+Rotamer 197
+Total:   51566927.1849
+
+Rotamer 198
+Total:   51566928.2337
+
+Rotamer 199
+Total:   51566926.5216
+
+Rotamer 200
+Total:   51566928.7192
+
+Rotamer 201
+Total:   24835049.1791
+
+Rotamer 202
+Total:   24267781.8137
+
+Rotamer 203
+Total:   24267911.6612
+
+Rotamer 204
+Total:   24273545.5152
+
+Rotamer 205
+Total:   2622618.64252
+
+Rotamer 206
+Total:   2622646.85588
+
+Rotamer 207
+Total:   2622606.37403
+
+Rotamer 208
+Total:   2684223.10078
+
+Rotamer 209
+Total:   88270074.7102
+
+Rotamer 210
+Total:   88270699.5827
+
+Rotamer 211
+Total:   88270072.7595
+
+Rotamer 212
+Total:   88270079.4086
+
+Rotamer 213
+Total:   225.159931724
+
+Rotamer 214
+Total:   339.110264013
+
+Rotamer 215
+Total:   231.643538665
+
+Rotamer 216
+Total:   240.734547806
+
+Rotamer 217
+Total:   1001097.60194
+
+Rotamer 218
+Total:   8182.83014639
+
+Rotamer 219
+Total:   8332.03169933
+
+Rotamer 220
+Total:   8207.3380739
+
+Rotamer 221
+Total:   2458154.08593
+
+Rotamer 222
+Total:   2460874.50112
+
+Rotamer 223
+Total:   3974435.69431
+
+Rotamer 224
+Total:   2458037.58569
+
+Rotamer 225
+Total:   4699064.71492
+
+Rotamer 226
+Total:   4699082.55093
+
+Rotamer 227
+Total:   4699067.24879
+
+Rotamer 228
+Total:   4701418.0958
+
+Rotamer 229
+Total:   9.62686009605
+
+Rotamer 230
+Total:   9.85244390618
+
+Rotamer 231
+Total:   9.54314493287
+
+Rotamer 232
+Total:   7.17978258581
+
+Rotamer 233
+Total:   4663609.35333
+
+Rotamer 234
+Total:   4663611.63892
+
+Rotamer 235
+Total:   4663609.36979
+
+Rotamer 236
+Total:   4663610.08445
+
+Rotamer 237
+Total:   6667541.80951
+
+Rotamer 238
+Total:   6674781.09424
+
+Rotamer 239
+Total:   6670188.20627
+
+Rotamer 240
+Total:   6701753.25189
+
+Rotamer 241
+Total:   2366.88599438
+
+Rotamer 242
+Total:   2207.73529066
+
+Rotamer 243
+Total:   2081.1297863
+
+Rotamer 244
+Total:   2328.03034413
+
+Rotamer 245
+Total:   20822.0687457
+
+Rotamer 246
+Total:   20843.5883718
+
+Rotamer 247
+Total:   61681.6795036
+
+Rotamer 248
+Total:   20825.2935999
+
+Rotamer 249
+Total:   5583683664.63
+
+Rotamer 250
+Total:   5583665733.4
+
+Rotamer 251
+Total:   5583665841.31
+
+Rotamer 252
+Total:   5583770344.64
+
+Rotamer 253
+Total:   122740.398156
+
+Rotamer 254
+Total:   318775.102739
+
+Rotamer 255
+Total:   121219.914491
+
+Rotamer 256
+Total:   119278.992935
+
+Rotamer 257
+Total:   7.34560879415
+
+Rotamer 258
+Total:   7.66127089961
+
+Rotamer 259
+Total:   7.0882653357
+
+Rotamer 260
+Total:   6.14244083751
+
+Rotamer 261
+Total:   186586089.466
+
+Rotamer 262
+Total:   186586098.924
+
+Rotamer 263
+Total:   186586089.373
+
+Rotamer 264
+Total:   186586095.92
+
+Rotamer 265
+Total:   29051861.1748
+
+Rotamer 266
+Total:   29051858.9667
+
+Rotamer 267
+Total:   29051860.8565
+
+Rotamer 268
+Total:   29051863.281
+
+Rotamer 269
+Total:   7218798470.51
+
+Rotamer 270
+Total:   7218798464.53
+
+Rotamer 271
+Total:   7218798812.18
+
+Rotamer 272
+Total:   7218798468.09
+
+Rotamer 273
+Total:   1723.63906581
+
+Rotamer 274
+Total:   1722.87794423
+
+Rotamer 275
+Total:   20287.2154396
+
+Rotamer 276
+Total:   1724.88558921
+
+Rotamer 277
+Total:   481.152250515
+
+Rotamer 278
+Total:   475.430016649
+
+Rotamer 279
+Total:   475.578746979
+
+Rotamer 280
+Total:   482.402304809
+
+Rotamer 281
+Total:   5607.05713913
+
+Rotamer 282
+Total:   5625.63289703
+
+Rotamer 283
+Total:   5605.46709539
+
+Rotamer 284
+Total:   5686.44929971
+
+Rotamer 285
+Total:   1328828.42475
+
+Rotamer 286
+Total:   1328781.23715
+
+Rotamer 287
+Total:   1330493.35137
+
+Rotamer 288
+Total:   1328775.06776
+
+Rotamer 289
+Total:   3669768.80354
+
+Rotamer 290
+Total:   3669771.50581
+
+Rotamer 291
+Total:   3669769.70782
+
+Rotamer 292
+Total:   3669770.7513
+
+Rotamer 293
+Total:   6.1462426549
+
+Rotamer 294
+Total:   7.17239863953
+
+Rotamer 295
+Total:   2.10953963195
+
+Rotamer 296
+Total:   4.40251462927
+
+Rotamer 297
+Total:   2892060040.96
+
+Rotamer 298
+Total:   2892062502.45
+
+Rotamer 299
+Total:   2892060100.02
+
+Rotamer 300
+Total:   2892061495.03
+
+Rotamer 301
+Total:   354306.0005
+
+Rotamer 302
+Total:   407780.63373
+
+Rotamer 303
+Total:   354015.75475
+
+Rotamer 304
+Total:   1468203.59468
+
+Rotamer 305
+Total:   12.2175962166
+
+Rotamer 306
+Total:   12.1791066193
+
+Rotamer 307
+Total:   12.0406052964
+
+Rotamer 308
+Total:   13.4354263094
+
+Rotamer 309
+Total:   827930859.867
+
+Rotamer 310
+Total:   827928131.03
+
+Rotamer 311
+Total:   827928105.261
+
+Rotamer 312
+Total:   827939438.953
+
+Rotamer 313
+Total:   23987.1383617
+
+Rotamer 314
+Total:   23987.8564833
+
+Rotamer 315
+Total:   23986.8066065
+
+Rotamer 316
+Total:   23987.7183966
+
+Rotamer 317
+Total:   27786.4918939
+
+Rotamer 318
+Total:   32395.5071393
+
+Rotamer 319
+Total:   27825.6226372
+
+Rotamer 320
+Total:   27883.2250621
+
+Rotamer 321
+Total:   8486683.60779
+
+Rotamer 322
+Total:   8486703.0152
+
+Rotamer 323
+Total:   8486712.8422
+
+Rotamer 324
+Total:   8486685.8894
+
+Rotamer 325
+Total:   1000.88946631
+
+Rotamer 326
+Total:   1000.82618683
+
+Rotamer 327
+Total:   1016.97412008
+
+Rotamer 328
+Total:   999.692691476
+
+Rotamer 329
+Total:   7897.90068397
+
+Rotamer 330
+Total:   7891.18941878
+
+Rotamer 331
+Total:   7891.78633785
+
+Rotamer 332
+Total:   7897.74102699
+
+Rotamer 333
+Total:   2285809.68186
+
+Rotamer 334
+Total:   2285803.7251
+
+Rotamer 335
+Total:   2285795.60919
+
+Rotamer 336
+Total:   2285816.3189
+
+Rotamer 337
+Total:   8.08814015753e+11
+
+Rotamer 338
+Total:   8.0881401727e+11
+
+Rotamer 339
+Total:   8.08814015752e+11
+
+Rotamer 340
+Total:   8.08814015758e+11
+
+Rotamer 341
+Total:   171256654.595
+
+Rotamer 342
+Total:   171292807.172
+
+Rotamer 343
+Total:   171256674.538
+
+Rotamer 344
+Total:   171256705.591
+
+Rotamer 345
+Total:   130647.114985
+
+Rotamer 346
+Total:   130613.197469
+
+Rotamer 347
+Total:   319514.80674
+
+Rotamer 348
+Total:   130593.516543
+
+Rotamer 349
+Total:   509.423160458
+
+Rotamer 350
+Total:   608.918350684
+
+Rotamer 351
+Total:   1334.78741611
+
+Rotamer 352
+Total:   505.749434795
+
+Rotamer 353
+Total:   5773003555.32
+
+Rotamer 354
+Total:   5773573832.24
+
+Rotamer 355
+Total:   5773003537.85
+
+Rotamer 356
+Total:   5773006739.3
+
+Rotamer 357
+Total:   86824.181965
+
+Rotamer 358
+Total:   68707.7995239
+
+Rotamer 359
+Total:   144664.015951
+
+Rotamer 360
+Total:   69062.8251292
+
+Rotamer 361
+Total:   143.273018869
+
+Rotamer 362
+Total:   142.32028683
+
+Rotamer 363
+Total:   141.345184331
+
+Rotamer 364
+Total:   139.617037258
+
+Rotamer 365
+Total:   7946620.63733
+
+Rotamer 366
+Total:   7946626.15569
+
+Rotamer 367
+Total:   7946617.09481
+
+Rotamer 368
+Total:   7948340.39822
+
+Rotamer 369
+Total:   41308921.0896
+
+Rotamer 370
+Total:   41320910.9294
+
+Rotamer 371
+Total:   41300142.8425
+
+Rotamer 372
+Total:   41299451.6124
+
+Rotamer 373
+Total:   215036.770018
+
+Rotamer 374
+Total:   215033.350669
+
+Rotamer 375
+Total:   292110.60741
+
+Rotamer 376
+Total:   215037.238318
+
+Rotamer 377
+Total:   13585147.4552
+
+Rotamer 378
+Total:   13584084.3772
+
+Rotamer 379
+Total:   13584092.6821
+
+Rotamer 380
+Total:   13585012.1695
+
+Rotamer 381
+Total:   301073.907175
+
+Rotamer 382
+Total:   7335.77305655
+
+Rotamer 383
+Total:   7619.55969892
+
+Rotamer 384
+Total:   7340.49713937
+
+Rotamer 385
+Total:   10.24047456
+
+Rotamer 386
+Total:   10.3899438478
+
+Rotamer 387
+Total:   10.3823010742
+
+Rotamer 388
+Total:   11.0273988349
+
+Rotamer 389
+Total:   676160000.277
+
+Rotamer 390
+Total:   676170024.426
+
+Rotamer 391
+Total:   676159794.434
+
+Rotamer 392
+Total:   676362216.818
+
+Rotamer 393
+Total:   30526.6248607
+
+Rotamer 394
+Total:   34805.1410045
+
+Rotamer 395
+Total:   88801.7669434
+
+Rotamer 396
+Total:   30469.0105229
+
+Rotamer 397
+Total:   25498.294399
+
+Rotamer 398
+Total:   25496.2073435
+
+Rotamer 399
+Total:   25498.8564574
+
+Rotamer 400
+Total:   25495.4369344
+
+Rotamer 401
+Total:   8231.20573061
+
+Rotamer 402
+Total:   18664.2250513
+
+Rotamer 403
+Total:   8091.45847897
+
+Rotamer 404
+Total:   8195.97852327
+
+Rotamer 405
+Total:   97747412.3338
+
+Rotamer 406
+Total:   97746948.5752
+
+Rotamer 407
+Total:   97749333.7323
+
+Rotamer 408
+Total:   97756291.9527
+
+Rotamer 409
+Total:   6558535.05056
+
+Rotamer 410
+Total:   6560783.71302
+
+Rotamer 411
+Total:   6558537.61719
+
+Rotamer 412
+Total:   6558549.2596
+
+Rotamer 413
+Total:   4691978.70228
+
+Rotamer 414
+Total:   4747144.63121
+
+Rotamer 415
+Total:   4692061.44737
+
+Rotamer 416
+Total:   4692501.3902
+
+Rotamer 417
+Total:   17.9969704283
+
+Rotamer 418
+Total:   19.2630622324
+
+Rotamer 419
+Total:   19.6138670532
+
+Rotamer 420
+Total:   16.0014085511
+
+Rotamer 421
+Total:   9553806.03785
+
+Rotamer 422
+Total:   11046698.3284
+
+Rotamer 423
+Total:   9554642.62268
+
+Rotamer 424
+Total:   9553815.13683
+
+Rotamer 425
+Total:   2997049.04262
+
+Rotamer 426
+Total:   2997254.88603
+
+Rotamer 427
+Total:   2996972.43593
+
+Rotamer 428
+Total:   3031181.57843
+
+Rotamer 429
+Total:   223721.300248
+
+Rotamer 430
+Total:   235668.44383
+
+Rotamer 431
+Total:   223807.141177
+
+Rotamer 432
+Total:   223726.755701
+
+Rotamer 433
+Total:   12977474728.5
+
+Rotamer 434
+Total:   12977475393.8
+
+Rotamer 435
+Total:   12977474710.8
+
+Rotamer 436
+Total:   12977502010.0
+
+Rotamer 437
+Total:   6.52252598599
+
+Rotamer 438
+Total:   3.86757295456
+
+Rotamer 439
+Total:   4.45198333805
+
+Rotamer 440
+Total:   7.75199011308
+
+Rotamer 441
+Total:   15.1664972463
+
+Rotamer 442
+Total:   15.258125537
+
+Rotamer 443
+Total:   13.4290079423
+
+Rotamer 444
+Total:   14.6769022622
+
+Rotamer 445
+Total:   174.957376081
+
+Rotamer 446
+Total:   173.195605246
+
+Rotamer 447
+Total:   172.714810826
+
+Rotamer 448
+Total:   177.237886862
+
+Rotamer 449
+Total:   8769.30683658
+
+Rotamer 450
+Total:   8768.24986505
+
+Rotamer 451
+Total:   8785.06873693
+
+Rotamer 452
+Total:   10064.9232145
+
+Rotamer 453
+Total:   28783.4233934
+
+Rotamer 454
+Total:   28783.6026213
+
+Rotamer 455
+Total:   28782.6388009
+
+Rotamer 456
+Total:   28784.7117516
+
+Rotamer 457
+Total:   6107936894.08
+
+Rotamer 458
+Total:   6107936892.87
+
+Rotamer 459
+Total:   6107936894.78
+
+Rotamer 460
+Total:   6107936891.79
+
+Rotamer 461
+Total:   80172.5606589
+
+Rotamer 462
+Total:   80071.8416409
+
+Rotamer 463
+Total:   80053.2136948
+
+Rotamer 464
+Total:   80423.5993092
+
+Rotamer 465
+Total:   34336337.3186
+
+Rotamer 466
+Total:   34336339.2993
+
+Rotamer 467
+Total:   34336337.9447
+
+Rotamer 468
+Total:   34336341.9009
+
+Rotamer 469
+Total:   71603110.5763
+
+Rotamer 470
+Total:   71602100.3885
+
+Rotamer 471
+Total:   71604312.6428
+
+Rotamer 472
+Total:   71613401.3469
+
+Rotamer 473
+Total:   97092070.6286
+
+Rotamer 474
+Total:   97092072.8465
+
+Rotamer 475
+Total:   97092077.9547
+
+Rotamer 476
+Total:   97092070.3219
+
+Rotamer 477
+Total:   4010.79136979
+
+Rotamer 478
+Total:   4012.31659175
+
+Rotamer 479
+Total:   4010.50962786
+
+Rotamer 480
+Total:   4013.77337534
+
+Rotamer 481
+Total:   74350314885.7
+
+Rotamer 482
+Total:   74350375317.5
+
+Rotamer 483
+Total:   74350314890.5
+
+Rotamer 484
+Total:   74350330229.1
+
+Rotamer 485
+Total:   869.069286804
+
+Rotamer 486
+Total:   874.176580944
+
+Rotamer 487
+Total:   870.572040036
+
+Rotamer 488
+Total:   891.55354902
+
+Rotamer 489
+Total:   19.9434326977
+
+Rotamer 490
+Total:   19.9969995011
+
+Rotamer 491
+Total:   18.757997108
+
+Rotamer 492
+Total:   20.3283491099
+
+Rotamer 493
+Total:   317310.435461
+
+Rotamer 494
+Total:   317311.399792
+
+Rotamer 495
+Total:   317311.834607
+
+Rotamer 496
+Total:   317310.136445
+
+Rotamer 497
+Total:   1695024919.66
+
+Rotamer 498
+Total:   1695066725.97
+
+Rotamer 499
+Total:   1695266369.0
+
+Rotamer 500
+Total:   1695024941.19
+
+Rotamer 501
+Total:   183590307.757
+
+Rotamer 502
+Total:   183591364.675
+
+Rotamer 503
+Total:   183590307.571
+
+Rotamer 504
+Total:   183596274.122
+
+Rotamer 505
+Total:   403299.620094
+
+Rotamer 506
+Total:   403338.77151
+
+Rotamer 507
+Total:   403301.086588
+
+Rotamer 508
+Total:   404561.12588
+
+Rotamer 509
+Total:   81904.955005
+
+Rotamer 510
+Total:   81907.224392
+
+Rotamer 511
+Total:   81905.0441429
+
+Rotamer 512
+Total:   81903.855738
+
+F193_C
+
+Rotamer 1
+Total:   7355.21748511
+
+Rotamer 2
+Total:   0.328540684713
+
+Rotamer 3
+Total:   1319.71511132
+
+Rotamer 4
+Total:   2747.61408897
+
+Rotamer 5
+Total:   16.4730781622
+
+Rotamer 6
+Total:   403.754120705
+
+Rotamer 7
+Total:   538.017897618
+
+Rotamer 8
+Total:   -1.34004463792
+
+Rotamer 9
+Total:   124.291720409
+
+Rotamer 10
+Total:   3259.81310202
+
+Rotamer 11
+Total:   178.571092986
+
+Rotamer 12
+Total:   186.348533846
+
+Rotamer 13
+Total:   38.3635858811
+
+Rotamer 14
+Total:   7.6147286341
+
+Rotamer 15
+Total:   -0.0754363363402
+
+Rotamer 16
+Total:   41.1626929848
+
+Rotamer 17
+Total:   10.951135127
+
+Rotamer 18
+Total:   49140.1132251
+
+Rotamer 19
+Total:   114.357428788
+
+Rotamer 20
+Total:   1749.29461166
+
+Rotamer 21
+Total:   3275.11933755
+
+Rotamer 22
+Total:   6.42898159903
+
+Rotamer 23
+Total:   14440.5603668
+
+Rotamer 24
+Total:   18347.5772824
+
+Rotamer 25
+Total:   6.41679320023
+
+Rotamer 26
+Total:   277.171377993
+
+Rotamer 27
+Total:   31417.1368918
+
+Rotamer 28
+Total:   5.51126365611
+
+Rotamer 29
+Total:   421.166046815
+
+Rotamer 30
+Total:   7.88066260109
+
+Rotamer 31
+Total:   144.393602142
+
+Rotamer 32
+Total:   12.2781687354
+
+Rotamer 33
+Total:   165486.073018
+
+Rotamer 34
+Total:   59.9201935986
+
+Rotamer 35
+Total:   297.657692663
+
+Rotamer 36
+Total:   717.817318372
+
+Rotamer 37
+Total:   81204.0181414
+
+Rotamer 38
+Total:   7.10771005355
+
+Rotamer 39
+Total:   17268.8281917
+
+Rotamer 40
+Total:   33311.3620036
+
+Rotamer 41
+Total:   60467.5510869
+
+Rotamer 42
+Total:   31.2073153245
+
+Rotamer 43
+Total:   9.40941208608
+
+Rotamer 44
+Total:   279.014592848
+
+Rotamer 45
+Total:   425891.163314
+
+Rotamer 46
+Total:   33.4633075282
+
+Rotamer 47
+Total:   299.082810653
+
+Rotamer 48
+Total:   2505756.28831
+
+Rotamer 49
+Total:   8358.80765435
+
+Rotamer 50
+Total:   3462.89932046
+
+Rotamer 51
+Total:   44.3496001605
+
+Rotamer 52
+Total:   1992907.72956
+
+Rotamer 53
+Total:   8.29701625713
+
+Rotamer 54
+Total:   72.4539766087
+
+Rotamer 55
+Total:   165258.341404
+
+Rotamer 56
+Total:   4029.23255096
+
+Rotamer 57
+Total:   76659.3285357
+
+Rotamer 58
+Total:   61389.3088423
+
+Rotamer 59
+Total:   31412.2491262
+
+Rotamer 60
+Total:   1119.7210347
+
+Rotamer 61
+Total:   49.4326373036
+
+Rotamer 62
+Total:   78.0218421956
+
+Rotamer 63
+Total:   160833.16528
+
+Rotamer 64
+Total:   7.29796139963
+
+Rotamer 65
+Total:   34338.6075314
+
+Rotamer 66
+Total:   4.87147755078
+
+Rotamer 67
+Total:   348.085102808
+
+Rotamer 68
+Total:   54.5621290925
+
+Rotamer 69
+Total:   66374.6251844
+
+Rotamer 70
+Total:   32.3472503852
+
+Rotamer 71
+Total:   12040248.8164
+
+Rotamer 72
+Total:   401.583382683
+
+Rotamer 73
+Total:   68.6680785551
+
+Rotamer 74
+Total:   2.12841141667
+
+Rotamer 75
+Total:   209.731919319
+
+Rotamer 76
+Total:   1489.82465606
+
+Rotamer 77
+Total:   20.7695745588
+
+Rotamer 78
+Total:   1912.66851203
+
+Rotamer 79
+Total:   2.08153337103
+
+Rotamer 80
+Total:   47.122046248
+
+Rotamer 81
+Total:   351.502942397
+
+Rotamer 82
+Total:   1.81700262313
+
+Rotamer 83
+Total:   31.1015475334
+
+Rotamer 84
+Total:   34568.2784271
+
+Rotamer 85
+Total:   144.262553898
+
+Rotamer 86
+Total:   23136.4560229
+
+Rotamer 87
+Total:   538.189367905
+
+Rotamer 88
+Total:   123.934906189
+
+Rotamer 89
+Total:   45759.1906882
+
+Rotamer 90
+Total:   603.678068261
+
+Rotamer 91
+Total:   86.7938297185
+
+Rotamer 92
+Total:   61066.9126995
+
+Rotamer 93
+Total:   108681.86802
+
+Rotamer 94
+Total:   6284.18930736
+
+Rotamer 95
+Total:   2415.55144685
+
+Rotamer 96
+Total:   262.340277584
+
+Rotamer 97
+Total:   10803.1237093
+
+Rotamer 98
+Total:   14704.092431
+
+Rotamer 99
+Total:   38.4154601924
+
+Rotamer 100
+Total:   2300.61503094
+
+H93_C
+
+Rotamer 1
+Total:   14959.7758963
+
+Rotamer 2
+Total:   16378.065348
+
+Rotamer 3
+Total:   1015585.17301
+
+Rotamer 4
+Total:   21.377457545
+
+Rotamer 5
+Total:   4.08640487233
+
+Rotamer 6
+Total:   395313.440829
+
+Rotamer 7
+Total:   6880992.85418
+
+Rotamer 8
+Total:   90972.4479621
+
+Rotamer 9
+Total:   15.5099938178
+
+Rotamer 10
+Total:   697525405.358
+
+Rotamer 11
+Total:   3065.90327105
+
+Rotamer 12
+Total:   19793.6606436
+
+Rotamer 13
+Total:   5706.95231172
+
+Rotamer 14
+Total:   11540.1241878
+
+Rotamer 15
+Total:   11580.8640612
+
+Rotamer 16
+Total:   3930180.82945
+
+Rotamer 17
+Total:   324829.960704
+
+Rotamer 18
+Total:   2088.18056341
+
+Rotamer 19
+Total:   14.5066157634
+
+Rotamer 20
+Total:   641904.635439
+
+Rotamer 21
+Total:   3885.74586165
+
+Rotamer 22
+Total:   691.812611882
+
+Rotamer 23
+Total:   288449.357421
+
+Rotamer 24
+Total:   25.5933871967
+
+Rotamer 25
+Total:   2157016.38547
+
+Rotamer 26
+Total:   8783423.37016
+
+Rotamer 27
+Total:   3473800.09752
+
+Rotamer 28
+Total:   17674109.6367
+
+Rotamer 29
+Total:   20140.9003012
+
+Rotamer 30
+Total:   6131.48124111
+
+Rotamer 31
+Total:   9276683.78322
+
+Rotamer 32
+Total:   6193.81902938
+
+Rotamer 33
+Total:   2731406.76818
+
+Rotamer 34
+Total:   558644.684048
+
+Rotamer 35
+Total:   3521.70430005
+
+Rotamer 36
+Total:   2290.67715531
+
+Rotamer 37
+Total:   19975248.0974
+
+Rotamer 38
+Total:   6.3324229901
+
+Rotamer 39
+Total:   2806598.38495
+
+Rotamer 40
+Total:   120910981.172
+
+Rotamer 41
+Total:   2977775.14456
+
+Rotamer 42
+Total:   5446.50608703
+
+Rotamer 43
+Total:   15.1999182302
+
+Rotamer 44
+Total:   444.062148078
+
+Rotamer 45
+Total:   10.5709632984
+
+Rotamer 46
+Total:   13.2394958009
+
+Rotamer 47
+Total:   9619018.64013
+
+Rotamer 48
+Total:   5138028.15999
+
+Rotamer 49
+Total:   4467.42109314
+
+Rotamer 50
+Total:   98974.7347409
+
+Rotamer 51
+Total:   4.92658042021
+
+Rotamer 52
+Total:   2502719.37897
+
+Rotamer 53
+Total:   7915987.53838
+
+Rotamer 54
+Total:   1297771.16286
+
+Rotamer 55
+Total:   2734967.23415
+
+Rotamer 56
+Total:   6879526.66784
+
+Rotamer 57
+Total:   373802620.217
+
+Rotamer 58
+Total:   310999.796588
+
+Rotamer 59
+Total:   80.191089496
+
+Rotamer 60
+Total:   18993441.3944
+
+Rotamer 61
+Total:   2764660.50569
+
+Rotamer 62
+Total:   554.165066028
+
+Rotamer 63
+Total:   41350.6035039
+
+Rotamer 64
+Total:   621261007.184
+
+Rotamer 65
+Total:   138742.048837
+
+Rotamer 66
+Total:   5587.89836255
+
+Rotamer 67
+Total:   18.3406669545
+
+Rotamer 68
+Total:   52.9601202653
+
+Rotamer 69
+Total:   12918.3541447
+
+Rotamer 70
+Total:   17.7513041199
+
+Rotamer 71
+Total:   9.56374307283
+
+Rotamer 72
+Total:   56851.7748887
+
+Rotamer 73
+Total:   3875733581.28
+
+Rotamer 74
+Total:   89.4463025599
+
+Rotamer 75
+Total:   3882812099.07
+
+Rotamer 76
+Total:   7876971.05009
+
+Rotamer 77
+Total:   1460.29031754
+
+Rotamer 78
+Total:   171.017739366
+
+Rotamer 79
+Total:   27.8131662032
+
+Rotamer 80
+Total:   3796.26278729
+
+Rotamer 81
+Total:   760.62517753
+
+Rotamer 82
+Total:   19519704.9246
+
+Rotamer 83
+Total:   2795.59350167
+
+Rotamer 84
+Total:   576822327.909
+
+Rotamer 85
+Total:   77313.1623695
+
+Rotamer 86
+Total:   29002.0870547
+
+Rotamer 87
+Total:   9639744.02021
+
+Rotamer 88
+Total:   1619120047.0
+
+Rotamer 89
+HIS ==> HSE Mutation! 
+Total:   14975.5714551
+
+Rotamer 90
+Total:   16389.7578298
+
+Rotamer 91
+Total:   1016009.44395
+
+Rotamer 92
+Total:   20.9215022849
+
+Rotamer 93
+Total:   4.08330076771
+
+Rotamer 94
+Total:   396818.784361
+
+Rotamer 95
+Total:   6879126.86839
+
+Rotamer 96
+Total:   91000.9814932
+
+Rotamer 97
+Total:   10.7861226142
+
+Rotamer 98
+Total:   697592170.517
+
+Rotamer 99
+Total:   3043.14668821
+
+Rotamer 100
+Total:   19795.1528747
+
+Rotamer 101
+Total:   5712.75221366
+
+Rotamer 102
+Total:   11543.7638039
+
+Rotamer 103
+Total:   11607.1964602
+
+Rotamer 104
+Total:   3930194.035
+
+Rotamer 105
+Total:   326.588858761
+
+Rotamer 106
+Total:   2087.51066604
+
+Rotamer 107
+Total:   11.0671467016
+
+Rotamer 108
+Total:   641902.851516
+
+Rotamer 109
+Total:   3893.96500443
+
+Rotamer 110
+Total:   35.0033075841
+
+Rotamer 111
+Total:   289181.792925
+
+Rotamer 112
+Total:   21.4571321648
+
+Rotamer 113
+Total:   1887956.63572
+
+Rotamer 114
+Total:   8837750.93122
+
+Rotamer 115
+Total:   3476355.68547
+
+Rotamer 116
+Total:   17687935.1124
+
+Rotamer 117
+Total:   20076.9741332
+
+Rotamer 118
+Total:   6117.78843851
+
+Rotamer 119
+Total:   9274248.16437
+
+Rotamer 120
+Total:   6492.64089426
+
+Rotamer 121
+Total:   2737448.0285
+
+Rotamer 122
+Total:   558893.034463
+
+Rotamer 123
+Total:   3545.484584
+
+Rotamer 124
+Total:   2176.3699048
+
+Rotamer 125
+Total:   19975334.4521
+
+Rotamer 126
+Total:   11.0247450408
+
+Rotamer 127
+Total:   2806174.40227
+
+Rotamer 128
+Total:   120911004.414
+
+Rotamer 129
+Total:   2977793.76325
+
+Rotamer 130
+Total:   5461.37602101
+
+Rotamer 131
+Total:   11.1194279478
+
+Rotamer 132
+Total:   1882.59189223
+
+Rotamer 133
+Total:   6.72721594488
+
+Rotamer 134
+Total:   14.6868133402
+
+Rotamer 135
+Total:   9621817.276
+
+Rotamer 136
+Total:   9240023.07545
+
+Rotamer 137
+Total:   4475.97857762
+
+Rotamer 138
+Total:   99176.6135332
+
+Rotamer 139
+Total:   5.25616314636
+
+Rotamer 140
+Total:   2502758.84043
+
+Rotamer 141
+Total:   7915992.78093
+
+Rotamer 142
+Total:   1291698.39603
+
+Rotamer 143
+Total:   2732922.23552
+
+Rotamer 144
+Total:   6879548.54057
+
+Rotamer 145
+Total:   373802623.301
+
+Rotamer 146
+Total:   311821.564713
+
+Rotamer 147
+Total:   77.8911772205
+
+Rotamer 148
+Total:   18993470.6758
+
+Rotamer 149
+Total:   2764919.43318
+
+Rotamer 150
+Total:   316.920916458
+
+Rotamer 151
+Total:   41846.0673335
+
+Rotamer 152
+Total:   621260987.928
+
+Rotamer 153
+Total:   138728.70298
+
+Rotamer 154
+Total:   5597.92356132
+
+Rotamer 155
+Total:   18.0628671321
+
+Rotamer 156
+Total:   51.8355114265
+
+Rotamer 157
+Total:   6052.53867672
+
+Rotamer 158
+Total:   12.5670953399
+
+Rotamer 159
+Total:   18.6379290303
+
+Rotamer 160
+Total:   56845.6705463
+
+Rotamer 161
+Total:   3875736322.66
+
+Rotamer 162
+Total:   91.352851625
+
+Rotamer 163
+Total:   3882825961.65
+
+Rotamer 164
+Total:   7855261.7409
+
+Rotamer 165
+Total:   1565.42464753
+
+Rotamer 166
+Total:   173.035426379
+
+Rotamer 167
+Total:   25.6134901424
+
+Rotamer 168
+Total:   3656.97933037
+
+Rotamer 169
+Total:   766.976039173
+
+Rotamer 170
+Total:   19519683.1835
+
+Rotamer 171
+Total:   2795.052005
+
+Rotamer 172
+Total:   576822592.309
+
+Rotamer 173
+Total:   77578.2679413
+
+Rotamer 174
+Total:   28940.2483655
+
+Rotamer 175
+Total:   9639749.54044
+
+Rotamer 176
+Total:   1619120017.13
+
+F290_C
+
+Rotamer 1
+Total:   0.441653658507
+
+Rotamer 2
+Total:   721963.645314
+
+Rotamer 3
+Total:   0.109429596817
+
+Rotamer 4
+Total:   65.6041224314
+
+Rotamer 5
+Total:   130982.552959
+
+Rotamer 6
+Total:   37.6229143413
+
+Rotamer 7
+Total:   25.231164825
+
+Rotamer 8
+Total:   10577.9748449
+
+Rotamer 9
+Total:   -0.42670750612
+
+Rotamer 10
+Total:   -0.777296604834
+
+Rotamer 11
+Total:   236.913177031
+
+Rotamer 12
+Total:   375019.401406
+
+Rotamer 13
+Total:   101429826.028
+
+Rotamer 14
+Total:   48093.1027408
+
+Rotamer 15
+Total:   35483.4390661
+
+Rotamer 16
+Total:   1206139.02337
+
+Rotamer 17
+Total:   87719322.9195
+
+Rotamer 18
+Total:   1536.3770768
+
+Rotamer 19
+Total:   1135606.9866
+
+Rotamer 20
+Total:   1.24023767781
+
+Rotamer 21
+Total:   0.0830354166618
+
+Rotamer 22
+Total:   12733114.8537
+
+Rotamer 23
+Total:   38389593.5758
+
+Rotamer 24
+Total:   6.9306471634
+
+Rotamer 25
+Total:   1424196.36558
+
+Rotamer 26
+Total:   1.45794608248
+
+Rotamer 27
+Total:   1.44861627692
+
+Rotamer 28
+Total:   3248.83317326
+
+Rotamer 29
+Total:   35.2787325113
+
+Rotamer 30
+Total:   26438.2925371
+
+Rotamer 31
+Total:   -0.74178701731
+
+Rotamer 32
+Total:   2885646.43294
+
+Rotamer 33
+Total:   -1.20473699936
+
+Rotamer 34
+Total:   1840794.30507
+
+Rotamer 35
+Total:   52.1225551064
+
+Rotamer 36
+Total:   11579570.0128
+
+Rotamer 37
+Total:   4.53082878246
+
+Rotamer 38
+Total:   6070.12164585
+
+Rotamer 39
+Total:   1.56855483891
+
+Rotamer 40
+Total:   71816224.5398
+
+Rotamer 41
+Total:   504656.834039
+
+Rotamer 42
+Total:   17049521.2514
+
+Rotamer 43
+Total:   27203.2322426
+
+Rotamer 44
+Total:   115840249.61
+
+Rotamer 45
+Total:   -0.875569958874
+
+Rotamer 46
+Total:   1190507.86918
+
+Rotamer 47
+Total:   1635199.36568
+
+Rotamer 48
+Total:   106.269222603
+
+Rotamer 49
+Total:   83760928.533
+
+Rotamer 50
+Total:   1.45969447796
+
+Rotamer 51
+Total:   243499.804012
+
+Rotamer 52
+Total:   1.17604744858
+
+Rotamer 53
+Total:   3066.42593844
+
+Rotamer 54
+Total:   8.85404239982
+
+Rotamer 55
+Total:   7.69118689481
+
+Rotamer 56
+Total:   4.5739132349
+
+Rotamer 57
+Total:   -0.168587003895
+
+Rotamer 58
+Total:   78.8382671081
+
+Rotamer 59
+Total:   451262.494643
+
+Rotamer 60
+Total:   18.3347319579
+
+Rotamer 61
+Total:   6306489.23223
+
+Rotamer 62
+Total:   111236806.936
+
+Rotamer 63
+Total:   5.50757973515
+
+Rotamer 64
+Total:   5459.00500795
+
+Rotamer 65
+Total:   106.555229612
+
+Rotamer 66
+Total:   65987.3406203
+
+Rotamer 67
+Total:   1289.14889936
+
+Rotamer 68
+Total:   5045729.17264
+
+Rotamer 69
+Total:   236.391761063
+
+Rotamer 70
+Total:   30118056.6144
+
+Rotamer 71
+Total:   1.30329229857
+
+Rotamer 72
+Total:   1346839.70223
+
+Rotamer 73
+Total:   56565382.0727
+
+Rotamer 74
+Total:   10784.8842737
+
+Rotamer 75
+Total:   23.3849509688
+
+Rotamer 76
+Total:   196.267845551
+
+Rotamer 77
+Total:   456.192178126
+
+Rotamer 78
+Total:   180.259827686
+
+Rotamer 79
+Total:   15732.3842627
+
+Rotamer 80
+Total:   11372.2173971
+
+Rotamer 81
+Total:   7780.22486042
+
+Rotamer 82
+Total:   4142.58641858
+
+Rotamer 83
+Total:   28972.3939256
+
+Rotamer 84
+Total:   2.41843665769
+
+Rotamer 85
+Total:   28.6310345575
+
+Rotamer 86
+Total:   4421049.3309
+
+Rotamer 87
+Total:   3.5291572293
+
+Rotamer 88
+Total:   3.97468858408
+
+Rotamer 89
+Total:   4.75365574849
+
+Rotamer 90
+Total:   41557.0130329
+
+Rotamer 91
+Total:   556284685.471
+
+Rotamer 92
+Total:   5.62363059369
+
+Rotamer 93
+Total:   12499.6410009
+
+Rotamer 94
+Total:   30.5398243224
+
+Rotamer 95
+Total:   47.5960483015
+
+Rotamer 96
+Total:   8.50363962191
+
+Rotamer 97
+Total:   6.55563981429
+
+Rotamer 98
+Total:   358477.340771
+
+Rotamer 99
+Total:   4542974.70688
+
+Rotamer 100
+Total:   710059.5282
+
+F208_C
+
+Rotamer 1
+Total:   293.670500287
+
+Rotamer 2
+Total:   5.01253928488
+
+Rotamer 3
+Total:   1602.37851544
+
+Rotamer 4
+Total:   102279.782398
+
+Rotamer 5
+Total:   -3.37901301267
+
+Rotamer 6
+Total:   7365.97231251
+
+Rotamer 7
+Total:   6707.40843976
+
+Rotamer 8
+Total:   22.1778918798
+
+Rotamer 9
+Total:   9616.50998766
+
+Rotamer 10
+Total:   67.4489703783
+
+Rotamer 11
+Total:   29098.3331397
+
+Rotamer 12
+Total:   -2.93921381553
+
+Rotamer 13
+Total:   143375.006656
+
+Rotamer 14
+Total:   9.0338199638
+
+Rotamer 15
+Total:   5.49241497901
+
+Rotamer 16
+Total:   39870.7236122
+
+Rotamer 17
+Total:   -1.30472058891
+
+Rotamer 18
+Total:   26369453.2369
+
+Rotamer 19
+Total:   38748.5658306
+
+Rotamer 20
+Total:   536.605812255
+
+Rotamer 21
+Total:   59.4112674238
+
+Rotamer 22
+Total:   15.5692505944
+
+Rotamer 23
+Total:   96699.1896164
+
+Rotamer 24
+Total:   1964.07854663
+
+Rotamer 25
+Total:   -1.75463154284
+
+Rotamer 26
+Total:   5106.28307257
+
+Rotamer 27
+Total:   14.0043274197
+
+Rotamer 28
+Total:   4.49597092565
+
+Rotamer 29
+Total:   4945.8198131
+
+Rotamer 30
+Total:   105964.034873
+
+Rotamer 31
+Total:   1377.21718479
+
+Rotamer 32
+Total:   325147.258257
+
+Rotamer 33
+Total:   10.7984283161
+
+Rotamer 34
+Total:   46459.2634069
+
+Rotamer 35
+Total:   2222.29511509
+
+Rotamer 36
+Total:   15835.2795156
+
+Rotamer 37
+Total:   1.67493981103
+
+Rotamer 38
+Total:   1.40949015504
+
+Rotamer 39
+Total:   3.11353398097
+
+Rotamer 40
+Total:   56941690.1445
+
+Rotamer 41
+Total:   967933.265793
+
+Rotamer 42
+Total:   4.15111291827
+
+Rotamer 43
+Total:   4.66389396342
+
+Rotamer 44
+Total:   16.1589993191
+
+Rotamer 45
+Total:   4883.28923751
+
+Rotamer 46
+Total:   1311851.6153
+
+Rotamer 47
+Total:   2.43137010474
+
+Rotamer 48
+Total:   8616.05276017
+
+Rotamer 49
+Total:   15.3278732946
+
+Rotamer 50
+Total:   868.077381522
+
+Rotamer 51
+Total:   7.28991805827
+
+Rotamer 52
+Total:   121.995001298
+
+Rotamer 53
+Total:   1.6116133811
+
+Rotamer 54
+Total:   176.594940098
+
+Rotamer 55
+Total:   -0.926546611291
+
+Rotamer 56
+Total:   45.9191902578
+
+Rotamer 57
+Total:   269.161552438
+
+Rotamer 58
+Total:   -1.48036163147
+
+Rotamer 59
+Total:   15484343.4045
+
+Rotamer 60
+Total:   2.81302864409
+
+Rotamer 61
+Total:   2.62555085929
+
+Rotamer 62
+Total:   82607.603484
+
+Rotamer 63
+Total:   15.44891774
+
+Rotamer 64
+Total:   3.48903110804
+
+Rotamer 65
+Total:   0.323388687808
+
+Rotamer 66
+Total:   2.43920945563
+
+Rotamer 67
+Total:   1.98212979963
+
+Rotamer 68
+Total:   1.63031689435
+
+Rotamer 69
+Total:   920459.991411
+
+Rotamer 70
+Total:   102877.288995
+
+Rotamer 71
+Total:   134.140843739
+
+Rotamer 72
+Total:   186114.90117
+
+Rotamer 73
+Total:   17850.7288094
+
+Rotamer 74
+Total:   235.392808066
+
+Rotamer 75
+Total:   3890.31254265
+
+Rotamer 76
+Total:   2732883.65093
+
+Rotamer 77
+Total:   5.26942177559
+
+Rotamer 78
+Total:   2.05170025419
+
+Rotamer 79
+Total:   320.947060858
+
+Rotamer 80
+Total:   9.01659238917
+
+Rotamer 81
+Total:   64137.8866243
+
+Rotamer 82
+Total:   832.600100197
+
+Rotamer 83
+Total:   4.51253463683
+
+Rotamer 84
+Total:   0.533262149463
+
+Rotamer 85
+Total:   11.2551691707
+
+Rotamer 86
+Total:   247.745831433
+
+Rotamer 87
+Total:   2522.96985323
+
+Rotamer 88
+Total:   4116.64241165
+
+Rotamer 89
+Total:   -0.615405542508
+
+Rotamer 90
+Total:   15030.0336541
+
+Rotamer 91
+Total:   178.071146935
+
+Rotamer 92
+Total:   11.6253125793
+
+Rotamer 93
+Total:   678947467.319
+
+Rotamer 94
+Total:   538.893063222
+
+Rotamer 95
+Total:   9.13433758917
+
+Rotamer 96
+Total:   9525.68498662
+
+Rotamer 97
+Total:   6.71904006786
+
+Rotamer 98
+Total:   16712709.5
+
+Rotamer 99
+Total:   175006.509674
+
+Rotamer 100
+Total:   36.8581815706
+
+V117_C
+
+Rotamer 1
+Total:   7370.78969862
+
+Rotamer 2
+Total:   2.17160375089
+
+Rotamer 3
+Total:   13907.755329
+
+Rotamer 4
+Total:   246.738446637
+
+Rotamer 5
+Total:   42.6615446453
+
+Rotamer 6
+Total:   3.96487228563
+
+Rotamer 7
+Total:   346.607972711
+
+Rotamer 8
+Total:   5152.38802549
+
+Rotamer 9
+Total:   9867.88632599
+
+Rotamer 10
+Total:   43.7295966257
+
+Rotamer 11
+Total:   38.2441649642
+
+T118_C
+
+Rotamer 1
+Total:   19.8136504261
+
+Rotamer 2
+Total:   13.2318511867
+
+Rotamer 3
+Total:   18.5251612377
+
+Rotamer 4
+Total:   1.34957472206
+
+Rotamer 5
+Total:   2.07229915234
+
+Rotamer 6
+Total:   2.03799275998
+
+Rotamer 7
+Total:   88.6847164542
+
+Rotamer 8
+Total:   95.3984346856
+
+Rotamer 9
+Total:   98.697676565
+
+Rotamer 10
+Total:   40.509364167
+
+Rotamer 11
+Total:   9.83263367759
+
+Rotamer 12
+Total:   14.8159793132
+
+Rotamer 13
+Total:   110.532630889
+
+Rotamer 14
+Total:   124.458297488
+
+Rotamer 15
+Total:   123.67890696
+
+Rotamer 16
+Total:   7.1392848531
+
+Rotamer 17
+Total:   8.34186037871
+
+Rotamer 18
+Total:   9.10758709311
+
+Rotamer 19
+Total:   2650.81598135
+
+Rotamer 20
+Total:   2645.65671355
+
+Rotamer 21
+Total:   2655.45261418
+
+Rotamer 22
+Total:   33.9664333393
+
+Rotamer 23
+Total:   70.1668784273
+
+Rotamer 24
+Total:   31.4173873419
+
+Rotamer 25
+Total:   2056.54710679
+
+Rotamer 26
+Total:   2056.34054155
+
+Rotamer 27
+Total:   2064.65680684
+
+Rotamer 28
+Total:   91.0658927058
+
+Rotamer 29
+Total:   101.33737899
+
+Rotamer 30
+Total:   100.754393824
+
+Rotamer 31
+Total:   401.017703207
+
+Rotamer 32
+Total:   393.125385244
+
+Rotamer 33
+Total:   405.218714988
+
+Rotamer 34
+Total:   4256.04904759
+
+Rotamer 35
+Total:   4246.95563901
+
+Rotamer 36
+Total:   4259.98996888
+
+Rotamer 37
+Total:   2121.52957254
+
+Rotamer 38
+Total:   2115.97744474
+
+Rotamer 39
+Total:   2129.04777277
+
+Rotamer 40
+Total:   132.188956128
+
+Rotamer 41
+Total:   135.544277092
+
+Rotamer 42
+Total:   135.841254182
+
+S203_C
+
+Rotamer 1
+Total:   -0.834115699313
+
+Rotamer 2
+Total:   -3.10851860958
+
+Rotamer 3
+Total:   -5.13459605446
+
+Rotamer 4
+Total:   0.158583014994
+
+Rotamer 5
+Total:   -0.691408380957
+
+Rotamer 6
+Total:   -2.1480130161
+
+Rotamer 7
+Total:   -2.4564282557
+
+Rotamer 8
+Total:   1.64131362876
+
+Rotamer 9
+Total:   13.6571524651
+
+Rotamer 10
+Total:   2.45434756904
+
+Rotamer 11
+Total:   6.03189794083
+
+Rotamer 12
+Total:   5.60837578773
+
+Rotamer 13
+Total:   8.80001888192
+
+Rotamer 14
+Total:   4.6437626133
+
+Rotamer 15
+Total:   0.352334526488
+
+Rotamer 16
+Total:   13.3790055447
+
+Rotamer 17
+Total:   4.02444371384
+
+Rotamer 18
+Total:   0.441018230889
+
+Rotamer 19
+Total:   15.4278128855
+
+Rotamer 20
+Total:   1.70264732975
+
+Rotamer 21
+Total:   1.99527997033
+
+Rotamer 22
+Total:   3.95915144938
+
+Rotamer 23
+Total:   3.30607404128
+
+Rotamer 24
+Total:   7.97612825199
+
+Rotamer 25
+Total:   38.5841637239
+
+Rotamer 26
+Total:   42.9305809258
+
+Rotamer 27
+Total:   60.4690494265
+
+S204_C
+
+Rotamer 1
+Total:   -0.727390877525
+
+Rotamer 2
+Total:   -3.10648065893
+
+Rotamer 3
+Total:   -4.85414762156
+
+Rotamer 4
+Total:   5.1394223422
+
+Rotamer 5
+Total:   7.02981488258
+
+Rotamer 6
+Total:   0.480509915851
+
+Rotamer 7
+Total:   -2.73242877469
+
+Rotamer 8
+Total:   1.75568860898
+
+Rotamer 9
+Total:   0.854968838377
+
+Rotamer 10
+Total:   6.9886890248
+
+Rotamer 11
+Total:   6.04136165894
+
+Rotamer 12
+Total:   2.39737950231
+
+Rotamer 13
+Total:   3.86212949425
+
+Rotamer 14
+Total:   4.19343434333
+
+Rotamer 15
+Total:   5.06485513377
+
+Rotamer 16
+Total:   0.453716229644
+
+Rotamer 17
+Total:   7.87112590782
+
+Rotamer 18
+Total:   2.82827442231
+
+Rotamer 19
+Total:   26.7860904001
+
+Rotamer 20
+Total:   5.54274061352
+
+Rotamer 21
+Total:   6.23502721103
+
+Rotamer 22
+Total:   11.3324375212
+
+Rotamer 23
+Total:   13.2412106035
+
+Rotamer 24
+Total:   7.46967481662
+
+Rotamer 25
+Total:   32.388763839
+
+Rotamer 26
+Total:   35.8107867455
+
+Rotamer 27
+Total:   50.3938964051
+
+T110_C
+
+Rotamer 1
+Total:   40.0678469472
+
+Rotamer 2
+Total:   37.8096386698
+
+Rotamer 3
+Total:   39.4924989574
+
+Rotamer 4
+Total:   14.1484620689
+
+Rotamer 5
+Total:   14.5614641844
+
+Rotamer 6
+Total:   11.5402487543
+
+Rotamer 7
+Total:   49.1435591431
+
+Rotamer 8
+Total:   55.1753867326
+
+Rotamer 9
+Total:   57.3688014903
+
+Rotamer 10
+Total:   26.7933780106
+
+Rotamer 11
+Total:   7.61861476472
+
+Rotamer 12
+Total:   9.46376832034
+
+Rotamer 13
+Total:   84.7753748081
+
+Rotamer 14
+Total:   89.9740035719
+
+Rotamer 15
+Total:   89.6431289888
+
+Rotamer 16
+Total:   231.418330562
+
+Rotamer 17
+Total:   226.398256352
+
+Rotamer 18
+Total:   229.158461538
+
+Rotamer 19
+Total:   4707.09900718
+
+Rotamer 20
+Total:   4710.36972535
+
+Rotamer 21
+Total:   4713.21768644
+
+Rotamer 22
+Total:   39.9324333715
+
+Rotamer 23
+Total:   69.50481939
+
+Rotamer 24
+Total:   38.5447999829
+
+Rotamer 25
+Total:   1173.8869517
+
+Rotamer 26
+Total:   1175.26169832
+
+Rotamer 27
+Total:   1179.67204249
+
+Rotamer 28
+Total:   206.386903064
+
+Rotamer 29
+Total:   202.831333998
+
+Rotamer 30
+Total:   205.243492913
+
+Rotamer 31
+Total:   640.426917237
+
+Rotamer 32
+Total:   643.615725935
+
+Rotamer 33
+Total:   646.7921217
+
+Rotamer 34
+Total:   3566.58867942
+
+Rotamer 35
+Total:   3573.54344174
+
+Rotamer 36
+Total:   3576.74866444
+
+Rotamer 37
+Total:   1118.08425389
+
+Rotamer 38
+Total:   1125.74097073
+
+Rotamer 39
+Total:   1126.57557497
+
+Rotamer 40
+Total:   94.5882650086
+
+Rotamer 41
+Total:   87.1643309951
+
+Rotamer 42
+Total:   88.6673345535
+
+F289_C
+
+Rotamer 1
+Total:   188593651.442
+
+Rotamer 2
+Total:   -0.14071963093
+
+Rotamer 3
+Total:   10670295.5634
+
+Rotamer 4
+Total:   8168374.62937
+
+Rotamer 5
+Total:   0.19593437945
+
+Rotamer 6
+Total:   167686681.909
+
+Rotamer 7
+Total:   38682721.9325
+
+Rotamer 8
+Total:   24.9666870366
+
+Rotamer 9
+Total:   405913820.574
+
+Rotamer 10
+Total:   56893821485.4
+
+Rotamer 11
+Total:   105134734.287
+
+Rotamer 12
+Total:   1.76496710803
+
+Rotamer 13
+Total:   4063392.22365
+
+Rotamer 14
+Total:   76.8182022299
+
+Rotamer 15
+Total:   14.8289931186
+
+Rotamer 16
+Total:   1365430.19904
+
+Rotamer 17
+Total:   0.540149532405
+
+Rotamer 18
+Total:   263980.788999
+
+Rotamer 19
+Total:   739469971.644
+
+Rotamer 20
+Total:   54973500.8861
+
+Rotamer 21
+Total:   15096236.9626
+
+Rotamer 22
+Total:   1.7891514958
+
+Rotamer 23
+Total:   4291.81939168
+
+Rotamer 24
+Total:   48612894.5416
+
+Rotamer 25
+Total:   -0.987097401902
+
+Rotamer 26
+Total:   2174595962.77
+
+Rotamer 27
+Total:   32613593.0041
+
+Rotamer 28
+Total:   4468.63167685
+
+Rotamer 29
+Total:   20107074625.8
+
+Rotamer 30
+Total:   76579015.1234
+
+Rotamer 31
+Total:   144781136.613
+
+Rotamer 32
+Total:   8414990.95488
+
+Rotamer 33
+Total:   7310317.10338
+
+Rotamer 34
+Total:   9425.02185518
+
+Rotamer 35
+Total:   283167217.088
+
+Rotamer 36
+Total:   202073.084553
+
+Rotamer 37
+Total:   2877317126.35
+
+Rotamer 38
+Total:   246.926425378
+
+Rotamer 39
+Total:   258138251.7
+
+Rotamer 40
+Total:   6727329.43762
+
+Rotamer 41
+Total:   2715.29265662
+
+Rotamer 42
+Total:   0.318399398662
+
+Rotamer 43
+Total:   730.125104061
+
+Rotamer 44
+Total:   3.82529771512
+
+Rotamer 45
+Total:   601158.008217
+
+Rotamer 46
+Total:   319600932.395
+
+Rotamer 47
+Total:   12.9328074247
+
+Rotamer 48
+Total:   139008.242809
+
+Rotamer 49
+Total:   5.3424285501
+
+Rotamer 50
+Total:   1161474.8079
+
+Rotamer 51
+Total:   103025.295968
+
+Rotamer 52
+Total:   4293770.07676
+
+Rotamer 53
+Total:   879.988508214
+
+Rotamer 54
+Total:   9694106448.56
+
+Rotamer 55
+Total:   585910558.991
+
+Rotamer 56
+Total:   2115601.13798
+
+Rotamer 57
+Total:   530648529.2
+
+Rotamer 58
+Total:   87566384.1771
+
+Rotamer 59
+Total:   615101.048177
+
+Rotamer 60
+Total:   208690015.797
+
+Rotamer 61
+Total:   2.13328032384
+
+Rotamer 62
+Total:   298938301.186
+
+Rotamer 63
+Total:   32136245.7347
+
+Rotamer 64
+Total:   22.4346511954
+
+Rotamer 65
+Total:   181369876.261
+
+Rotamer 66
+Total:   302.861676845
+
+Rotamer 67
+Total:   163312.263048
+
+Rotamer 68
+Total:   4.3574400812
+
+Rotamer 69
+Total:   13854.1072622
+
+Rotamer 70
+Total:   4501259.00093
+
+Rotamer 71
+Total:   5065041.99684
+
+Rotamer 72
+Total:   39411.3629757
+
+Rotamer 73
+Total:   2696.89052188
+
+Rotamer 74
+Total:   47.3244586178
+
+Rotamer 75
+Total:   5970369.11625
+
+Rotamer 76
+Total:   3565785.44872
+
+Rotamer 77
+Total:   15.1839856025
+
+Rotamer 78
+Total:   412235788.709
+
+Rotamer 79
+Total:   17.924348186
+
+Rotamer 80
+Total:   681.853855542
+
+Rotamer 81
+Total:   3098315.67674
+
+Rotamer 82
+Total:   38.1667217599
+
+Rotamer 83
+Total:   18.1583519033
+
+Rotamer 84
+Total:   33994466.2441
+
+Rotamer 85
+Total:   317105369.02
+
+Rotamer 86
+Total:   4.88045352132
+
+Rotamer 87
+Total:   711828235.07
+
+Rotamer 88
+Total:   677864163.784
+
+Rotamer 89
+Total:   1586096.29992
+
+Rotamer 90
+Total:   222.875954059
+
+Rotamer 91
+Total:   7.28744384761
+
+Rotamer 92
+Total:   82124430.2572
+
+Rotamer 93
+Total:   3794.69414947
+
+Rotamer 94
+Total:   1042561.94888
+
+Rotamer 95
+Total:   94651895.6772
+
+Rotamer 96
+Total:   45201597.2869
+
+Rotamer 97
+Total:   304896171.669
+
+Rotamer 98
+Total:   5265179.06838
+
+Rotamer 99
+Total:   110041.002977
+
+Rotamer 100
+Total:   48425095396.3
+
+N312_C
+
+Rotamer 1
+Total:   1.11969738369
+
+Rotamer 2
+Total:   -2.74779978807
+
+Rotamer 3
+Total:   -2.76527537564
+
+Rotamer 4
+Total:   0.448527337225
+
+Rotamer 5
+Total:   -5.69727171839
+
+Rotamer 6
+Total:   124.350872025
+
+Rotamer 7
+Total:   -1.75175869471
+
+Rotamer 8
+Total:   -3.29000188117
+
+Rotamer 9
+Total:   -6.32174420032
+
+Rotamer 10
+Total:   2256.11194165
+
+Rotamer 11
+Total:   1859.84076293
+
+Rotamer 12
+Total:   52.4029826848
+
+Rotamer 13
+Total:   -0.754301705462
+
+Rotamer 14
+Total:   9.37875298041
+
+Rotamer 15
+Total:   -13.9096531895
+
+Rotamer 16
+Total:   2.75659289024
+
+Rotamer 17
+Total:   -7.93205860415
+
+Rotamer 18
+Total:   6886.47928437
+
+Rotamer 19
+Total:   13.8296996689
+
+Rotamer 20
+Total:   -1.05456702345
+
+Rotamer 21
+Total:   -9.57651027881
+
+Rotamer 22
+Total:   179.699883858
+
+Rotamer 23
+Total:   831.137035991
+
+Rotamer 24
+Total:   552.555440778
+
+Rotamer 25
+Total:   2.93012229683
+
+Rotamer 26
+Total:   -0.399519776577
+
+Rotamer 27
+Total:   -6.09488375028
+
+Rotamer 28
+Total:   297.506601303
+
+Rotamer 29
+Total:   -3.97696359415
+
+Rotamer 30
+Total:   6882.06470569
+
+Rotamer 31
+Total:   2.1711471124
+
+Rotamer 32
+Total:   336.373131607
+
+Rotamer 33
+Total:   -8.57981441124
+
+Rotamer 34
+Total:   -3.41355466724
+
+Rotamer 35
+Total:   254.651333205
+
+Rotamer 36
+Total:   -15.7145196806
+
+Rotamer 37
+Total:   1330.14135906
+
+Rotamer 38
+Total:   9.8055074534
+
+Rotamer 39
+Total:   16.4323662262
+
+Rotamer 40
+Total:   136.47462667
+
+Rotamer 41
+Total:   263172.198954
+
+Rotamer 42
+Total:   0.66530907082
+
+Rotamer 43
+Total:   -2.1236480399
+
+Rotamer 44
+Total:   2872.16131423
+
+Rotamer 45
+Total:   2.61467365689
+
+Rotamer 46
+Total:   2.72070789305
+
+Rotamer 47
+Total:   282.931413435
+
+Rotamer 48
+Total:   -1.59711210732
+
+Rotamer 49
+Total:   1041.29589899
+
+Rotamer 50
+Total:   -2.53681477307
+
+Rotamer 51
+Total:   2631.8922016
+
+Rotamer 52
+Total:   7.02322295707
+
+Rotamer 53
+Total:   -4.54488109841
+
+Rotamer 54
+Total:   -0.846364898405
+
+Rotamer 55
+Total:   -1.44205797687
+
+Rotamer 56
+Total:   -18.2646946078
+
+Rotamer 57
+Total:   34.8286995351
+
+Rotamer 58
+Total:   123.006041016
+
+Rotamer 59
+Total:   -4.01809846429
+
+Rotamer 60
+Total:   26.707054455
+
+Rotamer 61
+Total:   8.4055435358
+
+Rotamer 62
+Total:   4.0457425799
+
+Rotamer 63
+Total:   5.36604887532
+
+Rotamer 64
+Total:   447.712668278
+
+Rotamer 65
+Total:   -1.04978283412
+
+Rotamer 66
+Total:   -3.51424512716
+
+Rotamer 67
+Total:   0.159266846219
+
+Rotamer 68
+Total:   259.702602751
+
+Rotamer 69
+Total:   41.3273237027
+
+Rotamer 70
+Total:   -0.795289769202
+
+Rotamer 71
+Total:   16.1026594443
+
+Rotamer 72
+Total:   -15.6851734241
+
+Rotamer 73
+Total:   3.94750647571
+
+Rotamer 74
+Total:   -5.20722315559
+
+Rotamer 75
+Total:   -4.61835778833
+
+Rotamer 76
+Total:   291.670948593
+
+Rotamer 77
+Total:   3.59256072242
+
+Rotamer 78
+Total:   6.58793968306
+
+Rotamer 79
+Total:   311.683736812
+
+Rotamer 80
+Total:   1708.39541602
+
+Rotamer 81
+Total:   -1.99516263262
+
+Rotamer 82
+Total:   1226.119856
+
+Rotamer 83
+Total:   367.520397766
+
+Rotamer 84
+Total:   7.13521302759
+
+Rotamer 85
+Total:   2.69227629659
+
+Rotamer 86
+Total:   2873.88489748
+
+Rotamer 87
+Total:   1084.99188153
+
+Rotamer 88
+Total:   -0.0808887197884
+
+Rotamer 89
+Total:   -1.33274626049
+
+Rotamer 90
+Total:   3.96084355857
+
+Rotamer 91
+Total:   497.02398402
+
+Rotamer 92
+Total:   58.3095209893
+
+Rotamer 93
+Total:   6.13917097406
+
+Rotamer 94
+Total:   13.3629614168
+
+Rotamer 95
+Total:   3.74068273128
+
+Rotamer 96
+Total:   16.2334217754
+
+Rotamer 97
+Total:   54.5994378561
+
+Rotamer 98
+Total:   2.7134423141
+
+Rotamer 99
+Total:   4.18726441049
+
+Rotamer 100
+Total:   -5.57948603947
+
+Rotamer 101
+Total:   16.0655036427
+
+Rotamer 102
+Total:   22.964264468
+
+Rotamer 103
+Total:   -1.43192983934
+
+Rotamer 104
+Total:   -1.77605060844
+
+Rotamer 105
+Total:   1866.50647232
+
+Rotamer 106
+Total:   319.327425187
+
+Rotamer 107
+Total:   721.4640587
+
+Rotamer 108
+Total:   2.2206345337
+
+Rotamer 109
+Total:   23.7406530444
+
+Rotamer 110
+Total:   14.7339312917
+
+Rotamer 111
+Total:   8.78146363804
+
+Rotamer 112
+Total:   122.510796673
+
+Rotamer 113
+Total:   7.94202893853
+
+Rotamer 114
+Total:   25.0893635237
+
+D113_C
+
+Rotamer 1
+Total:   9.29516087782
+
+Rotamer 2
+Total:   110.049835324
+
+Rotamer 3
+Total:   15.7243419945
+
+Rotamer 4
+Total:   14.6353652379
+
+Rotamer 5
+Total:   4.63123641778
+
+Rotamer 6
+Total:   4360.67019083
+
+Rotamer 7
+Total:   676.493272294
+
+Rotamer 8
+Total:   4.94727896535
+
+Rotamer 9
+Total:   13.9061929813
+
+Rotamer 10
+Total:   867.33594551
+
+Rotamer 11
+Total:   41.9712158392
+
+Rotamer 12
+Total:   9.43996115892
+
+Rotamer 13
+Total:   18.232506318
+
+Rotamer 14
+Total:   18.170469158
+
+Rotamer 15
+Total:   351.380841439
+
+Rotamer 16
+Total:   9204.40442528
+
+Rotamer 17
+Total:   634.273901292
+
+Rotamer 18
+Total:   420.943511093
+
+Rotamer 19
+Total:   4786.93077521
+
+Rotamer 20
+Total:   182.934767467
+
+Rotamer 21
+Total:   10.7359516551
+
+Rotamer 22
+Total:   1.92047495002
+
+Rotamer 23
+Total:   10.5893796647
+
+Rotamer 24
+Total:   10.7437311227
+
+Rotamer 25
+Total:   6.50925244781
+
+Rotamer 26
+Total:   81.7470485961
+
+Rotamer 27
+Total:   10.6319354598
+
+Rotamer 28
+Total:   8.4152552967
+
+Rotamer 29
+Total:   3.27515438263
+
+Rotamer 30
+Total:   11.155492254
+
+Rotamer 31
+Total:   3315.3383588
+
+Rotamer 32
+Total:   11.2755140665
+
+Rotamer 33
+Total:   8.13576147373
+
+Rotamer 34
+Total:   21.4234053387
+
+Rotamer 35
+Total:   3.03215002466
+
+Rotamer 36
+Total:   155.966858083
+
+Rotamer 37
+Total:   14096.2744076
+
+Rotamer 38
+Total:   10.9332516521
+
+Rotamer 39
+Total:   16.7058409457
+
+Rotamer 40
+Total:   10.8845290556
+
+Rotamer 41
+Total:   3581.43111919
+
+Rotamer 42
+Total:   9388.51834143
+
+Rotamer 43
+Total:   13834.8340121
+
+Rotamer 44
+Total:   821.246581162
+
+Rotamer 45
+Total:   950.599392034
+
+Rotamer 46
+Total:   179.094965465
+
+Rotamer 47
+Total:   340.384922154
+
+Rotamer 48
+Total:   112.835143474
+
+Rotamer 49
+Total:   4.38447701068
+
+Rotamer 50
+Total:   53.7317523924
+
+Rotamer 51
+Total:   254.269524063
+
+Rotamer 52
+Total:   193.062135053
+
+Rotamer 53
+Total:   7.78322153092
+
+Rotamer 54
+Total:   92.3514826731
+
+Rotamer 55
+Total:   44.5639571458
+
+Rotamer 56
+Total:   465.13451729
+
+Rotamer 57
+Total:   8.50773428366
+
+Rotamer 58
+Total:   42.9098712838
+
+Rotamer 59
+Total:   38.0125611404
+
+Rotamer 60
+Total:   9.18144964326
+
+Rotamer 61
+Total:   12.0899679322
+
+Rotamer 62
+Total:   47.1510742602
+
+Rotamer 63
+Total:   12.2635416349
+
+Rotamer 64
+Total:   62.2046222127
+
+Rotamer 65
+Total:   5632.45424902
+
+Rotamer 66
+Total:   1282.41740468
+
+Y308_C
+
+Rotamer 1
+Total:   18899.5351701
+
+Rotamer 2
+Total:   18913.9624469
+
+Rotamer 3
+Total:   18926.5321727
+
+Rotamer 4
+Total:   19200.6033902
+
+Rotamer 5
+Total:   144429562.324
+
+Rotamer 6
+Total:   144429559.367
+
+Rotamer 7
+Total:   144429569.355
+
+Rotamer 8
+Total:   144429560.034
+
+Rotamer 9
+Total:   11.1092995218
+
+Rotamer 10
+Total:   14.2549120532
+
+Rotamer 11
+Total:   12.5984041054
+
+Rotamer 12
+Total:   14.5116772445
+
+Rotamer 13
+Total:   17738.0594364
+
+Rotamer 14
+Total:   17765.4040679
+
+Rotamer 15
+Total:   28686.196739
+
+Rotamer 16
+Total:   17708.9453277
+
+Rotamer 17
+Total:   8.36352173139
+
+Rotamer 18
+Total:   18.8037585276
+
+Rotamer 19
+Total:   11.7766964854
+
+Rotamer 20
+Total:   17.6651952185
+
+Rotamer 21
+Total:   37487.1741902
+
+Rotamer 22
+Total:   37486.8719027
+
+Rotamer 23
+Total:   74402.7411961
+
+Rotamer 24
+Total:   37491.0274407
+
+Rotamer 25
+Total:   70666.1322601
+
+Rotamer 26
+Total:   70663.8771851
+
+Rotamer 27
+Total:   71328.6919742
+
+Rotamer 28
+Total:   70655.9216511
+
+Rotamer 29
+Total:   6.26607618915
+
+Rotamer 30
+Total:   1.85454072811
+
+Rotamer 31
+Total:   3.16914237957
+
+Rotamer 32
+Total:   9.0444614307
+
+Rotamer 33
+Total:   1245025.0409
+
+Rotamer 34
+Total:   1245231.6727
+
+Rotamer 35
+Total:   1247494.73501
+
+Rotamer 36
+Total:   1245005.37992
+
+Rotamer 37
+Total:   257357.650914
+
+Rotamer 38
+Total:   257340.946707
+
+Rotamer 39
+Total:   280533.159069
+
+Rotamer 40
+Total:   257351.871289
+
+Rotamer 41
+Total:   44551649.4979
+
+Rotamer 42
+Total:   44551649.6045
+
+Rotamer 43
+Total:   44551660.374
+
+Rotamer 44
+Total:   44551656.0771
+
+Rotamer 45
+Total:   11442.3055561
+
+Rotamer 46
+Total:   11431.1660858
+
+Rotamer 47
+Total:   44717.8628177
+
+Rotamer 48
+Total:   11528.1872873
+
+Rotamer 49
+Total:   17947941.2579
+
+Rotamer 50
+Total:   17947886.3296
+
+Rotamer 51
+Total:   17947925.7375
+
+Rotamer 52
+Total:   17947884.5548
+
+Rotamer 53
+Total:   76.3526056945
+
+Rotamer 54
+Total:   64.0777062065
+
+Rotamer 55
+Total:   67.7120700599
+
+Rotamer 56
+Total:   71.6296411772
+
+Rotamer 57
+Total:   10.0671591952
+
+Rotamer 58
+Total:   4.35263718513
+
+Rotamer 59
+Total:   3.0498254784
+
+Rotamer 60
+Total:   8.84801002593
+
+Rotamer 61
+Total:   33885551.3969
+
+Rotamer 62
+Total:   33701249.2289
+
+Rotamer 63
+Total:   33701598.6312
+
+Rotamer 64
+Total:   33701295.4891
+
+Rotamer 65
+Total:   74935.0204908
+
+Rotamer 66
+Total:   74936.8005698
+
+Rotamer 67
+Total:   75070.7180372
+
+Rotamer 68
+Total:   74942.3485216
+
+Rotamer 69
+Total:   730.590839499
+
+Rotamer 70
+Total:   743.591409339
+
+Rotamer 71
+Total:   735.008366729
+
+Rotamer 72
+Total:   735.333594652
+
+Rotamer 73
+Total:   11.0269207055
+
+Rotamer 74
+Total:   18.9217435785
+
+Rotamer 75
+Total:   14.2415406797
+
+Rotamer 76
+Total:   16.1930073478
+
+Rotamer 77
+Total:   19082.0373686
+
+Rotamer 78
+Total:   18932.8114086
+
+Rotamer 79
+Total:   18940.6505231
+
+Rotamer 80
+Total:   19044.2238622
+
+Rotamer 81
+Total:   575.060119275
+
+Rotamer 82
+Total:   583.189705494
+
+Rotamer 83
+Total:   577.671180814
+
+Rotamer 84
+Total:   579.812544289
+
+Rotamer 85
+Total:   30.0710859801
+
+Rotamer 86
+Total:   21.8503265584
+
+Rotamer 87
+Total:   27.1978748438
+
+Rotamer 88
+Total:   25.8426626814
+
+Rotamer 89
+Total:   18577279475.7
+
+Rotamer 90
+Total:   18577281342.9
+
+Rotamer 91
+Total:   18577278313.8
+
+Rotamer 92
+Total:   18577282788.1
+
+Rotamer 93
+Total:   2028172.61599
+
+Rotamer 94
+Total:   2028608.10166
+
+Rotamer 95
+Total:   2028176.16592
+
+Rotamer 96
+Total:   2028222.63321
+
+Rotamer 97
+Total:   31122.8959874
+
+Rotamer 98
+Total:   31104.1688364
+
+Rotamer 99
+Total:   32852.6671161
+
+Rotamer 100
+Total:   31122.3845669
+
+Rotamer 101
+Total:   12636591192.1
+
+Rotamer 102
+Total:   12636591436.9
+
+Rotamer 103
+Total:   12636591189.9
+
+Rotamer 104
+Total:   12636591186.9
+
+Rotamer 105
+Total:   4741.8659435
+
+Rotamer 106
+Total:   4625.0327423
+
+Rotamer 107
+Total:   4621.4780416
+
+Rotamer 108
+Total:   4646.45788926
+
+Rotamer 109
+Total:   10.8500047787
+
+Rotamer 110
+Total:   5.28159108643
+
+Rotamer 111
+Total:   3.50175389911
+
+Rotamer 112
+Total:   10.122588215
+
+Rotamer 113
+Total:   11.4555477389
+
+Rotamer 114
+Total:   12.2760299451
+
+Rotamer 115
+Total:   15.3526204801
+
+Rotamer 116
+Total:   9.23192165887
+
+Rotamer 117
+Total:   4010742.86866
+
+Rotamer 118
+Total:   4185225.3739
+
+Rotamer 119
+Total:   4010221.71441
+
+Rotamer 120
+Total:   4043408.28913
+
+Rotamer 121
+Total:   1682287631.48
+
+Rotamer 122
+Total:   1682279258.46
+
+Rotamer 123
+Total:   1682603572.01
+
+Rotamer 124
+Total:   1682278926.12
+
+Rotamer 125
+Total:   27745427.4199
+
+Rotamer 126
+Total:   27744643.7606
+
+Rotamer 127
+Total:   27744702.3828
+
+Rotamer 128
+Total:   27744641.3235
+
+Rotamer 129
+Total:   37.0237248464
+
+Rotamer 130
+Total:   28.765997014
+
+Rotamer 131
+Total:   31.0990208391
+
+Rotamer 132
+Total:   35.1155824656
+
+Rotamer 133
+Total:   3347151.99038
+
+Rotamer 134
+Total:   3333182.47675
+
+Rotamer 135
+Total:   3333288.36336
+
+Rotamer 136
+Total:   3336021.7595
+
+Rotamer 137
+Total:   27274.0405736
+
+Rotamer 138
+Total:   27269.834662
+
+Rotamer 139
+Total:   27267.6093202
+
+Rotamer 140
+Total:   27271.6523017
+
+Rotamer 141
+Total:   10356852.5281
+
+Rotamer 142
+Total:   10356935.7133
+
+Rotamer 143
+Total:   10356848.3565
+
+Rotamer 144
+Total:   10357344.3872
+
+Rotamer 145
+Total:   54584.6608607
+
+Rotamer 146
+Total:   54611.6215338
+
+Rotamer 147
+Total:   54609.648861
+
+Rotamer 148
+Total:   54870.3968009
+
+Rotamer 149
+Total:   40954.3719253
+
+Rotamer 150
+Total:   38867.250443
+
+Rotamer 151
+Total:   38871.01364
+
+Rotamer 152
+Total:   38864.0105194
+
+Rotamer 153
+Total:   28261.3452088
+
+Rotamer 154
+Total:   28250.8560692
+
+Rotamer 155
+Total:   28262.5534617
+
+Rotamer 156
+Total:   28291.9971416
+
+Rotamer 157
+Total:   360172.279869
+
+Rotamer 158
+Total:   360157.856948
+
+Rotamer 159
+Total:   360200.096614
+
+Rotamer 160
+Total:   360152.75185
+
+Rotamer 161
+Total:   29909807.235
+
+Rotamer 162
+Total:   29909779.1902
+
+Rotamer 163
+Total:   29909736.1653
+
+Rotamer 164
+Total:   29953452.3944
+
+Rotamer 165
+Total:   3468.83071138
+
+Rotamer 166
+Total:   3463.86027948
+
+Rotamer 167
+Total:   3467.18197725
+
+Rotamer 168
+Total:   3461.8421435
+
+Rotamer 169
+Total:   329150.46617
+
+Rotamer 170
+Total:   329132.213008
+
+Rotamer 171
+Total:   329124.330971
+
+Rotamer 172
+Total:   329597.838764
+
+Rotamer 173
+Total:   6236022.48978
+
+Rotamer 174
+Total:   6235775.09972
+
+Rotamer 175
+Total:   6236063.53565
+
+Rotamer 176
+Total:   6235778.31278
+
+Rotamer 177
+Total:   4683.13271233
+
+Rotamer 178
+Total:   4659.56770332
+
+Rotamer 179
+Total:   4743.49898324
+
+Rotamer 180
+Total:   4692.60350394
+
+Rotamer 181
+Total:   11.9555142869
+
+Rotamer 182
+Total:   4.05112402304
+
+Rotamer 183
+Total:   7.28248662227
+
+Rotamer 184
+Total:   9.60216618197
+
+Rotamer 185
+Total:   10.9331963276
+
+Rotamer 186
+Total:   7.11679060874
+
+Rotamer 187
+Total:   5.04127923732
+
+Rotamer 188
+Total:   10.3587878696
+
+Rotamer 189
+Total:   132703.855666
+
+Rotamer 190
+Total:   124531.044625
+
+Rotamer 191
+Total:   3779994.21641
+
+Rotamer 192
+Total:   123899.372514
+
+Rotamer 193
+Total:   179126.501079
+
+Rotamer 194
+Total:   179170.139854
+
+Rotamer 195
+Total:   178949.871294
+
+Rotamer 196
+Total:   179503.616421
+
+Rotamer 197
+Total:   2576099.67453
+
+Rotamer 198
+Total:   2574852.72312
+
+Rotamer 199
+Total:   2924974.80596
+
+Rotamer 200
+Total:   2574779.17733
+
+Rotamer 201
+Total:   7783941404.54
+
+Rotamer 202
+Total:   7783937180.48
+
+Rotamer 203
+Total:   7783945960.0
+
+Rotamer 204
+Total:   7783953543.5
+
+Rotamer 205
+Total:   528049.916927
+
+Rotamer 206
+Total:   528011.624656
+
+Rotamer 207
+Total:   528035.151805
+
+Rotamer 208
+Total:   528006.362808
+
+Rotamer 209
+Total:   522544.309013
+
+Rotamer 210
+Total:   1201182.84426
+
+Rotamer 211
+Total:   522548.540385
+
+Rotamer 212
+Total:   522542.648267
+
+Rotamer 213
+Total:   2798.77955919
+
+Rotamer 214
+Total:   2790.45801518
+
+Rotamer 215
+Total:   2788.99504274
+
+Rotamer 216
+Total:   2796.47115594
+
+Rotamer 217
+Total:   7888.71265132
+
+Rotamer 218
+Total:   7895.02585036
+
+Rotamer 219
+Total:   7891.13170123
+
+Rotamer 220
+Total:   7889.04256236
+
+Rotamer 221
+Total:   39478.484915
+
+Rotamer 222
+Total:   39470.1760098
+
+Rotamer 223
+Total:   39480.9509162
+
+Rotamer 224
+Total:   39498.0780049
+
+Rotamer 225
+Total:   2162.38419256
+
+Rotamer 226
+Total:   2144.27844705
+
+Rotamer 227
+Total:   2145.41916277
+
+Rotamer 228
+Total:   2171.13051697
+
+Rotamer 229
+Total:   13.6280280821
+
+Rotamer 230
+Total:   10.5899068034
+
+Rotamer 231
+Total:   7.02010371873
+
+Rotamer 232
+Total:   14.8614630122
+
+Rotamer 233
+Total:   114540.158807
+
+Rotamer 234
+Total:   84105.7257568
+
+Rotamer 235
+Total:   231259.702383
+
+Rotamer 236
+Total:   84104.573586
+
+Rotamer 237
+Total:   7858699.56282
+
+Rotamer 238
+Total:   7863583.72025
+
+Rotamer 239
+Total:   7858749.15735
+
+Rotamer 240
+Total:   7877322.01703
+
+Rotamer 241
+Total:   4202208.92471
+
+Rotamer 242
+Total:   4202185.32288
+
+Rotamer 243
+Total:   4202216.48853
+
+Rotamer 244
+Total:   4202171.76222
+
+Rotamer 245
+Total:   1519423.50852
+
+Rotamer 246
+Total:   1519302.48093
+
+Rotamer 247
+Total:   4736550.95663
+
+Rotamer 248
+Total:   1519278.90009
+
+Rotamer 249
+Total:   6329.52428592
+
+Rotamer 250
+Total:   6330.23706534
+
+Rotamer 251
+Total:   6495.98898309
+
+Rotamer 252
+Total:   6333.58766775
+
+Rotamer 253
+Total:   14859567.2669
+
+Rotamer 254
+Total:   14859569.7766
+
+Rotamer 255
+Total:   14859565.8023
+
+Rotamer 256
+Total:   14859566.9178
+
+Rotamer 257
+Total:   10.7215144079
+
+Rotamer 258
+Total:   11.1564649219
+
+Rotamer 259
+Total:   13.5995413275
+
+Rotamer 260
+Total:   6.99906479372
+
+Rotamer 261
+Total:   225756.479383
+
+Rotamer 262
+Total:   227675.433564
+
+Rotamer 263
+Total:   225754.998527
+
+Rotamer 264
+Total:   225759.606379
+
+Rotamer 265
+Total:   17445.791325
+
+Rotamer 266
+Total:   17426.7723501
+
+Rotamer 267
+Total:   17533.0424177
+
+Rotamer 268
+Total:   17411.2969264
+
+Rotamer 269
+Total:   8.23582507273
+
+Rotamer 270
+Total:   7.05239386941
+
+Rotamer 271
+Total:   3.88391703295
+
+Rotamer 272
+Total:   14.1100678805
+
+Rotamer 273
+Total:   1126147620.95
+
+Rotamer 274
+Total:   1126147749.63
+
+Rotamer 275
+Total:   1126147688.49
+
+Rotamer 276
+Total:   1126150019.79
+
+Rotamer 277
+Total:   4.39613403839
+
+Rotamer 278
+Total:   7.63670952553
+
+Rotamer 279
+Total:   1.63341634181
+
+Rotamer 280
+Total:   12.5151409592
+
+Rotamer 281
+Total:   2357605.18154
+
+Rotamer 282
+Total:   2357575.46585
+
+Rotamer 283
+Total:   2357974.13549
+
+Rotamer 284
+Total:   2357583.90806
+
+Rotamer 285
+Total:   5512632.43164
+
+Rotamer 286
+Total:   5679802.97716
+
+Rotamer 287
+Total:   5554966.32955
+
+Rotamer 288
+Total:   5513470.7396
+
+Rotamer 289
+Total:   8353424.83382
+
+Rotamer 290
+Total:   8349191.63672
+
+Rotamer 291
+Total:   8349625.8119
+
+Rotamer 292
+Total:   8349169.00238
+
+Rotamer 293
+Total:   12.4454973708
+
+Rotamer 294
+Total:   12.4870749671
+
+Rotamer 295
+Total:   13.649718685
+
+Rotamer 296
+Total:   7.67411768767
+
+Rotamer 297
+Total:   24161.2687922
+
+Rotamer 298
+Total:   24262.4991342
+
+Rotamer 299
+Total:   26224.1593182
+
+Rotamer 300
+Total:   24158.6853133
+
+Rotamer 301
+Total:   2715204.33596
+
+Rotamer 302
+Total:   2715196.34948
+
+Rotamer 303
+Total:   2715197.25584
+
+Rotamer 304
+Total:   2715206.72329
+
+Rotamer 305
+Total:   10.4486051044
+
+Rotamer 306
+Total:   17.2426371767
+
+Rotamer 307
+Total:   9.3033974126
+
+Rotamer 308
+Total:   15.3152359978
+
+Rotamer 309
+Total:   3009892831.01
+
+Rotamer 310
+Total:   3009893486.22
+
+Rotamer 311
+Total:   3009892749.49
+
+Rotamer 312
+Total:   3009913107.82
+
+Rotamer 313
+Total:   276061.676642
+
+Rotamer 314
+Total:   275326.897253
+
+Rotamer 315
+Total:   282775.291922
+
+Rotamer 316
+Total:   275231.880197
+
+Rotamer 317
+Total:   29147.8042036
+
+Rotamer 318
+Total:   29149.0510542
+
+Rotamer 319
+Total:   29711.2815964
+
+Rotamer 320
+Total:   29147.7807402
+
+Rotamer 321
+Total:   843660.343048
+
+Rotamer 322
+Total:   845431.358864
+
+Rotamer 323
+Total:   849536.17859
+
+Rotamer 324
+Total:   843678.264884
+
+Rotamer 325
+Total:   69442005756.5
+
+Rotamer 326
+Total:   69442005763.5
+
+Rotamer 327
+Total:   69442005751.5
+
+Rotamer 328
+Total:   69442006831.8
+
+Rotamer 329
+Total:   14.6679170847
+
+Rotamer 330
+Total:   8.83839816083
+
+Rotamer 331
+Total:   8.97195490336
+
+Rotamer 332
+Total:   12.1784670372
+
+Rotamer 333
+Total:   2122338.69851
+
+Rotamer 334
+Total:   2112132.42178
+
+Rotamer 335
+Total:   2112164.90644
+
+Rotamer 336
+Total:   2114064.45054
+
+Rotamer 337
+Total:   286069.064218
+
+Rotamer 338
+Total:   311516.275602
+
+Rotamer 339
+Total:   286109.216891
+
+Rotamer 340
+Total:   286064.170444
+
+Rotamer 341
+Total:   3000075.93573
+
+Rotamer 342
+Total:   2999362.10568
+
+Rotamer 343
+Total:   2999247.81028
+
+Rotamer 344
+Total:   2999526.46189
+
+Rotamer 345
+Total:   649939.571165
+
+Rotamer 346
+Total:   649937.365793
+
+Rotamer 347
+Total:   649932.412832
+
+Rotamer 348
+Total:   649980.00723
+
+Rotamer 349
+Total:   20.7192809112
+
+Rotamer 350
+Total:   13.6421538473
+
+Rotamer 351
+Total:   11.5673353336
+
+Rotamer 352
+Total:   20.3760599243
+
+Rotamer 353
+Total:   69785.8463257
+
+Rotamer 354
+Total:   69311.4614098
+
+Rotamer 355
+Total:   69308.7321261
+
+Rotamer 356
+Total:   69329.0534448
+
+Rotamer 357
+Total:   539809.547444
+
+Rotamer 358
+Total:   539765.353468
+
+Rotamer 359
+Total:   539768.859277
+
+Rotamer 360
+Total:   539767.197248
+
+Rotamer 361
+Total:   15.1130929566
+
+Rotamer 362
+Total:   6.25839591629
+
+Rotamer 363
+Total:   10.5129748091
+
+Rotamer 364
+Total:   11.972267074
+
+Rotamer 365
+Total:   11742741.6807
+
+Rotamer 366
+Total:   11747479.8533
+
+Rotamer 367
+Total:   11742744.1627
+
+Rotamer 368
+Total:   11759696.7114
+
+Rotamer 369
+Total:   268387120.383
+
+Rotamer 370
+Total:   268360867.042
+
+Rotamer 371
+Total:   268369095.243
+
+Rotamer 372
+Total:   268360809.913
+
+Rotamer 373
+Total:   6.65261745048
+
+Rotamer 374
+Total:   8.74452814163
+
+Rotamer 375
+Total:   2.38986557019
+
+Rotamer 376
+Total:   13.6492269003
+
+Rotamer 377
+Total:   6188.57681759
+
+Rotamer 378
+Total:   6159.37078554
+
+Rotamer 379
+Total:   6160.66569616
+
+Rotamer 380
+Total:   6160.48198397
+
+Rotamer 381
+Total:   7.09536391906
+
+Rotamer 382
+Total:   12.3584471511
+
+Rotamer 383
+Total:   7.38993587373
+
+Rotamer 384
+Total:   13.491728114
+
+Rotamer 385
+Total:   14.1301393788
+
+Rotamer 386
+Total:   19.0235748834
+
+Rotamer 387
+Total:   12.3160449427
+
+Rotamer 388
+Total:   17.5959769572
+
+Rotamer 389
+Total:   94904.9462086
+
+Rotamer 390
+Total:   95201.6663668
+
+Rotamer 391
+Total:   94975.9705381
+
+Rotamer 392
+Total:   94895.6720557
+
+Rotamer 393
+Total:   19482540.8752
+
+Rotamer 394
+Total:   19441409.7635
+
+Rotamer 395
+Total:   19456903.0895
+
+Rotamer 396
+Total:   19441333.9538
+
+Rotamer 397
+Total:   16022.2833313
+
+Rotamer 398
+Total:   15932.5536279
+
+Rotamer 399
+Total:   16082.3449103
+
+Rotamer 400
+Total:   15980.006531
+
+Rotamer 401
+Total:   1760151.01707
+
+Rotamer 402
+Total:   1760121.15177
+
+Rotamer 403
+Total:   1760286.29528
+
+Rotamer 404
+Total:   1760196.24019
+
+Rotamer 405
+Total:   9180.08031203
+
+Rotamer 406
+Total:   9180.94611491
+
+Rotamer 407
+Total:   9175.67907594
+
+Rotamer 408
+Total:   9207.94227952
+
+Rotamer 409
+Total:   594139.314657
+
+Rotamer 410
+Total:   588049.133343
+
+Rotamer 411
+Total:   588034.286829
+
+Rotamer 412
+Total:   588071.714262
+
+Rotamer 413
+Total:   1377.7352074
+
+Rotamer 414
+Total:   1392.64058399
+
+Rotamer 415
+Total:   1376.05720492
+
+Rotamer 416
+Total:   1412.49877109
+
+Rotamer 417
+Total:   22.8582763021
+
+Rotamer 418
+Total:   33.8052646307
+
+Rotamer 419
+Total:   24.7873650162
+
+Rotamer 420
+Total:   28.5924172432
+
+Rotamer 421
+Total:   91923.7412535
+
+Rotamer 422
+Total:   91912.3620196
+
+Rotamer 423
+Total:   91916.0937246
+
+Rotamer 424
+Total:   91930.8946071
+
+Rotamer 425
+Total:   5185.66105922
+
+Rotamer 426
+Total:   5162.19971814
+
+Rotamer 427
+Total:   5162.6850878
+
+Rotamer 428
+Total:   5188.56769612
+
+Rotamer 429
+Total:   68104255.3477
+
+Rotamer 430
+Total:   68148733.3829
+
+Rotamer 431
+Total:   68113564.3429
+
+Rotamer 432
+Total:   68104267.4846
+
+Rotamer 433
+Total:   666916.769031
+
+Rotamer 434
+Total:   666947.155373
+
+Rotamer 435
+Total:   666914.30893
+
+Rotamer 436
+Total:   666908.10698
+
+Rotamer 437
+Total:   13.5723006592
+
+Rotamer 438
+Total:   12.6665072928
+
+Rotamer 439
+Total:   13.4006015718
+
+Rotamer 440
+Total:   10.8915394914
+
+Rotamer 441
+Total:   17.1980081119
+
+Rotamer 442
+Total:   11.1057314385
+
+Rotamer 443
+Total:   16.6046665788
+
+Rotamer 444
+Total:   11.4755703355
+
+Rotamer 445
+Total:   7.59253562371
+
+Rotamer 446
+Total:   9.77961387172
+
+Rotamer 447
+Total:   5.09812564966
+
+Rotamer 448
+Total:   13.9157039405
+
+Rotamer 449
+Total:   119129.275694
+
+Rotamer 450
+Total:   120092.365296
+
+Rotamer 451
+Total:   119894.422717
+
+Rotamer 452
+Total:   118983.9913
+
+Rotamer 453
+Total:   70300.829826
+
+Rotamer 454
+Total:   89430.0160593
+
+Rotamer 455
+Total:   108061.012881
+
+Rotamer 456
+Total:   67211.343433
+
+Rotamer 457
+Total:   49953608.6364
+
+Rotamer 458
+Total:   49953825.9057
+
+Rotamer 459
+Total:   49953609.5665
+
+Rotamer 460
+Total:   49954556.2672
+
+Rotamer 461
+Total:   14557.490115
+
+Rotamer 462
+Total:   13049.341133
+
+Rotamer 463
+Total:   13050.6209282
+
+Rotamer 464
+Total:   13120.7224956
+
+Rotamer 465
+Total:   269270.134438
+
+Rotamer 466
+Total:   269335.777521
+
+Rotamer 467
+Total:   269271.262213
+
+Rotamer 468
+Total:   269254.647327
+
+Rotamer 469
+Total:   7783.95876982
+
+Rotamer 470
+Total:   7782.53533319
+
+Rotamer 471
+Total:   7779.06976448
+
+Rotamer 472
+Total:   7830.80564145
+
+Rotamer 473
+Total:   4156.69534713
+
+Rotamer 474
+Total:   4014.25844463
+
+Rotamer 475
+Total:   11178.4387049
+
+Rotamer 476
+Total:   4013.24558009
+
+Rotamer 477
+Total:   66104.5715932
+
+Rotamer 478
+Total:   66090.3517406
+
+Rotamer 479
+Total:   67947.8799008
+
+Rotamer 480
+Total:   66080.8240805
+
+Rotamer 481
+Total:   39918639.8687
+
+Rotamer 482
+Total:   39918643.5812
+
+Rotamer 483
+Total:   39918627.7983
+
+Rotamer 484
+Total:   39918618.4794
+
+Rotamer 485
+Total:   13285802.9083
+
+Rotamer 486
+Total:   13285794.3362
+
+Rotamer 487
+Total:   14584389.9085
+
+Rotamer 488
+Total:   13285784.589
+
+Rotamer 489
+Total:   19.2888707677
+
+Rotamer 490
+Total:   16.5218104025
+
+Rotamer 491
+Total:   17.6598637223
+
+Rotamer 492
+Total:   20.4882227759
+
+Rotamer 493
+Total:   101097.789109
+
+Rotamer 494
+Total:   219314.66279
+
+Rotamer 495
+Total:   101126.665848
+
+Rotamer 496
+Total:   122121.337632
+
+Rotamer 497
+Total:   537409285.398
+
+Rotamer 498
+Total:   537409271.46
+
+Rotamer 499
+Total:   537409270.854
+
+Rotamer 500
+Total:   537410125.156
+
+Rotamer 501
+Total:   192799.393043
+
+Rotamer 502
+Total:   193199.910191
+
+Rotamer 503
+Total:   192813.843938
+
+Rotamer 504
+Total:   192793.341935
+
+Rotamer 505
+Total:   113121660.126
+
+Rotamer 506
+Total:   113121622.651
+
+Rotamer 507
+Total:   113121632.506
+
+Rotamer 508
+Total:   113121620.983
+
+Rotamer 509
+Total:   322149.585482
+
+Rotamer 510
+Total:   321868.724003
+
+Rotamer 511
+Total:   322613.978629
+
+Rotamer 512
+Total:   321865.092449
+
+W109_C
+
+Rotamer 1
+Total:   20066739.7812
+
+Rotamer 2
+Total:   223340654.385
+
+Rotamer 3
+Total:   35447098.4691
+
+Rotamer 4
+Total:   58457633693.8
+
+Rotamer 5
+Total:   12.4011742307
+
+Rotamer 6
+Total:   127409408.634
+
+Rotamer 7
+Total:   194088219.657
+
+Rotamer 8
+Total:   457566.420797
+
+Rotamer 9
+Total:   35.0598934363
+
+Rotamer 10
+Total:   3832427.85315
+
+Rotamer 11
+Total:   74775048.7946
+
+Rotamer 12
+Total:   327639080.331
+
+Rotamer 13
+Total:   18823548.4161
+
+Rotamer 14
+Total:   10755078.8242
+
+Rotamer 15
+Total:   169437.148426
+
+Rotamer 16
+Total:   8099813856.21
+
+Rotamer 17
+Total:   4.90974345931
+
+Rotamer 18
+Total:   896141.591275
+
+Rotamer 19
+Total:   1395910368.15
+
+Rotamer 20
+Total:   276.040437752
+
+Rotamer 21
+Total:   14304132.4733
+
+Rotamer 22
+Total:   44782719.3727
+
+Rotamer 23
+Total:   137.828096246
+
+Rotamer 24
+Total:   412028.912819
+
+Rotamer 25
+Total:   1.63261171348e+11
+
+Rotamer 26
+Total:   7597671.37694
+
+Rotamer 27
+Total:   13854808.4587
+
+Rotamer 28
+Total:   950599873.056
+
+Rotamer 29
+Total:   292588084.326
+
+Rotamer 30
+Total:   120059413.281
+
+Rotamer 31
+Total:   64089802.0763
+
+Rotamer 32
+Total:   36.1945125403
+
+Rotamer 33
+Total:   516527330.959
+
+Rotamer 34
+Total:   625.634222208
+
+Rotamer 35
+Total:   515530.026066
+
+Rotamer 36
+Total:   45633197.5993
+
+Rotamer 37
+Total:   105533990.225
+
+Rotamer 38
+Total:   9.11476360025e+11
+
+Rotamer 39
+Total:   811219.538628
+
+Rotamer 40
+Total:   64767820235.0
+
+Rotamer 41
+Total:   3808502718.97
+
+Rotamer 42
+Total:   12.5169783767
+
+Rotamer 43
+Total:   177383819.847
+
+Rotamer 44
+Total:   203502718.841
+
+Rotamer 45
+Total:   4455499728.94
+
+Rotamer 46
+Total:   16801106421.1
+
+Rotamer 47
+Total:   34354810.0983
+
+Rotamer 48
+Total:   387335655.859
+
+Rotamer 49
+Total:   53187946.7486
+
+Rotamer 50
+Total:   137.775114385
+
+Rotamer 51
+Total:   16988649.5877
+
+Rotamer 52
+Total:   165161354.043
+
+Rotamer 53
+Total:   4.47718879859e+11
+
+Rotamer 54
+Total:   384309391.754
+
+Rotamer 55
+Total:   1920058876.44
+
+Rotamer 56
+Total:   73182.4473967
+
+Rotamer 57
+Total:   17789133.9698
+
+Rotamer 58
+Total:   920394.483502
+
+Rotamer 59
+Total:   1352663.4716
+
+Rotamer 60
+Total:   196.956875814
+
+Rotamer 61
+Total:   1140948.88613
+
+Rotamer 62
+Total:   13856552184.6
+
+Rotamer 63
+Total:   349.829579341
+
+Rotamer 64
+Total:   92942.8844031
+
+Rotamer 65
+Total:   2.7248815895e+11
+
+Rotamer 66
+Total:   125086804.724
+
+Rotamer 67
+Total:   4.94147748202
+
+Rotamer 68
+Total:   59402.6052398
+
+Rotamer 69
+Total:   97678468.9051
+
+Rotamer 70
+Total:   12369922.0043
+
+Rotamer 71
+Total:   20589912.0486
+
+Rotamer 72
+Total:   87883.3697537
+
+Rotamer 73
+Total:   33786852.5378
+
+Rotamer 74
+Total:   9081914.61464
+
+Rotamer 75
+Total:   12970549246.7
+
+Rotamer 76
+Total:   182609.521146
+
+Rotamer 77
+Total:   1499665.63785
+
+Rotamer 78
+Total:   7465042.08174
+
+Rotamer 79
+Total:   2785650.76559
+
+Rotamer 80
+Total:   321836723.106
+
+Rotamer 81
+Total:   403448465.35
+
+Rotamer 82
+Total:   56445264.6786
+
+Rotamer 83
+Total:   110945874.876
+
+Rotamer 84
+Total:   6048387855.28
+
+Rotamer 85
+Total:   1483322784.02
+
+Rotamer 86
+Total:   115.191557972
+
+Rotamer 87
+Total:   1694341.12829
+
+Rotamer 88
+Total:   143360820.489
+
+Rotamer 89
+Total:   3292.88159204
+
+Rotamer 90
+Total:   719.52619729
+
+Rotamer 91
+Total:   8.96296315709
+
+Rotamer 92
+Total:   4522214.97045
+
+Rotamer 93
+Total:   126211717.811
+
+Rotamer 94
+Total:   2654.36048418
+
+Rotamer 95
+Total:   779547.666858
+
+Rotamer 96
+Total:   3950334.97135
+
+Rotamer 97
+Total:   204099011.385
+
+Rotamer 98
+Total:   4641132.72253
+
+Rotamer 99
+Total:   1048315.7279
+
+Rotamer 100
+Total:   14325498.9381
+
+Rotamer 101
+Total:   10524234.0021
+
+Rotamer 102
+Total:   58941048.3236
+
+Rotamer 103
+Total:   13205.600703
+
+Rotamer 104
+Total:   162602418.836
+
+Rotamer 105
+Total:   80830602982.8
+
+Rotamer 106
+Total:   3.06536357979
+
+Rotamer 107
+Total:   6883421.98927
+
+Rotamer 108
+Total:   452873.059059
+
+Rotamer 109
+Total:   10122967823.6
+
+Rotamer 110
+Total:   154552930.792
+
+Rotamer 111
+Total:   5345683.26154
+
+Rotamer 112
+Total:   2783358487.17
+
+Rotamer 113
+Total:   11904868885.8
+
+Rotamer 114
+Total:   556839.981044
+
+Rotamer 115
+Total:   41515123.6953
+
+Rotamer 116
+Total:   2.13049229744e+11
+
+Rotamer 117
+Total:   23609754.9315
+
+Rotamer 118
+Total:   32252.1183014
+
+Rotamer 119
+Total:   334290.13451
+
+Rotamer 120
+Total:   821694338.026
+
+Rotamer 121
+Total:   75004.690894
+
+Rotamer 122
+Total:   153398732.344
+
+Rotamer 123
+Total:   754.94266281
+
+Rotamer 124
+Total:   153230.144779
+
+Rotamer 125
+Total:   22666312.6204
+
+Rotamer 126
+Total:   344695.28298
+
+Rotamer 127
+Total:   38544393.0635
+
+Rotamer 128
+Total:   2507925.92106
+
+Rotamer 129
+Total:   792764.18466
+
+Rotamer 130
+Total:   1379175.6679
+
+Rotamer 131
+Total:   1667261314.21
+
+Rotamer 132
+Total:   3534162.07879
+
+Rotamer 133
+Total:   48.2166492299
+
+Rotamer 134
+Total:   757867583.655
+
+Rotamer 135
+Total:   1025190726.66
+
+Rotamer 136
+Total:   774551853.221
+
+Rotamer 137
+Total:   86994383832.3
+
+Rotamer 138
+Total:   2104307.06573
+
+Rotamer 139
+Total:   989399002.626
+
+Rotamer 140
+Total:   8718482.98178
+
+Rotamer 141
+Total:   169653543.003
+
+Rotamer 142
+Total:   50.7596662009
+
+Rotamer 143
+Total:   29872.543545
+
+Rotamer 144
+Total:   109288433.311
+
+Rotamer 145
+Total:   205866.719765
+
+Rotamer 146
+Total:   9846740.41704
+
+Rotamer 147
+Total:   158610219.091
+
+Rotamer 148
+Total:   92449.0833303
+
+Rotamer 149
+Total:   10663166235.2
+
+Rotamer 150
+Total:   23693862.6056
+
+Rotamer 151
+Total:   3635428.74535
+
+Rotamer 152
+Total:   87104.5222031
+
+Rotamer 153
+Total:   1504360.10054
+
+Rotamer 154
+Total:   2878928402.4
+
+Rotamer 155
+Total:   3.04328000936e+11
+
+Rotamer 156
+Total:   2367835.7091
+
+Rotamer 157
+Total:   54065468.5752
+
+Rotamer 158
+Total:   4020474.46935
+
+Rotamer 159
+Total:   1228947861.45
+
+Rotamer 160
+Total:   149145531.977
+
+Rotamer 161
+Total:   18031111.117
+
+Rotamer 162
+Total:   680968543.386
+
+Rotamer 163
+Total:   38631767.5434
+
+Rotamer 164
+Total:   27718923.3275
+
+Rotamer 165
+Total:   207.189390647
+
+Rotamer 166
+Total:   38098.097591
+
+Rotamer 167
+Total:   82694804514.1
+
+Rotamer 168
+Total:   192112.285326
+
+Rotamer 169
+Total:   112766.933944
+
+Rotamer 170
+Total:   12002579.067
+
+M82_C
+
+Rotamer 1
+Total:   9.97872579889
+
+Rotamer 2
+Total:   18.9727099276
+
+Rotamer 3
+Total:   1527.18568719
+
+Rotamer 4
+Total:   944118.839129
+
+Rotamer 5
+Total:   3527768.68326
+
+Rotamer 6
+Total:   195.007273598
+
+Rotamer 7
+Total:   -4.40942441436
+
+Rotamer 8
+Total:   91543.4610831
+
+Rotamer 9
+Total:   34.3124122075
+
+Rotamer 10
+Total:   -7.53597776313
+
+Rotamer 11
+Total:   -6.43288924069
+
+Rotamer 12
+Total:   699048.221743
+
+Rotamer 13
+Total:   19349.7955381
+
+Rotamer 14
+Total:   929.262146311
+
+Rotamer 15
+Total:   17.6836922124
+
+Rotamer 16
+Total:   230.108563364
+
+Rotamer 17
+Total:   7.54822684236
+
+Rotamer 18
+Total:   56686.5848136
+
+Rotamer 19
+Total:   70.7963963371
+
+Rotamer 20
+Total:   -5.59960502092
+
+Rotamer 21
+Total:   13890531.1323
+
+Rotamer 22
+Total:   466.529853548
+
+Rotamer 23
+Total:   281.549861747
+
+Rotamer 24
+Total:   1716041.46227
+
+Rotamer 25
+Total:   -6.97107379235
+
+Rotamer 26
+Total:   29834.2372906
+
+Rotamer 27
+Total:   -6.39358355488
+
+Rotamer 28
+Total:   -2.29340569864
+
+Rotamer 29
+Total:   -3.33689323209
+
+Rotamer 30
+Total:   22.1696446915
+
+Rotamer 31
+Total:   -8.88188427523
+
+Rotamer 32
+Total:   58963.3871576
+
+Rotamer 33
+Total:   44516.7725606
+
+Rotamer 34
+Total:   103.962924699
+
+Rotamer 35
+Total:   13491.4291611
+
+Rotamer 36
+Total:   141938.851496
+
+Rotamer 37
+Total:   9938.61406499
+
+Rotamer 38
+Total:   40128.400125
+
+Rotamer 39
+Total:   5.82704132803
+
+Rotamer 40
+Total:   -7.53483133867
+
+Rotamer 41
+Total:   90.1615034433
+
+Rotamer 42
+Total:   37847.8922022
+
+Rotamer 43
+Total:   155.415699423
+
+Rotamer 44
+Total:   139.59594897
+
+Rotamer 45
+Total:   25121.2540371
+
+Rotamer 46
+Total:   -5.75352515162
+
+Rotamer 47
+Total:   1649132.16506
+
+Rotamer 48
+Total:   -6.12435616051
+
+Rotamer 49
+Total:   89821.6056512
+
+Rotamer 50
+Total:   -7.65506555894
+
+Rotamer 51
+Total:   -7.49938987187
+
+Rotamer 52
+Total:   2754475.30414
+
+Rotamer 53
+Total:   -6.67067301512
+
+Rotamer 54
+Total:   1880829.28397
+
+Rotamer 55
+Total:   375.498705424
+
+Rotamer 56
+Total:   178.393650173
+
+Rotamer 57
+Total:   281.604093956
+
+Rotamer 58
+Total:   31844.1616291
+
+Rotamer 59
+Total:   250262.190844
+
+Rotamer 60
+Total:   16212.539155
+
+Rotamer 61
+Total:   -5.70008271232
+
+Rotamer 62
+Total:   -2.04733572004
+
+Rotamer 63
+Total:   5278.94369064
+
+Rotamer 64
+Total:   712.496349705
+
+Rotamer 65
+Total:   2454.38580586
+
+Rotamer 66
+Total:   83938.0760718
+
+Rotamer 67
+Total:   46028.7374566
+
+Rotamer 68
+Total:   3.67698914154
+
+Rotamer 69
+Total:   -9.58415673279
+
+Rotamer 70
+Total:   209974.348203
+
+Rotamer 71
+Total:   22571.1014111
+
+Rotamer 72
+Total:   -8.431458698
+
+Rotamer 73
+Total:   8.50024711658
+
+Rotamer 74
+Total:   5580.64573393
+
+Rotamer 75
+Total:   -3.63344315851
+
+Rotamer 76
+Total:   -6.68341060432
+
+Rotamer 77
+Total:   9.39843176911
+
+Rotamer 78
+Total:   411.560179625
+
+Rotamer 79
+Total:   884.204670297
+
+Rotamer 80
+Total:   4246.25453078
+
+Rotamer 81
+Total:   153.891710061
+
+Rotamer 82
+Total:   725341.569726
+
+Rotamer 83
+Total:   -7.79095182108
+
+Rotamer 84
+Total:   -8.04963201415
+
+Rotamer 85
+Total:   19.6309144654
+
+Rotamer 86
+Total:   7.61454926705
+
+Rotamer 87
+Total:   -0.184339158266
+
+Rotamer 88
+Total:   115.05007058
+
+Rotamer 89
+Total:   -7.98943523088
+
+Rotamer 90
+Total:   548.872706221
+
+Rotamer 91
+Total:   527520.624962
+
+Rotamer 92
+Total:   1260888.15989
+
+Rotamer 93
+Total:   1731.73773791
+
+Rotamer 94
+Total:   30193456.4038
+
+Rotamer 95
+Total:   48032.7317697
+
+Rotamer 96
+Total:   613501.29243
+
+Rotamer 97
+Total:   -8.25594943828
+
+Rotamer 98
+Total:   -5.19505773224
+
+Rotamer 99
+Total:   987.392971859
+
+Rotamer 100
+Total:   37980.991178
+
+Rotamer 101
+Total:   1639.70891206
+
+Rotamer 102
+Total:   -2.29134254205
+
+Rotamer 103
+Total:   3208867.09487
+
+Rotamer 104
+Total:   1598389.29137
+
+Rotamer 105
+Total:   -10.4128727779
+
+Rotamer 106
+Total:   43201.656725
+
+Rotamer 107
+Total:   328.01235087
+
+Rotamer 108
+Total:   2991.89328768
+
+Rotamer 109
+Total:   4.89817431908
+
+Rotamer 110
+Total:   89447.7514143
+
+Rotamer 111
+Total:   98.7524071623
+
+Rotamer 112
+Total:   9.18857421929
+
+Rotamer 113
+Total:   372.442549315
+
+Rotamer 114
+Total:   48.463308263
+
+Rotamer 115
+Total:   8780.74019481
+
+Rotamer 116
+Total:   106.812120039
+
+Rotamer 117
+Total:   88538.7720972
+
+Rotamer 118
+Total:   22321439.593
+
+Rotamer 119
+Total:   29030.9250866
+
+Rotamer 120
+Total:   1242.34880845
+
+Rotamer 121
+Total:   5347.27597582
+
+Rotamer 122
+Total:   80.8132121157
+
+Rotamer 123
+Total:   -7.66516730994
+
+Rotamer 124
+Total:   85.5303406536
+
+Rotamer 125
+Total:   21356.8974897
+
+Rotamer 126
+Total:   113371.865621
+
+Rotamer 127
+Total:   -1.72122840427
+
+Rotamer 128
+Total:   -6.44563254094
+
+Rotamer 129
+Total:   1.61964300451
+
+Rotamer 130
+Total:   3627.1159095
+
+Rotamer 131
+Total:   1758.54547422
+
+Rotamer 132
+Total:   1243.73161952
+
+Rotamer 133
+Total:   110.524919089
+
+Rotamer 134
+Total:   1019758.22441
+
+Rotamer 135
+Total:   -1.27463888269
+
+Rotamer 136
+Total:   -1.71203436458
+
+Rotamer 137
+Total:   10322.6322953
+
+Rotamer 138
+Total:   134.133232507
+
+Rotamer 139
+Total:   -5.70102377824
+
+Rotamer 140
+Total:   2776.1159237
+
+Rotamer 141
+Total:   -6.46761215207
+
+Rotamer 142
+Total:   -4.40376159713
+
+Rotamer 143
+Total:   7.42149450364
+
+Rotamer 144
+Total:   162.160254425
+
+Rotamer 145
+Total:   83.4149862083
+
+Rotamer 146
+Total:   612.451648143
+
+Rotamer 147
+Total:   6.61801501869
+
+Rotamer 148
+Total:   481.901468765
+
+Rotamer 149
+Total:   1697364121.14
+
+Rotamer 150
+Total:   145904.785398
+
+Rotamer 151
+Total:   151278.854252
+
+Rotamer 152
+Total:   18.6928467751
+
+Rotamer 153
+Total:   438.258480057
+
+Rotamer 154
+Total:   3768.75835162
+
+Rotamer 155
+Total:   7130.76793808
+
+Rotamer 156
+Total:   5271.78295253
+
+Rotamer 157
+Total:   77.5838067137
+
+Rotamer 158
+Total:   -6.64483249223
+
+Rotamer 159
+Total:   -0.841550279177
+
+Rotamer 160
+Total:   -2.00389949169
+
+Rotamer 161
+Total:   3514.8474942
+
+Rotamer 162
+Total:   6225.66679188
+
+Rotamer 163
+Total:   1.07628298485
+
+Rotamer 164
+Total:   3.21860491512
+
+Rotamer 165
+Total:   -0.813255862251
+
+Rotamer 166
+Total:   367.907991057
+
+Rotamer 167
+Total:   56.7233796514
+
+Rotamer 168
+Total:   -3.533221035
+
+Rotamer 169
+Total:   3.09975344923
+
+Rotamer 170
+Total:   3864.46866542
+
+Rotamer 171
+Total:   73.5588102999
+
+Rotamer 172
+Total:   21172.3264607
+
+Rotamer 173
+Total:   344.646222631
+
+Rotamer 174
+Total:   -3.06284542363
+
+Rotamer 175
+Total:   371.783753852
+
+Rotamer 176
+Total:   241.61209493
+
+Rotamer 177
+Total:   252952.926752
+
+Rotamer 178
+Total:   9282.56297027
+
+Rotamer 179
+Total:   10567.3832518
+
+Rotamer 180
+Total:   2409.37129046
+
+Rotamer 181
+Total:   6267.92948999
+
+Rotamer 182
+Total:   -2.92425316362
+
+Rotamer 183
+Total:   9992415.39136
+
+Rotamer 184
+Total:   3652.70822122
+
+Rotamer 185
+Total:   -0.93476645899
+
+Rotamer 186
+Total:   196.396837195
+
+Rotamer 187
+Total:   978.57049164
+
+Rotamer 188
+Total:   36.2661596397
+
+Rotamer 189
+Total:   3882915.66732
+
+Rotamer 190
+Total:   3675.1914745
+
+Rotamer 191
+Total:   3364.35336871
+
+Rotamer 192
+Total:   4.40850606945
+
+Rotamer 193
+Total:   0.472626356636
+
+Rotamer 194
+Total:   240.985809167
+
+Rotamer 195
+Total:   79078.7780813
+
+Rotamer 196
+Total:   21.8227731933
+
+Rotamer 197
+Total:   967382.214221
+
+Rotamer 198
+Total:   104.981230329
+
+Rotamer 199
+Total:   12.7836335717
+
+Rotamer 200
+Total:   24411.0818402
+
+W286_C
+
+Rotamer 1
+Total:   32.0446331455
+
+Rotamer 2
+Total:   143.706171222
+
+Rotamer 3
+Total:   158189.419627
+
+Rotamer 4
+Total:   534970.035638
+
+Rotamer 5
+Total:   180506.955393
+
+Rotamer 6
+Total:   5.8891959813
+
+Rotamer 7
+Total:   23.871176455
+
+Rotamer 8
+Total:   56.412016602
+
+Rotamer 9
+Total:   35.5133125075
+
+Rotamer 10
+Total:   6316.41094557
+
+Rotamer 11
+Total:   10.3866112508
+
+Rotamer 12
+Total:   10.2776864327
+
+Rotamer 13
+Total:   3394.95128636
+
+Rotamer 14
+Total:   160.383534898
+
+Rotamer 15
+Total:   15125.4959673
+
+Rotamer 16
+Total:   5.48586178929
+
+Rotamer 17
+Total:   1796.46737634
+
+Rotamer 18
+Total:   90.1131935703
+
+Rotamer 19
+Total:   18.355740244
+
+Rotamer 20
+Total:   85.0751035764
+
+Rotamer 21
+Total:   41.1311584596
+
+Rotamer 22
+Total:   8.75679461715
+
+Rotamer 23
+Total:   28.6409754074
+
+Rotamer 24
+Total:   10.1689257001
+
+Rotamer 25
+Total:   23.5467278095
+
+Rotamer 26
+Total:   38488.0308857
+
+Rotamer 27
+Total:   300.996390556
+
+Rotamer 28
+Total:   2321.50862033
+
+Rotamer 29
+Total:   15.3792365719
+
+Rotamer 30
+Total:   33.0882282027
+
+Rotamer 31
+Total:   1223968.91859
+
+Rotamer 32
+Total:   21.8142662631
+
+Rotamer 33
+Total:   21105.0366781
+
+Rotamer 34
+Total:   65.2121153523
+
+Rotamer 35
+Total:   235.892055994
+
+Rotamer 36
+Total:   3221.46115482
+
+Rotamer 37
+Total:   552732.676539
+
+Rotamer 38
+Total:   4396362.59021
+
+Rotamer 39
+Total:   12.1954822489
+
+Rotamer 40
+Total:   252.67456416
+
+Rotamer 41
+Total:   683211.609496
+
+Rotamer 42
+Total:   51065.6645687
+
+Rotamer 43
+Total:   6597.39671315
+
+Rotamer 44
+Total:   504024.472714
+
+Rotamer 45
+Total:   7.14741733734
+
+Rotamer 46
+Total:   4477842.39935
+
+Rotamer 47
+Total:   97.2361705861
+
+Rotamer 48
+Total:   8109362.96967
+
+Rotamer 49
+Total:   163.472964304
+
+Rotamer 50
+Total:   765.17574838
+
+Rotamer 51
+Total:   442.058144195
+
+Rotamer 52
+Total:   2630258.92616
+
+Rotamer 53
+Total:   45291.4084173
+
+Rotamer 54
+Total:   17.1542523904
+
+Rotamer 55
+Total:   87.0891274694
+
+Rotamer 56
+Total:   1941.74065312
+
+Rotamer 57
+Total:   14852.2674838
+
+Rotamer 58
+Total:   11.7323723961
+
+Rotamer 59
+Total:   41.9015734483
+
+Rotamer 60
+Total:   25.2563013778
+
+Rotamer 61
+Total:   11.9783395259
+
+Rotamer 62
+Total:   18.2239662209
+
+Rotamer 63
+Total:   769.508664624
+
+Rotamer 64
+Total:   15.2164660114
+
+Rotamer 65
+Total:   232134668.455
+
+Rotamer 66
+Total:   421885.757151
+
+Rotamer 67
+Total:   1136.82044412
+
+Rotamer 68
+Total:   65.7370485051
+
+Rotamer 69
+Total:   35592.1164579
+
+Rotamer 70
+Total:   246390.057387
+
+Rotamer 71
+Total:   23505.1279867
+
+Rotamer 72
+Total:   1661.67900529
+
+Rotamer 73
+Total:   400453.204245
+
+Rotamer 74
+Total:   696.607285141
+
+Rotamer 75
+Total:   52.3155452712
+
+Rotamer 76
+Total:   479979.422155
+
+Rotamer 77
+Total:   1992.17170283
+
+Rotamer 78
+Total:   133.493798635
+
+Rotamer 79
+Total:   24.9016379593
+
+Rotamer 80
+Total:   17.8642754151
+
+Rotamer 81
+Total:   3826732.27793
+
+Rotamer 82
+Total:   4905.9903342
+
+Rotamer 83
+Total:   2353.66605441
+
+Rotamer 84
+Total:   7681601806.09
+
+Rotamer 85
+Total:   24.7269214605
+
+Rotamer 86
+Total:   1608.27755986
+
+Rotamer 87
+Total:   184620.210921
+
+Rotamer 88
+Total:   2659804.78192
+
+Rotamer 89
+Total:   152.275889206
+
+Rotamer 90
+Total:   431.026013151
+
+Rotamer 91
+Total:   39.7756480319
+
+Rotamer 92
+Total:   13129644.592
+
+Rotamer 93
+Total:   7537.69656646
+
+Rotamer 94
+Total:   467.507073905
+
+Rotamer 95
+Total:   20.3255668923
+
+Rotamer 96
+Total:   45.4359659596
+
+Rotamer 97
+Total:   137.098131465
+
+Rotamer 98
+Total:   104.23718708
+
+Rotamer 99
+Total:   13.4353833064
+
+Rotamer 100
+Total:   637.10995277
+
+Rotamer 101
+Total:   13.7234032897
+
+Rotamer 102
+Total:   89922001.4103
+
+Rotamer 103
+Total:   446.748483096
+
+Rotamer 104
+Total:   11.2481690752
+
+Rotamer 105
+Total:   17832.5842465
+
+Rotamer 106
+Total:   53.7633757059
+
+Rotamer 107
+Total:   52.8281471158
+
+Rotamer 108
+Total:   21.5435606288
+
+Rotamer 109
+Total:   281081.967058
+
+Rotamer 110
+Total:   16523.6469087
+
+Rotamer 111
+Total:   66.8534123282
+
+Rotamer 112
+Total:   116.639943232
+
+Rotamer 113
+Total:   76.5675514139
+
+Rotamer 114
+Total:   18.4046920266
+
+Rotamer 115
+Total:   1892399.09858
+
+Rotamer 116
+Total:   13754141.2367
+
+Rotamer 117
+Total:   21052.1796884
+
+Rotamer 118
+Total:   673.135856688
+
+Rotamer 119
+Total:   30.7878599054
+
+Rotamer 120
+Total:   2780.81379162
+
+Rotamer 121
+Total:   511.270191281
+
+Rotamer 122
+Total:   33064513.2483
+
+Rotamer 123
+Total:   3043.97300593
+
+Rotamer 124
+Total:   114.210143312
+
+Rotamer 125
+Total:   3471.9330574
+
+Rotamer 126
+Total:   15.3601750831
+
+Rotamer 127
+Total:   37147397.8493
+
+Rotamer 128
+Total:   129789277.657
+
+Rotamer 129
+Total:   874.403629854
+
+Rotamer 130
+Total:   109.932540582
+
+Rotamer 131
+Total:   390.404355771
+
+Rotamer 132
+Total:   13.2710263019
+
+Rotamer 133
+Total:   25.5816729233
+
+Rotamer 134
+Total:   61711.4941165
+
+Rotamer 135
+Total:   4215.88497443
+
+Rotamer 136
+Total:   189.535749712
+
+Rotamer 137
+Total:   1005.82706048
+
+Rotamer 138
+Total:   15.9547009713
+
+Rotamer 139
+Total:   15586806.5302
+
+Rotamer 140
+Total:   80.6846310534
+
+Rotamer 141
+Total:   26755.5416395
+
+Rotamer 142
+Total:   43.337822931
+
+Rotamer 143
+Total:   2559.6181247
+
+Rotamer 144
+Total:   3348.73112807
+
+Rotamer 145
+Total:   351486.84568
+
+Rotamer 146
+Total:   721402197.649
+
+Rotamer 147
+Total:   155.464093813
+
+Rotamer 148
+Total:   28.1673497788
+
+Rotamer 149
+Total:   13307516.761
+
+Rotamer 150
+Total:   270677.710344
+
+Rotamer 151
+Total:   51.9517594899
+
+Rotamer 152
+Total:   90.0712500179
+
+Rotamer 153
+Total:   24.2705644736
+
+Rotamer 154
+Total:   2548.77188526
+
+Rotamer 155
+Total:   180.41644042
+
+Rotamer 156
+Total:   6239.11078617
+
+Rotamer 157
+Total:   12.2643667891
+
+Rotamer 158
+Total:   27.420091779
+
+Rotamer 159
+Total:   131.342028984
+
+Rotamer 160
+Total:   143.88111701
+
+Rotamer 161
+Total:   17.7845329917
+
+Rotamer 162
+Total:   14.1619999706
+
+Rotamer 163
+Total:   185.417680929
+
+Rotamer 164
+Total:   1724871.90969
+
+Rotamer 165
+Total:   50.9372650783
+
+Rotamer 166
+Total:   193.615040776
+
+Rotamer 167
+Total:   895.935539465
+
+Rotamer 168
+Total:   76.7663967981
+
+Rotamer 169
+Total:   12134.506573
+
+Rotamer 170
+Total:   11987.3356495
+
+T195_C
+
+Rotamer 1
+Total:   30.3777959813
+
+Rotamer 2
+Total:   22.8407152062
+
+Rotamer 3
+Total:   29.4326145358
+
+Rotamer 4
+Total:   50.3738875848
+
+Rotamer 5
+Total:   45.1993600123
+
+Rotamer 6
+Total:   49.0788782785
+
+Rotamer 7
+Total:   -9.36561070575
+
+Rotamer 8
+Total:   3.21723483424
+
+Rotamer 9
+Total:   3.93778331813
+
+Rotamer 10
+Total:   29.0147322897
+
+Rotamer 11
+Total:   28.5569570252
+
+Rotamer 12
+Total:   31.6837209505
+
+Rotamer 13
+Total:   -1.47939400377
+
+Rotamer 14
+Total:   8.11944755606
+
+Rotamer 15
+Total:   5.59177743246
+
+Rotamer 16
+Total:   30.2681305898
+
+Rotamer 17
+Total:   29.2845294567
+
+Rotamer 18
+Total:   29.1209002598
+
+Rotamer 19
+Total:   10.1712768216
+
+Rotamer 20
+Total:   -2.01213184443
+
+Rotamer 21
+Total:   9.84367147971
+
+Rotamer 22
+Total:   54.9799862838
+
+Rotamer 23
+Total:   50.2334265948
+
+Rotamer 24
+Total:   53.9337332767
+
+Rotamer 25
+Total:   3.06455036984
+
+Rotamer 26
+Total:   8.01568477262
+
+Rotamer 27
+Total:   14.1357140824
+
+Rotamer 28
+Total:   31.2714294218
+
+Rotamer 29
+Total:   36.6850539874
+
+Rotamer 30
+Total:   32.4383401503
+
+Rotamer 31
+Total:   8.57147583228
+
+Rotamer 32
+Total:   5.17023006507
+
+Rotamer 33
+Total:   16.1443892543
+
+Rotamer 34
+Total:   13.8486561356
+
+Rotamer 35
+Total:   0.734705292293
+
+Rotamer 36
+Total:   16.0646501039
+
+Rotamer 37
+Total:   19.7218827467
+
+Rotamer 38
+Total:   10.5725084706
+
+Rotamer 39
+Total:   23.5760878634
+
+Rotamer 40
+Total:   23.4420805927
+
+Rotamer 41
+Total:   28.4402467063
+
+Rotamer 42
+Total:   26.2911169021
+
+V114_C
+
+Rotamer 1
+Total:   105.005093753
+
+Rotamer 2
+Total:   3.66877588646
+
+Rotamer 3
+Total:   356.733507408
+
+Rotamer 4
+Total:   56.33989556
+
+Rotamer 5
+Total:   47.3415393707
+
+Rotamer 6
+Total:   12.8178452793
+
+Rotamer 7
+Total:   46.2982465837
+
+Rotamer 8
+Total:   144.024009259
+
+Rotamer 9
+Total:   324.187675523
+
+Rotamer 10
+Total:   581.668576767
+
+Rotamer 11
+Total:   94.0055565901
+
+N293_C
+
+Rotamer 1
+Total:   3.58373592258
+
+Rotamer 2
+Total:   -4.82781467354
+
+Rotamer 3
+Total:   1.14561889564
+
+Rotamer 4
+Total:   5.72216378321
+
+Rotamer 5
+Total:   -2.19289732323
+
+Rotamer 6
+Total:   -0.781129317865
+
+Rotamer 7
+Total:   21.6642458855
+
+Rotamer 8
+Total:   2.29751466141
+
+Rotamer 9
+Total:   -0.217607179415
+
+Rotamer 10
+Total:   880.457425158
+
+Rotamer 11
+Total:   277.80246692
+
+Rotamer 12
+Total:   -1.30298986724
+
+Rotamer 13
+Total:   -1.6587491278
+
+Rotamer 14
+Total:   29.1428616822
+
+Rotamer 15
+Total:   -2.56362757119
+
+Rotamer 16
+Total:   -0.536016725424
+
+Rotamer 17
+Total:   2.0512625075
+
+Rotamer 18
+Total:   2816.61445152
+
+Rotamer 19
+Total:   6.60798909486
+
+Rotamer 20
+Total:   5.4240279403
+
+Rotamer 21
+Total:   -3.09118100818
+
+Rotamer 22
+Total:   12.0146599309
+
+Rotamer 23
+Total:   410.22347581
+
+Rotamer 24
+Total:   287.816949706
+
+Rotamer 25
+Total:   -2.54914619547
+
+Rotamer 26
+Total:   -7.38470790533
+
+Rotamer 27
+Total:   -8.26279619051
+
+Rotamer 28
+Total:   197.077128161
+
+Rotamer 29
+Total:   12.7451908304
+
+Rotamer 30
+Total:   613.705111408
+
+Rotamer 31
+Total:   8.14780198723
+
+Rotamer 32
+Total:   208.218001758
+
+Rotamer 33
+Total:   -3.23743988215
+
+Rotamer 34
+Total:   4.44051537591
+
+Rotamer 35
+Total:   5.14273435371
+
+Rotamer 36
+Total:   -9.85671996081
+
+Rotamer 37
+Total:   593.662495282
+
+Rotamer 38
+Total:   11.2402264435
+
+Rotamer 39
+Total:   17.4576749488
+
+Rotamer 40
+Total:   62.4730356709
+
+Rotamer 41
+Total:   7321.78269943
+
+Rotamer 42
+Total:   1.73851930064
+
+Rotamer 43
+Total:   -4.89819805439
+
+Rotamer 44
+Total:   391.678934196
+
+Rotamer 45
+Total:   0.3565794727
+
+Rotamer 46
+Total:   2.24453279369
+
+Rotamer 47
+Total:   82.6586497338
+
+Rotamer 48
+Total:   -0.387977765758
+
+Rotamer 49
+Total:   445.690332738
+
+Rotamer 50
+Total:   46.1857671354
+
+Rotamer 51
+Total:   338.61548554
+
+Rotamer 52
+Total:   4.93921221336
+
+Rotamer 53
+Total:   5.26335851775
+
+Rotamer 54
+Total:   6.3661837226
+
+Rotamer 55
+Total:   42.1280514061
+
+Rotamer 56
+Total:   -2.85518024578
+
+Rotamer 57
+Total:   7.66699310771
+
+Rotamer 58
+Total:   30.9120769155
+
+Rotamer 59
+Total:   -7.97310008179
+
+Rotamer 60
+Total:   13.98446577
+
+Rotamer 61
+Total:   3.05935483107
+
+Rotamer 62
+Total:   5.2760400228
+
+Rotamer 63
+Total:   9.04677641654
+
+Rotamer 64
+Total:   77.5322172917
+
+Rotamer 65
+Total:   -3.98412239157
+
+Rotamer 66
+Total:   -5.3642483433
+
+Rotamer 67
+Total:   -0.693090428137
+
+Rotamer 68
+Total:   378.721029122
+
+Rotamer 69
+Total:   9.30082869584
+
+Rotamer 70
+Total:   -10.8887187502
+
+Rotamer 71
+Total:   0.210003074104
+
+Rotamer 72
+Total:   -1.85080867061
+
+Rotamer 73
+Total:   -0.588465825508
+
+Rotamer 74
+Total:   1.58626798593
+
+Rotamer 75
+Total:   -5.38249980853
+
+Rotamer 76
+Total:   4317.45393945
+
+Rotamer 77
+Total:   32.1767826541
+
+Rotamer 78
+Total:   39.5439765587
+
+Rotamer 79
+Total:   8666.10817819
+
+Rotamer 80
+Total:   234.196310873
+
+Rotamer 81
+Total:   17.0019910615
+
+Rotamer 82
+Total:   185.399194062
+
+Rotamer 83
+Total:   7.17038601075
+
+Rotamer 84
+Total:   7.19025293508
+
+Rotamer 85
+Total:   18.8812489076
+
+Rotamer 86
+Total:   770.549215377
+
+Rotamer 87
+Total:   304.495492683
+
+Rotamer 88
+Total:   -6.5367112378
+
+Rotamer 89
+Total:   25.5530489214
+
+Rotamer 90
+Total:   5.0380157114
+
+Rotamer 91
+Total:   17449.0813668
+
+Rotamer 92
+Total:   18.1662290081
+
+Rotamer 93
+Total:   2.38750347164
+
+Rotamer 94
+Total:   6.79326581188
+
+Rotamer 95
+Total:   6.07537311112
+
+Rotamer 96
+Total:   6.32746720299
+
+Rotamer 97
+Total:   23.2681465398
+
+Rotamer 98
+Total:   -2.8166296074
+
+Rotamer 99
+Total:   6.50015071245
+
+Rotamer 100
+Total:   -0.908801107877
+
+Rotamer 101
+Total:   8.36762843668
+
+Rotamer 102
+Total:   17.6628516438
+
+Rotamer 103
+Total:   9.17878086047
+
+Rotamer 104
+Total:   3.65596857545
+
+Rotamer 105
+Total:   52.7410251006
+
+Rotamer 106
+Total:   242.895401651
+
+Rotamer 107
+Total:   848.379663154
+
+Rotamer 108
+Total:   -4.20208455599
+
+Rotamer 109
+Total:   71.4826341696
+
+Rotamer 110
+Total:   6.60476282813
+
+Rotamer 111
+Total:   8.27086344743
+
+Rotamer 112
+Total:   370.327762461
+
+Rotamer 113
+Total:   5.92764590033
+
+Rotamer 114
+Total:   25.7812982884
+
+A200_C
+
+Rotamer 1
+Total:   -4.58343277497
+
+S207_C
+
+Rotamer 1
+Total:   3.360808249
+
+Rotamer 2
+Total:   5.93357525224
+
+Rotamer 3
+Total:   1.32527363872
+
+Rotamer 4
+Total:   6.50723936952
+
+Rotamer 5
+Total:   8.73827706344
+
+Rotamer 6
+Total:   1.84184388972
+
+Rotamer 7
+Total:   12.7916702233
+
+Rotamer 8
+Total:   616.297139087
+
+Rotamer 9
+Total:   47.3697098987
+
+Rotamer 10
+Total:   5.78398555003
+
+Rotamer 11
+Total:   8.37704707509
+
+Rotamer 12
+Total:   5.75879084552
+
+Rotamer 13
+Total:   14.4496027991
+
+Rotamer 14
+Total:   15.2525148797
+
+Rotamer 15
+Total:   12.1879191837
+
+Rotamer 16
+Total:   10.058124686
+
+Rotamer 17
+Total:   395.915929297
+
+Rotamer 18
+Total:   14.7884257921
+
+Rotamer 19
+Total:   54.5929717329
+
+Rotamer 20
+Total:   9.36670740635
+
+Rotamer 21
+Total:   7.97544659691
+
+Rotamer 22
+Total:   10.2156812177
+
+Rotamer 23
+Total:   12.9942765045
+
+Rotamer 24
+Total:   8.56409260571
+
+Rotamer 25
+Total:   76.0347923017
+
+Rotamer 26
+Total:   81.8634897789
+
+Rotamer 27
+Total:   113.022782517
+
+Y316_C
+
+Rotamer 1
+Total:   46.3081863402
+
+Rotamer 2
+Total:   49.9240154778
+
+Rotamer 3
+Total:   49.550149658
+
+Rotamer 4
+Total:   49.8829608758
+
+Rotamer 5
+Total:   -1.67522230463
+
+Rotamer 6
+Total:   0.641062507007
+
+Rotamer 7
+Total:   -4.18145430341
+
+Rotamer 8
+Total:   -0.0629553218892
+
+Rotamer 9
+Total:   397948155.625
+
+Rotamer 10
+Total:   397948219.063
+
+Rotamer 11
+Total:   403852990.697
+
+Rotamer 12
+Total:   397948159.663
+
+Rotamer 13
+Total:   628.191025859
+
+Rotamer 14
+Total:   626.392731561
+
+Rotamer 15
+Total:   623.762478489
+
+Rotamer 16
+Total:   630.00887957
+
+Rotamer 17
+Total:   126263298.193
+
+Rotamer 18
+Total:   126500791.863
+
+Rotamer 19
+Total:   126263493.975
+
+Rotamer 20
+Total:   126263136.399
+
+Rotamer 21
+Total:   183.832927003
+
+Rotamer 22
+Total:   181.306542356
+
+Rotamer 23
+Total:   185.732455175
+
+Rotamer 24
+Total:   179.065793328
+
+Rotamer 25
+Total:   15.8680809818
+
+Rotamer 26
+Total:   19.942617779
+
+Rotamer 27
+Total:   17.8032607983
+
+Rotamer 28
+Total:   17.2969846797
+
+Rotamer 29
+Total:   16149727.4602
+
+Rotamer 30
+Total:   16139476.1107
+
+Rotamer 31
+Total:   16140653.5235
+
+Rotamer 32
+Total:   16139636.7004
+
+Rotamer 33
+Total:   158.894400209
+
+Rotamer 34
+Total:   156.965537571
+
+Rotamer 35
+Total:   157.279228967
+
+Rotamer 36
+Total:   160.088272879
+
+Rotamer 37
+Total:   53.8569786997
+
+Rotamer 38
+Total:   50.4235334599
+
+Rotamer 39
+Total:   55.1327267689
+
+Rotamer 40
+Total:   49.3676389236
+
+Rotamer 41
+Total:   122.335881536
+
+Rotamer 42
+Total:   121.466969643
+
+Rotamer 43
+Total:   124.301462651
+
+Rotamer 44
+Total:   123.17303535
+
+Rotamer 45
+Total:   17220.5210733
+
+Rotamer 46
+Total:   17220.9951173
+
+Rotamer 47
+Total:   17219.564695
+
+Rotamer 48
+Total:   17225.7291737
+
+Rotamer 49
+Total:   -0.846185030999
+
+Rotamer 50
+Total:   0.542208725905
+
+Rotamer 51
+Total:   -1.04538835191
+
+Rotamer 52
+Total:   -2.15352050564
+
+Rotamer 53
+Total:   94381976.6107
+
+Rotamer 54
+Total:   94382621.1564
+
+Rotamer 55
+Total:   94382060.9081
+
+Rotamer 56
+Total:   94382104.1908
+
+Rotamer 57
+Total:   476963297.678
+
+Rotamer 58
+Total:   476899366.814
+
+Rotamer 59
+Total:   476899459.293
+
+Rotamer 60
+Total:   476899363.731
+
+Rotamer 61
+Total:   605486.590058
+
+Rotamer 62
+Total:   605480.950126
+
+Rotamer 63
+Total:   605479.613753
+
+Rotamer 64
+Total:   605479.597189
+
+Rotamer 65
+Total:   97.2241432865
+
+Rotamer 66
+Total:   95.4198030858
+
+Rotamer 67
+Total:   98.8200928254
+
+Rotamer 68
+Total:   95.8559982463
+
+Rotamer 69
+Total:   155348993.958
+
+Rotamer 70
+Total:   155348694.351
+
+Rotamer 71
+Total:   155348663.045
+
+Rotamer 72
+Total:   155348738.628
+
+Rotamer 73
+Total:   1904428856.25
+
+Rotamer 74
+Total:   1904429848.21
+
+Rotamer 75
+Total:   1904436097.18
+
+Rotamer 76
+Total:   1904428865.78
+
+Rotamer 77
+Total:   330.908167045
+
+Rotamer 78
+Total:   332.718498472
+
+Rotamer 79
+Total:   333.523276806
+
+Rotamer 80
+Total:   333.076974135
+
+Rotamer 81
+Total:   20024960.6774
+
+Rotamer 82
+Total:   20000950.1639
+
+Rotamer 83
+Total:   20184550.6868
+
+Rotamer 84
+Total:   20001124.5139
+
+Rotamer 85
+Total:   677493675.87
+
+Rotamer 86
+Total:   677493245.165
+
+Rotamer 87
+Total:   677493198.603
+
+Rotamer 88
+Total:   677542470.92
+
+Rotamer 89
+Total:   2473073.87297
+
+Rotamer 90
+Total:   2473120.87622
+
+Rotamer 91
+Total:   2473079.73149
+
+Rotamer 92
+Total:   2473072.09627
+
+Rotamer 93
+Total:   2.97653103317
+
+Rotamer 94
+Total:   6.86114373723
+
+Rotamer 95
+Total:   -0.775905077438
+
+Rotamer 96
+Total:   4.04674952031
+
+Rotamer 97
+Total:   197.154196848
+
+Rotamer 98
+Total:   194.546898203
+
+Rotamer 99
+Total:   198.825112327
+
+Rotamer 100
+Total:   194.844678503
+
+Rotamer 101
+Total:   -4.10265637897
+
+Rotamer 102
+Total:   0.956686264772
+
+Rotamer 103
+Total:   -2.0477175133
+
+Rotamer 104
+Total:   -2.69419405767
+
+Rotamer 105
+Total:   31702.2018281
+
+Rotamer 106
+Total:   31706.0809872
+
+Rotamer 107
+Total:   31703.2636401
+
+Rotamer 108
+Total:   31703.5081585
+
+Rotamer 109
+Total:   164492994.971
+
+Rotamer 110
+Total:   164489952.855
+
+Rotamer 111
+Total:   164490028.468
+
+Rotamer 112
+Total:   164489925.757
+
+Rotamer 113
+Total:   5621495.52993
+
+Rotamer 114
+Total:   6003169.55179
+
+Rotamer 115
+Total:   5621557.31164
+
+Rotamer 116
+Total:   5621672.56435
+
+Rotamer 117
+Total:   4119445.10802
+
+Rotamer 118
+Total:   4459177.73915
+
+Rotamer 119
+Total:   4119450.74659
+
+Rotamer 120
+Total:   4119449.18446
+
+Rotamer 121
+Total:   82279878.242
+
+Rotamer 122
+Total:   82279814.3096
+
+Rotamer 123
+Total:   82279829.4196
+
+Rotamer 124
+Total:   82279817.8116
+
+Rotamer 125
+Total:   2.58614448317
+
+Rotamer 126
+Total:   -0.750016146818
+
+Rotamer 127
+Total:   2.94582592391
+
+Rotamer 128
+Total:   0.373441939448
+
+Rotamer 129
+Total:   2439857414.43
+
+Rotamer 130
+Total:   2439857414.43
+
+Rotamer 131
+Total:   2439857403.65
+
+Rotamer 132
+Total:   2440777246.95
+
+Rotamer 133
+Total:   73948.6630308
+
+Rotamer 134
+Total:   73952.4261931
+
+Rotamer 135
+Total:   73950.0508067
+
+Rotamer 136
+Total:   73950.7641556
+
+Rotamer 137
+Total:   414939828.503
+
+Rotamer 138
+Total:   414940757.726
+
+Rotamer 139
+Total:   414939776.524
+
+Rotamer 140
+Total:   414940989.545
+
+Rotamer 141
+Total:   51.402475956
+
+Rotamer 142
+Total:   52.4172966883
+
+Rotamer 143
+Total:   53.2832953386
+
+Rotamer 144
+Total:   55.2406169414
+
+Rotamer 145
+Total:   -0.147287836485
+
+Rotamer 146
+Total:   3.84892606566
+
+Rotamer 147
+Total:   2.27656076172
+
+Rotamer 148
+Total:   3.38060012002
+
+Rotamer 149
+Total:   7172029.69214
+
+Rotamer 150
+Total:   7172033.36638
+
+Rotamer 151
+Total:   7172031.51019
+
+Rotamer 152
+Total:   7172030.69012
+
+Rotamer 153
+Total:   12435.9256664
+
+Rotamer 154
+Total:   12434.8804301
+
+Rotamer 155
+Total:   12436.7182543
+
+Rotamer 156
+Total:   12434.9242332
+
+Rotamer 157
+Total:   8.58133827624
+
+Rotamer 158
+Total:   7.9078808087
+
+Rotamer 159
+Total:   8.61721215044
+
+Rotamer 160
+Total:   6.5480234425
+
+Rotamer 161
+Total:   522365.392347
+
+Rotamer 162
+Total:   522372.811695
+
+Rotamer 163
+Total:   522364.811231
+
+Rotamer 164
+Total:   522367.160953
+
+Rotamer 165
+Total:   6588557.8509
+
+Rotamer 166
+Total:   6599227.23919
+
+Rotamer 167
+Total:   6744662.63392
+
+Rotamer 168
+Total:   6588886.6659
+
+Rotamer 169
+Total:   112.244924585
+
+Rotamer 170
+Total:   107.028146111
+
+Rotamer 171
+Total:   108.598381867
+
+Rotamer 172
+Total:   115.05753672
+
+Rotamer 173
+Total:   26.7307436933
+
+Rotamer 174
+Total:   24.2517971024
+
+Rotamer 175
+Total:   27.9378891456
+
+Rotamer 176
+Total:   25.2935151235
+
+Rotamer 177
+Total:   9.50835367476
+
+Rotamer 178
+Total:   13.2799311064
+
+Rotamer 179
+Total:   9.69487438937
+
+Rotamer 180
+Total:   15.5212794733
+
+Rotamer 181
+Total:   31356380.4287
+
+Rotamer 182
+Total:   26261566.6881
+
+Rotamer 183
+Total:   26261787.9009
+
+Rotamer 184
+Total:   26261350.891
+
+Rotamer 185
+Total:   7758257.24646
+
+Rotamer 186
+Total:   7757824.95613
+
+Rotamer 187
+Total:   7758083.69868
+
+Rotamer 188
+Total:   7757821.7373
+
+Rotamer 189
+Total:   1569.78631177
+
+Rotamer 190
+Total:   1567.58709953
+
+Rotamer 191
+Total:   1565.98604194
+
+Rotamer 192
+Total:   1572.48684092
+
+Rotamer 193
+Total:   98023.6696178
+
+Rotamer 194
+Total:   98036.5233586
+
+Rotamer 195
+Total:   98024.9822777
+
+Rotamer 196
+Total:   98038.4185711
+
+Rotamer 197
+Total:   3186177.76372
+
+Rotamer 198
+Total:   3186213.8632
+
+Rotamer 199
+Total:   3187275.95531
+
+Rotamer 200
+Total:   3186180.62996
+
+Rotamer 201
+Total:   1113414.72409
+
+Rotamer 202
+Total:   1113412.16212
+
+Rotamer 203
+Total:   1113408.35266
+
+Rotamer 204
+Total:   1113413.74407
+
+Rotamer 205
+Total:   37.2252108178
+
+Rotamer 206
+Total:   37.5627392962
+
+Rotamer 207
+Total:   40.1730694512
+
+Rotamer 208
+Total:   37.1507781129
+
+Rotamer 209
+Total:   8.60254740159
+
+Rotamer 210
+Total:   16.4127888901
+
+Rotamer 211
+Total:   14.2273511517
+
+Rotamer 212
+Total:   11.3296506836
+
+Rotamer 213
+Total:   167394683.788
+
+Rotamer 214
+Total:   167394793.537
+
+Rotamer 215
+Total:   167395324.908
+
+Rotamer 216
+Total:   167394695.204
+
+Rotamer 217
+Total:   1874111806.53
+
+Rotamer 218
+Total:   1874036919.09
+
+Rotamer 219
+Total:   1874038132.7
+
+Rotamer 220
+Total:   1874037369.02
+
+Rotamer 221
+Total:   37090.1138681
+
+Rotamer 222
+Total:   37088.3622783
+
+Rotamer 223
+Total:   37090.0723967
+
+Rotamer 224
+Total:   37089.5073036
+
+Rotamer 225
+Total:   65119.0324
+
+Rotamer 226
+Total:   65120.33302
+
+Rotamer 227
+Total:   65119.6866022
+
+Rotamer 228
+Total:   65119.3935448
+
+Rotamer 229
+Total:   23679197.829
+
+Rotamer 230
+Total:   23679193.2166
+
+Rotamer 231
+Total:   23679205.1172
+
+Rotamer 232
+Total:   23679187.7582
+
+Rotamer 233
+Total:   379.773905374
+
+Rotamer 234
+Total:   380.964521421
+
+Rotamer 235
+Total:   425.546267765
+
+Rotamer 236
+Total:   384.146646373
+
+Rotamer 237
+Total:   3103081.40741
+
+Rotamer 238
+Total:   3103093.2321
+
+Rotamer 239
+Total:   3103080.19682
+
+Rotamer 240
+Total:   3103078.32683
+
+Rotamer 241
+Total:   131.788516757
+
+Rotamer 242
+Total:   129.68680407
+
+Rotamer 243
+Total:   133.402865985
+
+Rotamer 244
+Total:   129.234086084
+
+Rotamer 245
+Total:   84.8022157385
+
+Rotamer 246
+Total:   81.5439291171
+
+Rotamer 247
+Total:   85.8815583977
+
+Rotamer 248
+Total:   77.7190733719
+
+Rotamer 249
+Total:   12436716.7944
+
+Rotamer 250
+Total:   12436752.3352
+
+Rotamer 251
+Total:   12438438.1122
+
+Rotamer 252
+Total:   12441201.5329
+
+Rotamer 253
+Total:   521360010.346
+
+Rotamer 254
+Total:   521360348.331
+
+Rotamer 255
+Total:   521360066.538
+
+Rotamer 256
+Total:   528873715.658
+
+Rotamer 257
+Total:   19460598.58
+
+Rotamer 258
+Total:   19460888.3522
+
+Rotamer 259
+Total:   19460586.8609
+
+Rotamer 260
+Total:   19460817.5684
+
+Rotamer 261
+Total:   0.449469832487
+
+Rotamer 262
+Total:   6.58028404845
+
+Rotamer 263
+Total:   3.58988152016
+
+Rotamer 264
+Total:   2.36692561215
+
+Rotamer 265
+Total:   15.8325642349
+
+Rotamer 266
+Total:   17.3038168602
+
+Rotamer 267
+Total:   15.0913718336
+
+Rotamer 268
+Total:   16.2527993479
+
+Rotamer 269
+Total:   5059151.97882
+
+Rotamer 270
+Total:   5061188.73847
+
+Rotamer 271
+Total:   5062812.80768
+
+Rotamer 272
+Total:   5091862.00465
+
+Rotamer 273
+Total:   1223228.59067
+
+Rotamer 274
+Total:   1223250.87879
+
+Rotamer 275
+Total:   1223227.3966
+
+Rotamer 276
+Total:   1223319.83956
+
+Rotamer 277
+Total:   311251000.927
+
+Rotamer 278
+Total:   311251474.478
+
+Rotamer 279
+Total:   311260692.58
+
+Rotamer 280
+Total:   312194036.491
+
+Rotamer 281
+Total:   3.92392771607
+
+Rotamer 282
+Total:   0.0846084254064
+
+Rotamer 283
+Total:   4.03245099511
+
+Rotamer 284
+Total:   0.875906536039
+
+Rotamer 285
+Total:   12978926.8462
+
+Rotamer 286
+Total:   12977199.8216
+
+Rotamer 287
+Total:   12978343.6827
+
+Rotamer 288
+Total:   12977168.0321
+
+Rotamer 289
+Total:   472.453581773
+
+Rotamer 290
+Total:   473.869001546
+
+Rotamer 291
+Total:   1297.86286966
+
+Rotamer 292
+Total:   476.080620725
+
+Rotamer 293
+Total:   858771755.817
+
+Rotamer 294
+Total:   858771810.98
+
+Rotamer 295
+Total:   858771753.947
+
+Rotamer 296
+Total:   858771764.689
+
+Rotamer 297
+Total:   1.16952336333
+
+Rotamer 298
+Total:   3.55180629977
+
+Rotamer 299
+Total:   4.41127113808
+
+Rotamer 300
+Total:   0.189041883055
+
+Rotamer 301
+Total:   2242032.41293
+
+Rotamer 302
+Total:   7608509.47718
+
+Rotamer 303
+Total:   2243497.14501
+
+Rotamer 304
+Total:   2242011.04988
+
+Rotamer 305
+Total:   3548348.54408
+
+Rotamer 306
+Total:   3548343.10831
+
+Rotamer 307
+Total:   3548454.24805
+
+Rotamer 308
+Total:   3548339.69499
+
+Rotamer 309
+Total:   1023405.98707
+
+Rotamer 310
+Total:   1023430.62696
+
+Rotamer 311
+Total:   1023409.61785
+
+Rotamer 312
+Total:   1023413.43449
+
+Rotamer 313
+Total:   37.5882978043
+
+Rotamer 314
+Total:   34.1094437202
+
+Rotamer 315
+Total:   31.0104140521
+
+Rotamer 316
+Total:   35.5835871975
+
+Rotamer 317
+Total:   12.8498891993
+
+Rotamer 318
+Total:   14.4151651078
+
+Rotamer 319
+Total:   17.0453369283
+
+Rotamer 320
+Total:   12.2131815371
+
+Rotamer 321
+Total:   103.151074106
+
+Rotamer 322
+Total:   105.331796811
+
+Rotamer 323
+Total:   103.642525398
+
+Rotamer 324
+Total:   102.391189192
+
+Rotamer 325
+Total:   19.3329795073
+
+Rotamer 326
+Total:   23.8075659947
+
+Rotamer 327
+Total:   23.7901793872
+
+Rotamer 328
+Total:   25.6861076951
+
+Rotamer 329
+Total:   19763695.5781
+
+Rotamer 330
+Total:   19760389.7867
+
+Rotamer 331
+Total:   19761141.4701
+
+Rotamer 332
+Total:   19760306.1733
+
+Rotamer 333
+Total:   3358229.87974
+
+Rotamer 334
+Total:   3358198.16995
+
+Rotamer 335
+Total:   3358210.12419
+
+Rotamer 336
+Total:   4522059.56209
+
+Rotamer 337
+Total:   12.7683342108
+
+Rotamer 338
+Total:   21.7946585446
+
+Rotamer 339
+Total:   20.5660858187
+
+Rotamer 340
+Total:   17.232692042
+
+Rotamer 341
+Total:   1339504.05438
+
+Rotamer 342
+Total:   1263623.74089
+
+Rotamer 343
+Total:   1263649.15379
+
+Rotamer 344
+Total:   1263613.473
+
+Rotamer 345
+Total:   2382.88017785
+
+Rotamer 346
+Total:   2385.2331615
+
+Rotamer 347
+Total:   2384.36140261
+
+Rotamer 348
+Total:   2385.93695617
+
+Rotamer 349
+Total:   19213318.0655
+
+Rotamer 350
+Total:   19214867.4423
+
+Rotamer 351
+Total:   19215302.6437
+
+Rotamer 352
+Total:   19213853.584
+
+Rotamer 353
+Total:   945237.479834
+
+Rotamer 354
+Total:   949837.011747
+
+Rotamer 355
+Total:   943559.943135
+
+Rotamer 356
+Total:   943344.010097
+
+Rotamer 357
+Total:   4576175.79149
+
+Rotamer 358
+Total:   4579681.26581
+
+Rotamer 359
+Total:   4616752.56439
+
+Rotamer 360
+Total:   4576127.97347
+
+Rotamer 361
+Total:   2321194.11499
+
+Rotamer 362
+Total:   2321143.50443
+
+Rotamer 363
+Total:   2393119.21306
+
+Rotamer 364
+Total:   2321132.83563
+
+Rotamer 365
+Total:   5.96393181527
+
+Rotamer 366
+Total:   9.73677329079
+
+Rotamer 367
+Total:   9.37554346431
+
+Rotamer 368
+Total:   12.0279494525
+
+Rotamer 369
+Total:   1232615.52017
+
+Rotamer 370
+Total:   1232588.68666
+
+Rotamer 371
+Total:   1232586.62419
+
+Rotamer 372
+Total:   1232589.45
+
+Rotamer 373
+Total:   25517754.5019
+
+Rotamer 374
+Total:   25517843.7868
+
+Rotamer 375
+Total:   25521560.4416
+
+Rotamer 376
+Total:   25518350.117
+
+Rotamer 377
+Total:   185130004.68
+
+Rotamer 378
+Total:   185130003.845
+
+Rotamer 379
+Total:   185130005.029
+
+Rotamer 380
+Total:   185130004.359
+
+Rotamer 381
+Total:   1423323.95664
+
+Rotamer 382
+Total:   221217.139721
+
+Rotamer 383
+Total:   455342.748219
+
+Rotamer 384
+Total:   219211.511184
+
+Rotamer 385
+Total:   14344749.7449
+
+Rotamer 386
+Total:   14344756.6645
+
+Rotamer 387
+Total:   14344860.1336
+
+Rotamer 388
+Total:   14344747.8231
+
+Rotamer 389
+Total:   2.32640853786
+
+Rotamer 390
+Total:   3.65525860545
+
+Rotamer 391
+Total:   5.76036226007
+
+Rotamer 392
+Total:   1.95531280125
+
+Rotamer 393
+Total:   252.265190959
+
+Rotamer 394
+Total:   249.055972562
+
+Rotamer 395
+Total:   250.406768979
+
+Rotamer 396
+Total:   247.878956037
+
+Rotamer 397
+Total:   4.07452610797
+
+Rotamer 398
+Total:   7.52583251819
+
+Rotamer 399
+Total:   4.72592405077
+
+Rotamer 400
+Total:   8.81800350887
+
+Rotamer 401
+Total:   8.2446802118
+
+Rotamer 402
+Total:   5.70033339926
+
+Rotamer 403
+Total:   7.19378108934
+
+Rotamer 404
+Total:   4.37106728209
+
+Rotamer 405
+Total:   143815418.996
+
+Rotamer 406
+Total:   143815416.242
+
+Rotamer 407
+Total:   143815424.159
+
+Rotamer 408
+Total:   143815417.514
+
+Rotamer 409
+Total:   144348.006262
+
+Rotamer 410
+Total:   144269.887674
+
+Rotamer 411
+Total:   145018.448605
+
+Rotamer 412
+Total:   146801.375778
+
+Rotamer 413
+Total:   1237775639.33
+
+Rotamer 414
+Total:   1237775638.41
+
+Rotamer 415
+Total:   1237775642.1
+
+Rotamer 416
+Total:   1237775639.0
+
+Rotamer 417
+Total:   42992810.6388
+
+Rotamer 418
+Total:   42993251.4901
+
+Rotamer 419
+Total:   42992255.0043
+
+Rotamer 420
+Total:   42992239.4717
+
+Rotamer 421
+Total:   6.79480972103
+
+Rotamer 422
+Total:   7.29575382633
+
+Rotamer 423
+Total:   9.08323920855
+
+Rotamer 424
+Total:   8.04211140743
+
+Rotamer 425
+Total:   506062730.096
+
+Rotamer 426
+Total:   506062731.385
+
+Rotamer 427
+Total:   506062729.956
+
+Rotamer 428
+Total:   506062729.136
+
+Rotamer 429
+Total:   369.164843079
+
+Rotamer 430
+Total:   371.935936879
+
+Rotamer 431
+Total:   369.84416916
+
+Rotamer 432
+Total:   366.892531234
+
+Rotamer 433
+Total:   -0.699382648257
+
+Rotamer 434
+Total:   3.40335808448
+
+Rotamer 435
+Total:   1.67473801335
+
+Rotamer 436
+Total:   0.2348646105
+
+Rotamer 437
+Total:   21414520.4865
+
+Rotamer 438
+Total:   21414505.5591
+
+Rotamer 439
+Total:   21415383.8699
+
+Rotamer 440
+Total:   21414508.6054
+
+Rotamer 441
+Total:   4309427.71177
+
+Rotamer 442
+Total:   4309437.14657
+
+Rotamer 443
+Total:   4309429.10157
+
+Rotamer 444
+Total:   4309472.89208
+
+Rotamer 445
+Total:   6367156961.59
+
+Rotamer 446
+Total:   6367365221.97
+
+Rotamer 447
+Total:   6367157020.26
+
+Rotamer 448
+Total:   6367157299.01
+
+Rotamer 449
+Total:   4812.5011669
+
+Rotamer 450
+Total:   1343.14090494
+
+Rotamer 451
+Total:   1404.00518901
+
+Rotamer 452
+Total:   1429.49478073
+
+Rotamer 453
+Total:   611.275133986
+
+Rotamer 454
+Total:   606.842755029
+
+Rotamer 455
+Total:   607.211386888
+
+Rotamer 456
+Total:   612.051469672
+
+Rotamer 457
+Total:   1379303.00509
+
+Rotamer 458
+Total:   1379288.79775
+
+Rotamer 459
+Total:   1379291.51775
+
+Rotamer 460
+Total:   1393191.62333
+
+Rotamer 461
+Total:   11750.525102
+
+Rotamer 462
+Total:   11754.7762657
+
+Rotamer 463
+Total:   11752.2560827
+
+Rotamer 464
+Total:   11752.9396534
+
+Rotamer 465
+Total:   5.24458532202
+
+Rotamer 466
+Total:   9.81860579566
+
+Rotamer 467
+Total:   8.56034839231
+
+Rotamer 468
+Total:   6.62856089876
+
+Rotamer 469
+Total:   151870736.04
+
+Rotamer 470
+Total:   151870733.258
+
+Rotamer 471
+Total:   151870742.43
+
+Rotamer 472
+Total:   151870734.16
+
+Rotamer 473
+Total:   52869.783632
+
+Rotamer 474
+Total:   9734.2731716
+
+Rotamer 475
+Total:   9740.23651244
+
+Rotamer 476
+Total:   9739.01130726
+
+Rotamer 477
+Total:   19.4089877611
+
+Rotamer 478
+Total:   22.4297141311
+
+Rotamer 479
+Total:   21.4300432652
+
+Rotamer 480
+Total:   19.8512661495
+
+Rotamer 481
+Total:   2.25378129164
+
+Rotamer 482
+Total:   4.5888529328
+
+Rotamer 483
+Total:   4.49959630138
+
+Rotamer 484
+Total:   2.57534674265
+
+Rotamer 485
+Total:   15.7893221247
+
+Rotamer 486
+Total:   11.3907481369
+
+Rotamer 487
+Total:   16.4090422767
+
+Rotamer 488
+Total:   11.352252044
+
+Rotamer 489
+Total:   7928262.39665
+
+Rotamer 490
+Total:   6994862.07147
+
+Rotamer 491
+Total:   6995072.53991
+
+Rotamer 492
+Total:   6994889.5367
+
+Rotamer 493
+Total:   1603913.55277
+
+Rotamer 494
+Total:   1607115.90756
+
+Rotamer 495
+Total:   1603920.68545
+
+Rotamer 496
+Total:   1603907.01753
+
+Rotamer 497
+Total:   13.2687137421
+
+Rotamer 498
+Total:   11.5159374753
+
+Rotamer 499
+Total:   12.798511239
+
+Rotamer 500
+Total:   11.6256276253
+
+Rotamer 501
+Total:   5.79594295326
+
+Rotamer 502
+Total:   10.0947637426
+
+Rotamer 503
+Total:   6.70289185249
+
+Rotamer 504
+Total:   5.86143362064
+
+Rotamer 505
+Total:   9.60655149964
+
+Rotamer 506
+Total:   9.35878903487
+
+Rotamer 507
+Total:   7.84742022742
+
+Rotamer 508
+Total:   6.94143756513
+
+Rotamer 509
+Total:   80.8580228341
+
+Rotamer 510
+Total:   85.2382503991
+
+Rotamer 511
+Total:   93.6497132799
+
+Rotamer 512
+Total:   86.4863410781
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+Initializing Data Structure for Dynamic Memory Data Structures. 
+Done sorting All Rotamer Libraries by their Empty Lattice Energies!
+Maximum number of excited rotamer configurations: 3.01171e+36
+Done initializing Data structures for Dynamic Memory Energy Excitation Scheme Calculation.
+Start Clash Resolution (or DeterministicClashEliminationWithSnapshotField)
+Doing ClusteringThenDoubletsThenSinglets!
+Initializing Data Structure for Dynamic Memory Data Structures. 
+Done sorting All Rotamer Libraries by their Empty Lattice Energies!
+Maximum number of excited rotamer configurations: 1.10554e+36
+Done initializing Data structures for Dynamic Memory Energy Excitation Scheme Calculation.
+------------------------------------
+Number of Clashes identified: 3
+Eliminating ground state clashes.
+<<<<<<<<<<<<<<<<<<<<<<<<<<<New rotlib>>>>>>>>>>>>>>>>>>>>>>>>>
+Delta value updated for 0 atoms.
+Initializing Data Structure for Dynamic Memory Data Structures. 
+Done sorting All Rotamer Libraries by their Empty Lattice Energies!
+Maximum number of excited rotamer configurations: 3864
+Done initializing Data structures for Dynamic Memory Energy Excitation Scheme Calculation.
+<<<<<<<<<<<<<<<<<<<<<<<<<<<New rotlib>>>>>>>>>>>>>>>>>>>>>>>>>
+Delta value updated for 0 atoms.
+Initializing Data Structure for Dynamic Memory Data Structures. 
+Done sorting All Rotamer Libraries by their Empty Lattice Energies!
+Maximum number of excited rotamer configurations: 960
+Done initializing Data structures for Dynamic Memory Energy Excitation Scheme Calculation.
+End round of clash elimination.  Examining if another round needed.
+Initializing Data Structure for Dynamic Memory Data Structures. 
+Done sorting All Rotamer Libraries by their Empty Lattice Energies!
+Maximum number of excited rotamer configurations: 7.16098e+33
+Done initializing Data structures for Dynamic Memory Energy Excitation Scheme Calculation.
+Delta value updated for 0 atoms.
+Number of Clashes identified: 0
+All ground state clashes eliminated!
+Clash resolution finished!
++++++++++++++++++++++++++++++++++++++++++++++++
+Doing SCREAM doublet excitation.
+No further clashes needed to be resolved by doublet excitation.
+Starting round  1  of deterministicClashEliminationWithSnapshotField procedure.
+Calculating all interaction energies before this round begins:
+No Clashes identified in this round.
+No Polar Optimization/Surface Residues definitions given.  Proceeding.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Solving rest of protein.
+HSE ==> HIS Mutation! 
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HIS ==> HSE Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+HSE ==> HIS Mutation! 
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+swig/python detected a memory leak of type 'std::vector< int > *', no destructor found.
+End round  1  of deterministicClashEliminationWithSnapshotField procedure.
+Initializing Data Structure for Dynamic Memory Data Structures. 
+Done sorting All Rotamer Libraries by their Empty Lattice Energies!
+Maximum number of excited rotamer configurations: 1.10554e+36
+Done initializing Data structures for Dynamic Memory Energy Excitation Scheme Calculation.
+ClashCollection Added.
+Starting HBNetworkOptimization!
+Done HBNetworkOptimization.
+before
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+Delta value updated for 0 atoms.
+SCREAM all done!  Exiting.
+Destroying ScreamModel! 
+THIS LINE INDICATES YOU USED THE GRIFFITH SCREAM VERSION
+ScreamModel destroyed.

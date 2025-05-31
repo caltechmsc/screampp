@@ -1,0 +1,42 @@
+ANCHOR_INFO
+TargetRotamerLibFile    J.lib
+AnchorAtoms             3 1 5
+SideChainAtoms          7 8 9 10 11 12 13 14 15 16 17
+RotamerAxis             5 7
+MatchChirality          X
+AtomsOfExactMatch       3
+ConnectionPointAtoms	5 7
+END_ANCHOR_INFO
+ATOM_MAPPING
+N       1         1
+HN      2         2
+CA      3         3
+HCA     4         4
+C       5         5
+O       6         6
+CB      7         7
+HCB     8         8
+HCB     9         9
+CG      10        10
+ND1     11        11
+CD2     12        12
+HCD2    13        13
+CE1     14        14
+HCE1    15        15
+NE2     16        16
+HNE2    17        17
+END_ATOM_MAPPING
+FORMAT CONECT (a6,12i6)
+CONECT     7     3     8     9    10
+CONECT     8     7
+CONECT     9     7
+CONECT    10     7    11    12
+CONECT    11    10    14
+CONECT    12    10    13    14
+CONECT    13    12
+CONECT    14    11    15    16
+CONECT    15    14
+CONECT    16    12    14    17
+CONECT    17    16
+END
+

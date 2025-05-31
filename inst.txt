@@ -1,0 +1,26 @@
+
+preferred using distutils:
+
+cd scream
+
+python setup.py build
+
+this also runs swig which creates py_scream_ee.py and py_scream_ee_wrap.cpp in the swig directory
+
+if one wants to copy the python file to the build directory, run again
+
+python setup.py build
+
+now also the py_scream_ee.py is copied because it already exists
+
+-----------
+
+
+in any case one should have these files:
+
+py_scream_ee.py
+SCREAM.py
+SCREAM_BindingSite.py
+SCREAM_wrap.py
+_py_scream_ee.so
+timing.py
