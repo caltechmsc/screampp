@@ -91,35 +91,35 @@ This file implements the `AASideChain` class, which represents amino acid side c
 ```mermaid
 graph TD
     A[AASideChain Constructor Called] --> B{Empty Constructor?}
-    B -- Yes --> C[Initialize with SideChain default]
-    B -- No --> D[Receive ScreamAtomV atom_list]
+    B -->|Yes| C[Initialize with SideChain default]
+    B -->|No| D[Receive ScreamAtomV atom_list]
 
-    D --> E{atom_list.size() == 1?}
-    E -- Yes --> F{Is HCA atom?}
-    F -- Yes --> G[Set SC_name = "GLY"]
-    F -- No --> H[Get resName from first atom]
-    E -- No --> H
+    D --> E{atom_list size equals 1?}
+    E -->|Yes| F{Is HCA atom?}
+    F -->|Yes| G[Set SC_name = GLY]
+    F -->|No| H[Get resName from first atom]
+    E -->|No| H
 
     G --> I[Initialize sc_atom_mm]
     H --> I
     I --> J[Construction Complete]
 
     K[get_atom_by_greek_name Called] --> L{Which Greek Letter?}
-    L -- B --> M[Return CB atom]
-    L -- G --> N[Search for OG/OG1/SG/CG/CG1]
-    L -- D --> O[Search for OD/OD1/SD/ND1/CD/CD1]
-    L -- E --> P[Search for OE/OE1/NE/CE/CE1]
-    L -- Z --> Q[Search for NZ/CZ]
-    L -- H --> R[Search for NH1]
-    L -- Other --> S[Return NULL]
+    L -->|B| M[Return CB atom]
+    L -->|G| N[Search for OG/OG1/SG/CG/CG1]
+    L -->|D| O[Search for OD/OD1/SD/ND1/CD/CD1]
+    L -->|E| P[Search for OE/OE1/NE/CE/CE1]
+    L -->|Z| Q[Search for NZ/CZ]
+    L -->|H| R[Search for NH1]
+    L -->|Other| S[Return NULL]
 
     N --> T{Found?}
     O --> T
     P --> T
     Q --> T
     R --> T
-    T -- Yes --> U[Return SCREAM_ATOM*]
-    T -- No --> S
+    T -->|Yes| U[Return SCREAM_ATOM*]
+    T -->|No| S
 
     C --> J
     M --> U
