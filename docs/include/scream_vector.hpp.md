@@ -80,27 +80,27 @@ This file defines the `ScreamVector` class, which implements a 3D Cartesian vect
 ```mermaid
 graph TD
     A[ScreamVector Creation] --> B{Construction Type?}
-    B -->|Default| C[Initialize to (0,0,0)]
-    B -->|3_doubles| D[Initialize with x,y,z]
-    B -->|SCREAM_ATOM*| E[Extract coordinates from atom]
-    B -->|Copy| F[Copy from existing vector]
+    B --> C[Default: Initialize to 0,0,0]
+    B --> D[3 doubles: Initialize with x,y,z]
+    B --> E[SCREAM_ATOM: Extract coordinates from atom]
+    B --> F[Copy: Copy from existing vector]
 
     G[Vector Operations] --> H{Operation Type?}
-    H -->|Arithmetic_+,-,*,/| I[Create new vector with result]
-    H -->|Assignment_+=| J[Modify current vector]
-    H -->|Access_[]| K[Return coordinate reference]
+    H --> I[Arithmetic: Create new vector with result]
+    H --> J[Assignment: Modify current vector]
+    H --> K[Access: Return coordinate reference]
 
     L[Geometric Operations] --> M{Operation Type?}
-    M -->|magnitude| N[Calculate sqrt(x²+y²+z²)]
-    M -->|normalize| O[Divide by magnitude in-place]
-    M -->|normalizedVector| P[Return new unit vector]
-    M -->|cross_product| Q[Calculate v1 × v2]
-    M -->|dot_product| R[Calculate v1 · v2]
-    M -->|angleBtwn| S[Calculate angle using dot product]
+    M --> N[magnitude: Calculate sqrt of sum of squares]
+    M --> O[normalize: Divide by magnitude in-place]
+    M --> P[normalizedVector: Return new unit vector]
+    M --> Q[cross product: Calculate v1 × v2]
+    M --> R[dot product: Calculate v1 · v2]
+    M --> S[angleBtwn: Calculate angle using dot product]
 
     T[Comparison] --> U{Comparison Type?}
-    U -->|Equality_==| V[Check all coordinates equal]
-    U -->|Ordering_<| W[Lexicographic comparison]
+    U --> V[Equality: Check all coordinates equal]
+    U --> W[Ordering: Lexicographic comparison]
 ```
 
 ## Potential Areas for Modernization/Refactoring in SCREAM++
