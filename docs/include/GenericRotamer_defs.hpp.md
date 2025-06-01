@@ -81,7 +81,7 @@ This header file serves as a global definition and initialization module for gen
 graph TD
     A[Program Start] --> B[Include AARotamer.hpp]
     B --> C[Define GenericRotamer namespace]
-    C --> D[Set GenericRotamerPath = "../lib/GenericRotamers/"]
+    C --> D[Set GenericRotamerPath to ../lib/GenericRotamers/]
     D --> E[Create AARotamer object for Alanine]
     E --> F[Load A.lib and A.cnn files]
     F --> G[Create AARotamer object for Cysteine]
