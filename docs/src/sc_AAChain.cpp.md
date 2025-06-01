@@ -131,7 +131,7 @@ graph TD
     L --> M
 
     M --> N{Operation Type?}
-    N -->|Access| O[operator[] lookup]
+    N -->|Access| O[operator lookup]
     N -->|Angle Calc| P[PHI/PSI calculation]
     N -->|Angle Set| Q[set_PHI/set_PSI]
     N -->|SC Replace| R[SC_replacement]
