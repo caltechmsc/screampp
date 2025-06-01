@@ -97,19 +97,19 @@ This file implements hydrogen bonding energy calculations for the SCREAM molecul
 ```mermaid
 graph TD
     A[HB Energy Calculation Start] --> B{Check Angular Cutoff}
-    B -- Angle < theta_off --> C[Return 0]
-    B -- Angle >= theta_off --> D{Check Distance Cutoff}
-    D -- Distance > R_off --> C
-    D -- Distance <= R_off --> E[Get HB Parameters DE, RE]
+    B -->|Angle < theta_off| C[Return 0]
+    B -->|Angle >= theta_off| D{Check Distance Cutoff}
+    D -->|Distance > R_off| C
+    D -->|Distance <= R_off| E[Get HB Parameters DE, RE]
     E --> F{Calculation Method?}
-    F -- Traditional --> G[Calculate Direct Energy]
-    F -- Flat-Bottom --> H[Determine Optimization Window]
+    F -->|Traditional| G[Calculate Direct Energy]
+    F -->|Flat-Bottom| H[Determine Optimization Window]
     H --> I[Get Delta Parameters]
-    I --> J[Calculate Window: rho ± delta/RE]
+    I --> J[Calculate Window: rho +/- delta/RE]
     J --> K[Optimize 10-12 Potential in Window]
     K --> L[Find Optimal rho]
     L --> M[Calculate Energy at Optimal Distance]
-    G --> N[Apply Angular Term: E × cos⁴(θ)]
+    G --> N[Apply Angular Term: E x cos^4 theta]
     M --> N
     N --> O[Return Final Energy]
 
