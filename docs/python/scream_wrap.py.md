@@ -105,29 +105,29 @@ The wrapper abstracts away the complexity of creating SCREAM parameter files, al
 
 ```mermaid
 graph TD
-    A[Start: main()] --> B{Check argc >= 3?}
-    B -- No --> C[Call usage() and exit]
-    B -- Yes --> D[Parse command-line arguments]
+    A[Start main] --> B{Check argc greater than or equal to 3}
+    B --> C[argc less than 3 Call usage and exit]
+    B --> D[argc greater than or equal to 3 Parse command line arguments]
     D --> E[Set fixed parameters]
     E --> F[Check SCREAM_NEW env var]
-    F -- Not set --> G[Print error and exit]
-    F -- Set --> H[Build library file paths]
+    F --> G[Not set Print error and exit]
+    F --> H[Set Build library file paths]
     H --> I[Open scream.par file]
     I --> J[Process mutInfo_list]
-    J --> K{CNN regex match?}
-    K -- Yes --> L[Set as extra_lib_string]
-    K -- No --> M[Add to mutInfo_string]
+    J --> K{CNN regex match}
+    K --> L[Yes Set as extra_lib_string]
+    K --> M[No Add to mutInfo_string]
     L --> N[Continue processing list]
     M --> N
-    N --> O{More mutInfo items?}
-    O -- Yes --> J
-    O -- No --> P[Format rotlib_specs]
+    N --> O{More mutInfo items}
+    O --> J
+    O --> P[No more Format rotlib_specs]
     P --> Q[Write all parameters to scream.par]
     Q --> R[Close parameter file]
     R --> S[Validate all environment variables]
-    S --> T{All env vars set?}
-    T -- No --> U[Print error and exit]
-    T -- Yes --> V[Execute SCREAM command]
+    S --> T{All env vars set}
+    T --> U[No Print error and exit]
+    T --> V[Yes Execute SCREAM command]
     V --> W[Redirect output to scream.out]
     W --> X[Exit program]
 ```
