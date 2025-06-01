@@ -87,8 +87,8 @@ This file implements volume overlap calculations between molecular structures in
 ```mermaid
 graph TD
     A[Start Volume Overlap Calculation] --> B[Create Bounding Box around all atoms]
-    B --> C[Add 4.5Å buffer to bounding box]
-    C --> D[Generate 3D grid with 0.5Å spacing]
+    B --> C[Add 4.5A buffer to bounding box]
+    C --> D[Generate 3D grid with 0.5A spacing]
     D --> E[Find grid points within VdW radii of reference atoms]
     E --> F[Find grid points within VdW radii of query atoms]
     F --> G[Calculate intersection of reference and query point sets]
@@ -96,11 +96,11 @@ graph TD
     H --> I{More queries to process?}
     I -->|Yes| J[Clear intersection set, move to next query]
     J --> F
-    I -->|No| K[Return overlap fraction(s)]
+    I -->|No| K[Return overlap fractions]
     K --> L[End]
 
     subgraph "Grid Point Inclusion Check"
-        M[For each grid point] --> N{Distance to atom center ≤ VdW radius?}
+        M[For each grid point] --> N{Distance to atom center <= VdW radius?}
         N -->|Yes| O[Include point in atom volume]
         N -->|No| P[Exclude point]
         O --> Q[Next grid point]
