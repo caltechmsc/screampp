@@ -102,37 +102,37 @@ This file implements the RTF (Residue Topology File) parser for the SCREAM molec
 graph TD
     A[Start: SCREAM_RTF Constructor] --> B[Open RTF file]
     B --> C{File accessible?}
-    C -- No --> D[Print error & exit(2)]
-    C -- Yes --> E[Initialize parsing variables]
+    C -->|No| D[Print error and exit 2]
+    C -->|Yes| E[Initialize parsing variables]
     E --> F[Read line from file]
     F --> G{End of file?}
-    G -- Yes --> H[Process final residue]
-    G -- No --> I{Comment line?}
-    I -- Yes --> F
-    I -- No --> J{RESI line?}
-    J -- Yes --> K{First residue?}
-    K -- Yes --> L[Set current residue name]
-    K -- No --> M[Create AminoAcid_RTF for previous residue]
+    G -->|Yes| H[Process final residue]
+    G -->|No| I{Comment line?}
+    I -->|Yes| F
+    I -->|No| J{RESI line?}
+    J -->|Yes| K{First residue?}
+    K -->|Yes| L[Set current residue name]
+    K -->|No| M[Create AminoAcid_RTF for previous residue]
     M --> N[Store in _rtfTable]
     N --> L
     L --> O[Clear residue lines buffer]
     O --> P[Add line to buffer]
     P --> F
-    J -- No --> P
+    J -->|No| P
     H --> Q[Create final AminoAcid_RTF]
     Q --> R[Store in _rtfTable]
     R --> S[End]
 
     T[AminoAcid_RTF::_init] --> U[Parse each line]
     U --> V{RESI line?}
-    V -- Yes --> W[Extract residue name]
-    V -- No --> X{ATOM line?}
-    X -- Yes --> Y[Store atom->ff_type mapping]
-    X -- No --> Z{BOND/DOUBLE line?}
-    Z -- Yes --> AA[Parse bond pairs]
-    Z -- No --> BB{PRES line?}
-    BB -- Yes --> CC[Break parsing]
-    BB -- No --> U
+    V -->|Yes| W[Extract residue name]
+    V -->|No| X{ATOM line?}
+    X -->|Yes| Y[Store atom to ff_type mapping]
+    X -->|No| Z{BOND/DOUBLE line?}
+    Z -->|Yes| AA[Parse bond pairs]
+    Z -->|No| BB{PRES line?}
+    BB -->|Yes| CC[Break parsing]
+    BB -->|No| U
     Y --> U
     AA --> U
     W --> U
