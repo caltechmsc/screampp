@@ -62,13 +62,13 @@ This file provides a timing utility module that emulates the deprecated `timing`
 ```mermaid
 graph TD
     A[Import time module] --> B[Initialize global variables]
-    B --> C[start() called]
-    C --> D[Store time.clock() in timestart]
+    B --> C[start function called]
+    C --> D[Store time.clock in timestart]
     D --> E[Execute measured code]
-    E --> F[finish() called]
-    F --> G[Store time.clock() in timefinish]
-    G --> H[micro() called]
-    H --> I[Calculate (timefinish-timestart)*1e6]
+    E --> F[finish function called]
+    F --> G[Store time.clock in timefinish]
+    G --> H[micro function called]
+    H --> I[Calculate timefinish minus timestart times 1e6]
     I --> J[Return microseconds]
 ```
 
