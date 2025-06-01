@@ -81,26 +81,26 @@ This file defines the `ScreamVector` class, which implements a 3D Cartesian vect
 graph TD
     A[ScreamVector Creation] --> B{Construction Type?}
     B -->|Default| C[Initialize to (0,0,0)]
-    B -->|3 doubles| D[Initialize with x,y,z]
+    B -->|3_doubles| D[Initialize with x,y,z]
     B -->|SCREAM_ATOM*| E[Extract coordinates from atom]
     B -->|Copy| F[Copy from existing vector]
 
     G[Vector Operations] --> H{Operation Type?}
-    H -->|Arithmetic +,-,*,/| I[Create new vector with result]
-    H -->|Assignment +=| J[Modify current vector]
-    H -->|Access []| K[Return coordinate reference]
+    H -->|Arithmetic_+,-,*,/| I[Create new vector with result]
+    H -->|Assignment_+=| J[Modify current vector]
+    H -->|Access_[]| K[Return coordinate reference]
 
     L[Geometric Operations] --> M{Operation Type?}
     M -->|magnitude| N[Calculate sqrt(x²+y²+z²)]
     M -->|normalize| O[Divide by magnitude in-place]
     M -->|normalizedVector| P[Return new unit vector]
-    M -->|cross product| Q[Calculate v1 × v2]
-    M -->|dot product| R[Calculate v1 · v2]
+    M -->|cross_product| Q[Calculate v1 × v2]
+    M -->|dot_product| R[Calculate v1 · v2]
     M -->|angleBtwn| S[Calculate angle using dot product]
 
     T[Comparison] --> U{Comparison Type?}
-    U -->|Equality ==| V[Check all coordinates equal]
-    U -->|Ordering <| W[Lexicographic comparison]
+    U -->|Equality_==| V[Check all coordinates equal]
+    U -->|Ordering_<| W[Lexicographic comparison]
 ```
 
 ## Potential Areas for Modernization/Refactoring in SCREAM++
