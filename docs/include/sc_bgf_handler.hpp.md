@@ -95,11 +95,11 @@ The `bgf_handler` class serves as the primary I/O interface for molecular struct
 ```mermaid
 graph TD
     A[BGF Handler Created] --> B{File Operation Type?}
-    B -->|Read BGF| C[readfile()]
-    B -->|Read PDB| D[readPDB()]
-    B -->|Write BGF| E[printToFile()]
-    B -->|Write PDB| F[printPDB()]
-    B -->|Sequence Output| G[printSequenceToFile()]
+    B -->|Read_BGF| C[readfile()]
+    B -->|Read_PDB| D[readPDB()]
+    B -->|Write_BGF| E[printToFile()]
+    B -->|Write_PDB| F[printPDB()]
+    B -->|Sequence_Output| G[printSequenceToFile()]
 
     C --> H[Parse BGF Lines]
     H --> I[Create SCREAM_ATOMs]
