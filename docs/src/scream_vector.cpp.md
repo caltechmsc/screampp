@@ -101,7 +101,7 @@ graph TD
     G --> H{Operation Type?}
     H -->|Arithmetic| I[+, -, *, /, +=]
     H -->|Comparison| J[==, <]
-    H -->|Access| K[operator[]]
+    H -->|Access| K[bracket operator]
     H -->|Analysis| L[Mathematical Functions]
 
     I --> M[Return New Vector or Reference]
