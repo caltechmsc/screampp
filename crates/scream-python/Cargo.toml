@@ -1,0 +1,16 @@
+[package]
+name = "scream-python-bindings"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+edition.workspace = true
+publish = false
+
+[lib]
+name = "scream"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { workspace = true }
+screampp = { path = "../scream-core" }
