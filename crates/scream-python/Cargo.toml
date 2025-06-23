@@ -12,5 +12,5 @@ name = "screampp"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { workspace = true }
+pyo3 = "0.25.1"
 screampp = { path = "../scream-core" }
