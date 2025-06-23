@@ -1,32 +1,27 @@
-# Prerequisites
-*.d
+# Rust
+debug/
+target/
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+*.egg
+venv/
+venv_scream/
 
-# Precompiled Headers
-*.gch
-*.pch
+# IDE specific
+.vscode/
+.idea/
+*.suo
+*.user
+*.sln
+*.vcxproj*
 
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
+# OS specific
+.DS_Store
+Thumbs.db
