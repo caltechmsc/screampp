@@ -7,7 +7,19 @@ members = [
     "crates/scream-python",
 ]
 
+[workspace.package]
+version = "0.1.0-alpha.1"
+authors = [
+    "Tony Kan <tonykan@caltech.edu>",
+    "Ted Yu <tedhyu@yahoo.com>",
+    "William A. Goddard III <wag@caltech.edu>",
+    "Victor Wai Tak Kam <victor.kam@gmail.com>",
+]
+license = "MIT"
+repository = "https://github.com/caltechmsc/screampp"
+
 [profile.release]
 opt-level = 3
 lto = true
+codegen-units = 1
 strip = true
