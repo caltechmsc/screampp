@@ -1,0 +1,17 @@
+[package]
+name = "scream-cli"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+edition.workspace = true
+publish = false
+
+[[bin]]
+name = "scream"
+path = "src/main.rs"
+
+[dependencies]
+clap = "4.5.40"
+indicatif = "0.17.11"
+screampp = { path = "../scream-core" }
