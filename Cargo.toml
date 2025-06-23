@@ -17,6 +17,7 @@ authors = [
 ]
 license = "MIT"
 repository = "https://github.com/caltechmsc/screampp"
+edition = "2024"
 
 [profile.release]
 opt-level = 3
