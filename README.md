@@ -17,6 +17,12 @@ The core mission of SCREAM++ is to provide a robust, reliable, and easy-to-use t
   - **C-Compatible Library**: A C FFI layer for integration with C, C++, and other programming languages.
   - **Native Rust Crate**: A core Rust library (`screampp`) available on crates.io for direct use in other Rust-based scientific computing projects.
 
+## Tech Stack
+
+- **Language**: Rust
+- **Supported Languages**: Rust, Python (via PyO3), C/C++ (via FFI)
+- **Build System**: Cargo
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
