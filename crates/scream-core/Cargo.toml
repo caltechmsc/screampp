@@ -6,3 +6,6 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 edition.workspace = true
+
+[dependencies]
+nalgebra = "0.33.2"
