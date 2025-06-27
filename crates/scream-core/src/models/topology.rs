@@ -1,74 +1,71 @@
+use std::fmt;
+use std::str::FromStr;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u8)]
 pub enum BondOrder {
-    Single,    // Single bond
-    Double,    // Double bond
-    Triple,    // Triple bond
-    Quadruple, // Quadruple bond
-    Quintuple, // Quintuple bond
-    Sextuple,  // Sextuple bond
-    Aromatic,  // Aromatic bond
-    Dative,    // Dative bond
-    Hydrogen,  // Hydrogen bond
-    Ionic,     // Ionic bond
-    Unknown,   // Unspecified or unknown bond order
+    Single,
+    Double,
+    Triple,
+    Aromatic,
 }
 
-impl BondOrder {
-    pub fn default() -> Self {
+impl Default for BondOrder {
+    fn default() -> Self {
         BondOrder::Single
     }
+}
 
-    pub fn from_str(s: &str) -> Self {
+#[derive(Debug, PartialEq, Eq)]
+pub struct ParseBondOrderError;
+
+impl FromStr for BondOrder {
+    type Err = ParseBondOrderError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "single" => BondOrder::Single,
-            "double" => BondOrder::Double,
-            "triple" => BondOrder::Triple,
-            "quadruple" => BondOrder::Quadruple,
-            "quintuple" => BondOrder::Quintuple,
-            "sextuple" => BondOrder::Sextuple,
-            "aromatic" => BondOrder::Aromatic,
-            "dative" => BondOrder::Dative,
-            "hydrogen" => BondOrder::Hydrogen,
-            "ionic" => BondOrder::Ionic,
-            _ => BondOrder::Unknown,
-        }
-    }
-
-    pub fn to_str(&self) -> &str {
-        match self {
-            BondOrder::Single => "Single",
-            BondOrder::Double => "Double",
-            BondOrder::Triple => "Triple",
-            BondOrder::Quadruple => "Quadruple",
-            BondOrder::Quintuple => "Quintuple",
-            BondOrder::Sextuple => "Sextuple",
-            BondOrder::Aromatic => "Aromatic",
-            BondOrder::Dative => "Dative",
-            BondOrder::Hydrogen => "Hydrogen",
-            BondOrder::Ionic => "Ionic",
-            BondOrder::Unknown => "Unknown",
+            "1" | "s" | "single" => Ok(Self::Single),
+            "2" | "d" | "double" => Ok(Self::Double),
+            "3" | "t" | "triple" => Ok(Self::Triple),
+            "ar" | "aromatic" => Ok(Self::Aromatic),
+            _ => Err(ParseBondOrderError),
         }
     }
 }
 
+impl fmt::Display for BondOrder {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Single => "Single",
+                Self::Double => "Double",
+                Self::Triple => "Triple",
+                Self::Aromatic => "Aromatic",
+            }
+        )
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Bond {
-    pub atom1_serial: usize, // Serial number of the first atom in the bond
-    pub atom2_serial: usize, // Serial number of the second atom in the bond
-    pub order: BondOrder,    // Bond order (e.g., single, double, etc.)
+    pub atom1_idx: usize, // Index of the first atom in the global atom vector
+    pub atom2_idx: usize, // Index of the second atom in the global atom vector
+    pub order: BondOrder, // Bond order (e.g., single, double, etc.)
 }
 
 impl Bond {
-    pub fn new(atom1_serial: usize, atom2_serial: usize, order: BondOrder) -> Self {
-        if atom1_serial < atom2_serial {
+    pub fn new(atom1_idx: usize, atom2_idx: usize, order: BondOrder) -> Self {
+        if atom1_idx < atom2_idx {
             Self {
-                atom1_serial,
-                atom2_serial,
+                atom1_idx,
+                atom2_idx,
                 order,
             }
         } else {
             Self {
-                atom1_serial: atom2_serial,
-                atom2_serial: atom1_serial,
+                atom1_idx: atom2_idx,
+                atom2_idx: atom1_idx,
                 order,
             }
         }
