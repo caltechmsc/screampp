@@ -1,72 +1,29 @@
-use super::residue::Residue;
 use std::collections::HashMap;
 
-pub enum ChainType {
-    Protein, // Peptides and Proteins
-    DNA,     // Deoxyribonucleic Acid
-    RNA,     // Ribonucleic Acid
-    Other,   // Any other type of chain (e.g., carbohydrates, lipids, etc.)
+#[derive(Debug, Clone, PartialEq)]
+pub struct Residue {
+    pub id: isize,                         // Residue sequence number from source file
+    pub name: String,                      // Name of the residue (e.g., "ALA", "GLY")
+    pub atom_indices: Vec<usize>,          // Indices of atoms belonging to this residue
+    atom_name_map: HashMap<String, usize>, // Map from atom name to its global index
 }
 
-impl ChainType {
-    pub fn from_str(s: &str) -> Self {
-        match s.to_lowercase().as_str() {
-            "protein" => ChainType::Protein,
-            "dna" => ChainType::DNA,
-            "rna" => ChainType::RNA,
-            _ => ChainType::Other,
-        }
-    }
-
-    pub fn to_str(&self) -> &str {
-        match self {
-            ChainType::Protein => "Protein",
-            ChainType::DNA => "DNA",
-            ChainType::RNA => "RNA",
-            ChainType::Other => "Other",
-        }
-    }
-}
-
-pub struct Chain {
-    pub id: char,                       // Chain identifier (e.g., 'A', 'B', etc.)
-    pub chain_type: ChainType,          // Type of the chain (Protein, DNA, RNA, Other)
-    residues: Vec<Residue>,             // List of residues in the chain
-    residue_map: HashMap<usize, usize>, // Map from residue ID to index in the residues vector
-}
-
-impl Chain {
-    pub fn new(id: char, chain_type: ChainType, residues: Vec<Residue>) -> Self {
-        let residues_vec = residues;
-        let mut residue_map = HashMap::new();
-        for (i, residue) in residues_vec.iter().enumerate() {
-            residue_map.insert(residue.id, i);
-        }
+impl Residue {
+    pub fn new(id: isize, name: &str) -> Self {
         Self {
             id,
-            chain_type,
-            residues: residues_vec,
-            residue_map,
+            name: name.to_string(),
+            atom_indices: Vec::new(),
+            atom_name_map: HashMap::new(),
         }
     }
 
-    pub fn add_residue(&mut self, residue: Residue) {
-        let index = self.residues.len();
-        self.residue_map.insert(residue.id, index);
-        self.residues.push(residue);
+    pub(crate) fn add_atom(&mut self, atom_name: &str, atom_idx: usize) {
+        self.atom_indices.push(atom_idx);
+        self.atom_name_map.insert(atom_name.to_string(), atom_idx);
     }
 
-    pub fn get_residue(&self, index: usize) -> Option<&Residue> {
-        self.residues.get(index)
-    }
-
-    pub fn get_residue_by_id(&self, id: usize) -> Option<&Residue> {
-        self.residue_map
-            .get(&id)
-            .and_then(|&index| self.residues.get(index))
-    }
-
-    pub fn residues(&self) -> &[Residue] {
-        &self.residues
+    pub fn get_atom_index_by_name(&self, name: &str) -> Option<usize> {
+        self.atom_name_map.get(name).copied()
     }
 }
