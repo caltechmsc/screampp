@@ -43,10 +43,10 @@ impl fmt::Display for ChainType {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Chain {
-    pub id: char,                       // Chain identifier (e.g., 'A', 'B')
-    pub chain_type: ChainType,          // Type of the chain
-    pub residues: Vec<Residue>,         // List of residues in the chain
-    residue_map: HashMap<isize, usize>, // Map from residue ID to its index in the `residues` vector
+    pub id: char,                                  // Chain identifier (e.g., 'A', 'B')
+    pub chain_type: ChainType,                     // Type of the chain
+    pub(crate) residues: Vec<Residue>,             // List of residues in the chain
+    pub(crate) residue_map: HashMap<isize, usize>, // Map from residue ID to its index in the `residues` vector
 }
 
 impl Chain {
@@ -57,6 +57,10 @@ impl Chain {
             residues: Vec::new(),
             residue_map: HashMap::new(),
         }
+    }
+
+    pub fn residues(&self) -> &[Residue] {
+        &self.residues
     }
 
     pub fn get_residue(&self, index: usize) -> Option<&Residue> {
