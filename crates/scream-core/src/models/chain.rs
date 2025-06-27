@@ -73,3 +73,73 @@ impl Chain {
             .and_then(|&index| self.residues.get(index))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::residue::Residue;
+
+    #[test]
+    fn parses_valid_chain_types() {
+        assert_eq!(ChainType::from_str("protein").unwrap(), ChainType::Protein);
+        assert_eq!(ChainType::from_str("dna").unwrap(), ChainType::DNA);
+        assert_eq!(ChainType::from_str("rna").unwrap(), ChainType::RNA);
+        assert_eq!(ChainType::from_str("other").unwrap(), ChainType::Other);
+    }
+
+    #[test]
+    fn parses_chain_type_case_insensitive() {
+        assert_eq!(ChainType::from_str("PrOtEiN").unwrap(), ChainType::Protein);
+        assert_eq!(ChainType::from_str("DNA").unwrap(), ChainType::DNA);
+        assert_eq!(ChainType::from_str("rNa").unwrap(), ChainType::RNA);
+    }
+
+    #[test]
+    fn parses_unknown_chain_type_as_other() {
+        assert_eq!(
+            ChainType::from_str("carbohydrate").unwrap(),
+            ChainType::Other
+        );
+        assert_eq!(ChainType::from_str("").unwrap(), ChainType::Other);
+        assert_eq!(ChainType::from_str("123").unwrap(), ChainType::Other);
+    }
+
+    #[test]
+    fn displays_chain_type_correctly() {
+        assert_eq!(ChainType::Protein.to_string(), "Protein");
+        assert_eq!(ChainType::DNA.to_string(), "DNA");
+        assert_eq!(ChainType::RNA.to_string(), "RNA");
+        assert_eq!(ChainType::Other.to_string(), "Other");
+    }
+
+    #[test]
+    fn creates_chain_with_correct_id_and_type() {
+        let chain = Chain::new('A', ChainType::Protein);
+        assert_eq!(chain.id, 'A');
+        assert_eq!(chain.chain_type, ChainType::Protein);
+        assert!(chain.residues().is_empty());
+    }
+
+    #[test]
+    fn get_residue_returns_none_for_empty_chain() {
+        let chain = Chain::new('B', ChainType::DNA);
+        assert_eq!(chain.get_residue(0), None);
+    }
+
+    #[test]
+    fn get_residue_by_id_returns_none_for_missing_residue() {
+        let chain = Chain::new('C', ChainType::RNA);
+        assert_eq!(chain.get_residue_by_id(10), None);
+    }
+
+    #[test]
+    fn get_residue_and_get_residue_by_id_return_correct_residue() {
+        let mut chain = Chain::new('D', ChainType::Protein);
+        let residue = Residue::new(5, "GLY");
+        chain.residues.push(residue.clone());
+        chain.residue_map.insert(5, 0);
+
+        assert_eq!(chain.get_residue(0), Some(&residue));
+        assert_eq!(chain.get_residue_by_id(5), Some(&residue));
+    }
+}
