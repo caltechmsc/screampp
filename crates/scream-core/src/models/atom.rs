@@ -170,3 +170,68 @@ pub struct Atom {
     pub partial_charge: f64,      // Partial charge of the atom
     pub position: Point3<f64>,    // 3D coordinates of the atom
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use nalgebra::Point3;
+
+    #[test]
+    fn parses_valid_element_symbols() {
+        assert_eq!(Element::from_str("H").unwrap(), Element::H);
+        assert_eq!(Element::from_str("C").unwrap(), Element::C);
+        assert_eq!(Element::from_str("O").unwrap(), Element::O);
+        assert_eq!(Element::from_str("Cl").unwrap(), Element::Cl);
+        assert_eq!(Element::from_str("Fe").unwrap(), Element::Fe);
+    }
+
+    #[test]
+    fn parses_isotopes_and_aliases() {
+        assert_eq!(Element::from_str("1H").unwrap(), Element::H);
+        assert_eq!(Element::from_str("D").unwrap(), Element::H);
+        assert_eq!(Element::from_str("2H").unwrap(), Element::H);
+        assert_eq!(Element::from_str("T").unwrap(), Element::H);
+        assert_eq!(Element::from_str("3H").unwrap(), Element::H);
+    }
+
+    #[test]
+    fn parses_unknown_element() {
+        assert_eq!(Element::from_str("X").unwrap(), Element::Unknown);
+    }
+
+    #[test]
+    fn fails_to_parse_invalid_element() {
+        assert!(Element::from_str("Invalid").is_err());
+        assert!(Element::from_str("").is_err());
+        assert!(Element::from_str("123").is_err());
+    }
+
+    #[test]
+    fn displays_element_correctly() {
+        assert_eq!(Element::H.to_string(), "H");
+        assert_eq!(Element::C.to_string(), "C");
+        assert_eq!(Element::Cl.to_string(), "Cl");
+        assert_eq!(Element::Unknown.to_string(), "X");
+    }
+
+    #[test]
+    fn creates_atom_with_valid_data() {
+        let atom = Atom {
+            index: 1,
+            serial: 100,
+            element: Element::C,
+            name: "CA".to_string(),
+            force_field_type: "C.3".to_string(),
+            partial_charge: -0.12,
+            position: Point3::new(1.0, 2.0, 3.0),
+        };
+
+        assert_eq!(atom.index, 1);
+        assert_eq!(atom.serial, 100);
+        assert_eq!(atom.element, Element::C);
+        assert_eq!(atom.name, "CA");
+        assert_eq!(atom.force_field_type, "C.3");
+        assert_eq!(atom.partial_charge, -0.12);
+        assert_eq!(atom.position, Point3::new(1.0, 2.0, 3.0));
+    }
+}
