@@ -36,4 +36,8 @@ impl Chain {
             .get(&id)
             .and_then(|&index| self.residues.get(index))
     }
+
+    pub fn residues(&self) -> &[Residue] {
+        &self.residues
+    }
 }

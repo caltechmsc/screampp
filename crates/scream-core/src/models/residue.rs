@@ -35,16 +35,16 @@ impl Residue {
         self.atoms.push(atom);
     }
 
-    pub fn get_atoms_by_name<'a>(&'a self, name: &str) -> impl Iterator<Item = &'a Atom> + 'a {
+    pub fn get_atom(&self, index: usize) -> Option<&Atom> {
+        self.atoms.get(index)
+    }
+
+    pub fn get_atoms_by_name(&self, name: &str) -> impl Iterator<Item = &Atom> {
         self.atom_map
             .get(name)
             .map(|indices| indices.iter().map(move |&i| &self.atoms[i]))
             .into_iter()
             .flatten()
-    }
-
-    pub fn get_atom(&self, index: usize) -> Option<&Atom> {
-        self.atoms.get(index)
     }
 
     pub fn atoms(&self) -> &[Atom] {
