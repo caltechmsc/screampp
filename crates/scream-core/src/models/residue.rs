@@ -9,7 +9,7 @@ pub struct Residue {
 }
 
 impl Residue {
-    pub fn new(id: isize, name: &str) -> Self {
+    pub(crate) fn new(id: isize, name: &str) -> Self {
         Self {
             id,
             name: name.to_string(),
