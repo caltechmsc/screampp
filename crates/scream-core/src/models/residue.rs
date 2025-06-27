@@ -1,16 +1,17 @@
 use super::atom::Atom;
+use std::collections::HashMap;
 
 pub struct Residue {
-    pub id: usize,    // Unique identifier for the residue
-    pub name: String, // Name of the residue (e.g., "ALA", "GLY")
-    atoms: Vec<Atom>, // List of atoms in the residue
-    atom_map: std::collections::HashMap<String, Vec<usize>>, // Map from atom name to list of atom indices
+    pub id: usize,                         // Unique identifier for the residue
+    pub name: String,                      // Name of the residue (e.g., "ALA", "GLY")
+    atoms: Vec<Atom>,                      // List of atoms in the residue
+    atom_map: HashMap<String, Vec<usize>>, // Map from atom name to list of atom indices
 }
 
 impl Residue {
     pub fn new(id: usize, name: &str, atoms: Vec<Atom>) -> Self {
         let atoms_vec = atoms;
-        let mut atom_map = std::collections::HashMap::new();
+        let mut atom_map = HashMap::new();
         for (i, atom) in atoms_vec.iter().enumerate() {
             atom_map
                 .entry(atom.name.clone())
