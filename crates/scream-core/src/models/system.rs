@@ -157,3 +157,159 @@ impl MolecularSystemBuilder {
         self.system
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::atom::{Atom, Element};
+    use crate::models::chain::ChainType;
+    use nalgebra::Point3;
+
+    #[test]
+    fn builder_creates_system_with_single_chain_residue_and_atom() {
+        let mut builder = MolecularSystemBuilder::new();
+        builder
+            .start_chain('A', ChainType::Protein)
+            .start_residue(1, "GLY")
+            .add_atom(
+                100,
+                "CA",
+                Element::C,
+                Point3::new(1.0, 2.0, 3.0),
+                0.0,
+                "C.3",
+            );
+        let system = builder.build();
+
+        assert_eq!(system.chains().len(), 1);
+        assert_eq!(system.atoms().len(), 1);
+        assert_eq!(system.bonds().len(), 0);
+        assert_eq!(system.get_chain_by_id('A').unwrap().residues().len(), 1);
+        assert_eq!(system.get_atom_by_serial(100).unwrap().name, "CA");
+    }
+
+    #[test]
+    fn builder_adds_multiple_chains_and_residues() {
+        let mut builder = MolecularSystemBuilder::new();
+        builder
+            .start_chain('A', ChainType::Protein)
+            .start_residue(1, "GLY")
+            .add_atom(1, "CA", Element::C, Point3::new(0.0, 0.0, 0.0), 0.0, "C.3")
+            .start_residue(2, "ALA")
+            .add_atom(2, "CB", Element::C, Point3::new(1.0, 0.0, 0.0), 0.0, "C.3")
+            .start_chain('B', ChainType::DNA)
+            .start_residue(1, "DA")
+            .add_atom(3, "N1", Element::N, Point3::new(0.0, 1.0, 0.0), 0.0, "N.1");
+        let system = builder.build();
+
+        assert_eq!(system.chains().len(), 2);
+        assert_eq!(system.chains()[0].residues().len(), 2);
+        assert_eq!(system.chains()[1].residues().len(), 1);
+        assert_eq!(system.atoms().len(), 3);
+    }
+
+    #[test]
+    fn builder_adds_bond_between_atoms_by_serial() {
+        let mut builder = MolecularSystemBuilder::new();
+        builder
+            .start_chain('A', ChainType::Protein)
+            .start_residue(1, "GLY")
+            .add_atom(10, "CA", Element::C, Point3::new(0.0, 0.0, 0.0), 0.0, "C.3")
+            .add_atom(11, "CB", Element::C, Point3::new(1.0, 0.0, 0.0), 0.0, "C.3")
+            .add_bond(10, 11, BondOrder::Single);
+        let system = builder.build();
+
+        assert_eq!(system.bonds().len(), 1);
+        let bond = &system.bonds()[0];
+        assert_eq!(bond.order, BondOrder::Single);
+        assert!(bond.atom1_idx != bond.atom2_idx);
+    }
+
+    #[test]
+    fn get_atom_and_chain_by_index_and_id() {
+        let mut builder = MolecularSystemBuilder::new();
+        builder
+            .start_chain('C', ChainType::Other)
+            .start_residue(5, "UNK")
+            .add_atom(
+                42,
+                "X",
+                Element::Unknown,
+                Point3::new(0.0, 0.0, 0.0),
+                0.0,
+                "X",
+            );
+        let system = builder.build();
+
+        assert!(system.get_atom(0).is_some());
+        assert!(system.get_chain(0).is_some());
+        assert!(system.get_chain_by_id('C').is_some());
+        assert!(system.get_atom_by_serial(42).is_some());
+        assert!(system.get_atom(1).is_none());
+        assert!(system.get_chain(1).is_none());
+        assert!(system.get_chain_by_id('Z').is_none());
+        assert!(system.get_atom_by_serial(999).is_none());
+    }
+
+    #[test]
+    fn atoms_in_residue_returns_correct_atoms() {
+        let mut builder = MolecularSystemBuilder::new();
+        builder
+            .start_chain('A', ChainType::Protein)
+            .start_residue(1, "GLY")
+            .add_atom(1, "CA", Element::C, Point3::new(0.0, 0.0, 0.0), 0.0, "C.3")
+            .add_atom(2, "CB", Element::C, Point3::new(1.0, 0.0, 0.0), 0.0, "C.3");
+        let system = builder.build();
+        let residue = &system.chains()[0].residues()[0];
+        let atom_names: Vec<_> = system
+            .atoms_in_residue(residue)
+            .map(|a| a.name.as_str())
+            .collect();
+
+        assert_eq!(atom_names, vec!["CA", "CB"]);
+    }
+
+    #[test]
+    #[should_panic(expected = "Must start a chain before a residue")]
+    fn start_residue_without_chain_panics() {
+        let mut builder = MolecularSystemBuilder::new();
+        builder.start_residue(1, "GLY");
+    }
+
+    #[test]
+    #[should_panic(expected = "Cannot add atom without a current chain")]
+    fn add_atom_without_chain_panics() {
+        let mut builder = MolecularSystemBuilder::new();
+        builder.add_atom(1, "CA", Element::C, Point3::new(0.0, 0.0, 0.0), 0.0, "C.3");
+    }
+
+    #[test]
+    #[should_panic(expected = "Cannot add atom without a current residue")]
+    fn add_atom_without_residue_panics() {
+        let mut builder = MolecularSystemBuilder::new();
+        builder.start_chain('A', ChainType::Protein);
+        builder.add_atom(1, "CA", Element::C, Point3::new(0.0, 0.0, 0.0), 0.0, "C.3");
+    }
+
+    #[test]
+    #[should_panic(expected = "Atom 1 not found for bond")]
+    fn add_bond_with_invalid_first_serial_panics() {
+        let mut builder = MolecularSystemBuilder::new();
+        builder
+            .start_chain('A', ChainType::Protein)
+            .start_residue(1, "GLY")
+            .add_atom(1, "CA", Element::C, Point3::new(0.0, 0.0, 0.0), 0.0, "C.3");
+        builder.add_bond(999, 1, BondOrder::Single);
+    }
+
+    #[test]
+    #[should_panic(expected = "Atom 2 not found for bond")]
+    fn add_bond_with_invalid_second_serial_panics() {
+        let mut builder = MolecularSystemBuilder::new();
+        builder
+            .start_chain('A', ChainType::Protein)
+            .start_residue(1, "GLY")
+            .add_atom(1, "CA", Element::C, Point3::new(0.0, 0.0, 0.0), 0.0, "C.3");
+        builder.add_bond(1, 999, BondOrder::Single);
+    }
+}
