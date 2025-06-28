@@ -77,7 +77,7 @@ impl Chain {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::residue::Residue;
+    use crate::core::models::residue::Residue;
 
     #[test]
     fn parses_valid_chain_types() {

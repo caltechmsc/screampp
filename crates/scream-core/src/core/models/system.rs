@@ -161,8 +161,8 @@ impl MolecularSystemBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::atom::{Atom, Element};
-    use crate::models::chain::ChainType;
+    use crate::core::models::atom::{Atom, Element};
+    use crate::core::models::chain::ChainType;
     use nalgebra::Point3;
 
     #[test]
