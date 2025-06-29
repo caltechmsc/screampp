@@ -1,5 +1,6 @@
 use std::fmt;
 use std::str::FromStr;
+use thiserror::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u8)]
@@ -16,7 +17,8 @@ impl Default for BondOrder {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Error)]
+#[error("Invalid bond order string")]
 pub struct ParseBondOrderError;
 
 impl FromStr for BondOrder {
