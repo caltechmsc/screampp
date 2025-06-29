@@ -1,6 +1,7 @@
 use nalgebra::Point3;
 use std::fmt;
 use std::str::FromStr;
+use thiserror::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u8)]
@@ -59,7 +60,8 @@ pub enum Element {
     Unknown, // Represents a failure to parse or an unrecognized element (Placeholder for unknown elements)
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Error)]
+#[error("Invalid element symbol")]
 pub struct ParseElementError;
 
 impl FromStr for Element {
