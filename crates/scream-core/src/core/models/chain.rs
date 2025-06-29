@@ -2,6 +2,7 @@ use super::residue::Residue;
 use std::collections::HashMap;
 use std::fmt;
 use std::str::FromStr;
+use thiserror::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ChainType {
@@ -11,7 +12,8 @@ pub enum ChainType {
     Other,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Error)]
+#[error("Invalid chain type string")]
 pub struct ParseChainTypeError;
 
 impl FromStr for ChainType {
