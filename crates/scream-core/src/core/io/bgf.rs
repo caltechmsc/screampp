@@ -2,7 +2,7 @@ use super::traits::MolecularFile;
 use crate::core::models::atom::Element;
 use crate::core::models::chain::ChainType;
 use crate::core::models::system::{MolecularSystem, MolecularSystemBuilder};
-use crate::core::models::topology::{Bond, BondOrder};
+use crate::core::models::topology::BondOrder;
 use nalgebra::Point3;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::io::{self, BufRead, Write};
@@ -15,7 +15,7 @@ pub struct RawLine {
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct BgfAtomIoData {
-    pub extra_columns: BTreeMap<usize, String>,
+    pub extra_columns: String,
 }
 
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -42,24 +42,20 @@ pub enum BgfError {
 
 #[derive(Debug, Error)]
 pub enum BgfParseErrorKind {
-    #[error("Invalid integer format in column {column}: {source}")]
-    InvalidInt {
-        column: usize,
-        #[source]
-        source: std::num::ParseIntError,
-    },
-    #[error("Invalid float format in column {column}: {source}")]
-    InvalidFloat {
-        column: usize,
-        #[source]
-        source: std::num::ParseFloatError,
-    },
+    #[error("Invalid integer format in columns {columns}: '{value}'")]
+    InvalidInt { columns: String, value: String },
+    #[error("Invalid float format in columns {columns}: '{value}'")]
+    InvalidFloat { columns: String, value: String },
     #[error("Invalid element symbol '{symbol}'")]
     InvalidElement { symbol: String },
-    #[error("ATOM/HETATM line has an insufficient number of columns (at least 12 required)")]
-    InvalidAtomColumnCount,
-    #[error("CONECT line requires at least two atoms")]
-    InvalidConectFormat,
+    #[error("Required field in columns {columns} is empty")]
+    MissingRequiredField { columns: String },
+    #[error("Line is too short for ATOM/HETATM record")]
+    LineTooShort,
+}
+
+fn slice_and_trim(line: &str, start: usize, end: usize) -> &str {
+    line.get(start..end).unwrap_or("").trim()
 }
 
 pub struct BgfFile;
@@ -80,36 +76,48 @@ impl MolecularFile for BgfFile {
 
         let mut current_chain_id = '\0';
         let mut current_residue_id = isize::MIN;
-
         let mut chain_is_hetero: HashMap<char, bool> = HashMap::new();
 
         for (line_num, line_res) in reader.lines().enumerate() {
             let line = line_res?;
             let line_num = line_num + 1;
-            let parts: Vec<&str> = line.split_whitespace().collect();
 
-            if parts.is_empty() {
-                metadata
-                    .header_lines
-                    .insert(line_num, RawLine { content: line });
+            let record_type = slice_and_trim(&line, 0, 6);
+            if record_type.is_empty() {
+                if !line.trim().is_empty() {
+                    metadata
+                        .header_lines
+                        .insert(line_num, RawLine { content: line });
+                }
                 continue;
             }
 
-            let record_type = parts[0];
             match record_type {
                 "ATOM" | "HETATM" => {
-                    if parts.len() < 12 {
+                    if line.len() < 60 {
                         return Err(BgfError::Parse {
                             line: line_num,
-                            kind: BgfParseErrorKind::InvalidAtomColumnCount,
+                            kind: BgfParseErrorKind::LineTooShort,
                         });
                     }
 
-                    let serial: usize = parts[1].parse().map_err(|e| BgfError::Parse {
+                    let serial_str = slice_and_trim(&line, 7, 12);
+                    let name_str = slice_and_trim(&line, 13, 18);
+                    let res_name_str = slice_and_trim(&line, 19, 22);
+                    let chain_id_str = slice_and_trim(&line, 23, 24);
+                    let res_id_str = slice_and_trim(&line, 25, 30);
+                    let x_str = slice_and_trim(&line, 30, 40);
+                    let y_str = slice_and_trim(&line, 40, 50);
+                    let element_str = slice_and_trim(&line, 51, 53);
+                    let ff_type_str = slice_and_trim(&line, 54, 59);
+                    let charge_str = slice_and_trim(&line, 62, 70);
+                    let z_str = slice_and_trim(&line, 50, 60);
+
+                    let serial: usize = serial_str.parse().map_err(|_| BgfError::Parse {
                         line: line_num,
                         kind: BgfParseErrorKind::InvalidInt {
-                            column: 2,
-                            source: e,
+                            columns: "8-12".into(),
+                            value: serial_str.into(),
                         },
                     })?;
                     if !seen_serials.insert(serial) {
@@ -118,56 +126,64 @@ impl MolecularFile for BgfFile {
                             serial
                         )));
                     }
-
-                    let name = parts[2];
-                    let res_name = parts[3];
-                    let chain_id: char = parts[4].chars().next().ok_or_else(|| {
-                        BgfError::Inconsistency(format!("Missing chain ID on line {}", line_num))
-                    })?;
-                    let res_id: isize = parts[5].parse().map_err(|e| BgfError::Parse {
+                    if name_str.is_empty() {
+                        return Err(BgfError::Parse {
+                            line: line_num,
+                            kind: BgfParseErrorKind::MissingRequiredField {
+                                columns: "14-18".into(),
+                            },
+                        });
+                    }
+                    let chain_id: char = chain_id_str.chars().next().unwrap_or('A');
+                    let res_id: isize = res_id_str.parse().map_err(|_| BgfError::Parse {
                         line: line_num,
                         kind: BgfParseErrorKind::InvalidInt {
-                            column: 6,
-                            source: e,
+                            columns: "26-30".into(),
+                            value: res_id_str.into(),
                         },
                     })?;
-                    let x: f64 = parts[6].parse().map_err(|e| BgfError::Parse {
+                    let x: f64 = x_str.parse().map_err(|_| BgfError::Parse {
                         line: line_num,
                         kind: BgfParseErrorKind::InvalidFloat {
-                            column: 7,
-                            source: e,
+                            columns: "31-40".into(),
+                            value: x_str.into(),
                         },
                     })?;
-                    let y: f64 = parts[7].parse().map_err(|e| BgfError::Parse {
+                    let y: f64 = y_str.parse().map_err(|_| BgfError::Parse {
                         line: line_num,
                         kind: BgfParseErrorKind::InvalidFloat {
-                            column: 8,
-                            source: e,
+                            columns: "41-50".into(),
+                            value: y_str.into(),
                         },
                     })?;
-                    let element_str = parts[8];
+                    let z: f64 = z_str.parse().map_err(|_| BgfError::Parse {
+                        line: line_num,
+                        kind: BgfParseErrorKind::InvalidFloat {
+                            columns: "51-60".into(),
+                            value: z_str.into(),
+                        },
+                    })?;
                     let element: Element = element_str.parse().map_err(|_| BgfError::Parse {
                         line: line_num,
                         kind: BgfParseErrorKind::InvalidElement {
                             symbol: element_str.to_string(),
                         },
                     })?;
-                    let ff_type = parts[9];
-                    let charge: f64 = parts[10].parse().map_err(|e| BgfError::Parse {
+                    if ff_type_str.is_empty() {
+                        return Err(BgfError::Parse {
+                            line: line_num,
+                            kind: BgfParseErrorKind::MissingRequiredField {
+                                columns: "55-59".into(),
+                            },
+                        });
+                    }
+                    let charge: f64 = charge_str.parse().map_err(|_| BgfError::Parse {
                         line: line_num,
                         kind: BgfParseErrorKind::InvalidFloat {
-                            column: 11,
-                            source: e,
+                            columns: "63-70".into(),
+                            value: charge_str.into(),
                         },
                     })?;
-                    let z: f64 = parts[11].parse().map_err(|e| BgfError::Parse {
-                        line: line_num,
-                        kind: BgfParseErrorKind::InvalidFloat {
-                            column: 12,
-                            source: e,
-                        },
-                    })?;
-                    let position = Point3::new(x, y, z);
 
                     if chain_id != current_chain_id {
                         let is_hetero = chain_is_hetero.entry(chain_id).or_insert(false);
@@ -183,80 +199,46 @@ impl MolecularFile for BgfFile {
                         current_chain_id = chain_id;
                     }
                     if res_id != current_residue_id {
-                        builder.start_residue(res_id, res_name);
+                        builder.start_residue(res_id, res_name_str);
                         current_residue_id = res_id;
                     }
-                    builder.add_atom(serial, name, element, position, charge, ff_type);
+                    builder.add_atom(
+                        serial,
+                        name_str,
+                        element,
+                        Point3::new(x, y, z),
+                        charge,
+                        ff_type_str,
+                    );
 
-                    if parts.len() > 12 {
-                        let extra_cols = parts[12..]
-                            .iter()
-                            .enumerate()
-                            .map(|(i, &s)| (i + 13, s.to_string()))
-                            .collect();
+                    if line.len() > 70 {
                         metadata.atom_io_data.insert(
                             serial,
                             BgfAtomIoData {
-                                extra_columns: extra_cols,
+                                extra_columns: line[70..].to_string(),
                             },
                         );
                     }
                 }
-                "CONECT" => {
+                "CONECT" | "ORDER" => {
+                    let parts: Vec<&str> = line.split_whitespace().collect();
                     if parts.len() < 3 {
-                        return Err(BgfError::Parse {
-                            line: line_num,
-                            kind: BgfParseErrorKind::InvalidConectFormat,
-                        });
+                        continue;
                     }
-                    let atom1_serial: usize = parts[1].parse().map_err(|e| BgfError::Parse {
-                        line: line_num,
-                        kind: BgfParseErrorKind::InvalidInt {
-                            column: 2,
-                            source: e,
-                        },
-                    })?;
-                    for part in &parts[2..] {
-                        let atom2_serial: usize = part.parse().map_err(|e| BgfError::Parse {
-                            line: line_num,
-                            kind: BgfParseErrorKind::InvalidInt {
-                                column: 0,
-                                source: e,
-                            },
-                        })?;
-                        temp_conect.push((
-                            atom1_serial.min(atom2_serial),
-                            atom1_serial.max(atom2_serial),
-                        ));
+                    if let (Ok(a1), Ok(a2)) = (parts[1].parse::<usize>(), parts[2].parse::<usize>())
+                    {
+                        let key = (a1.min(a2), a1.max(a2));
+                        if record_type == "CONECT" {
+                            temp_conect.push(key);
+                        } else {
+                            let order = parts
+                                .get(3)
+                                .unwrap_or(&"1")
+                                .parse()
+                                .unwrap_or(BondOrder::Single);
+                            temp_orders.insert(key, order);
+                        }
                     }
-                }
-                "ORDER" => {
-                    if parts.len() < 3 {
-                        return Err(BgfError::Inconsistency(format!(
-                            "ORDER record on line {} is incomplete",
-                            line_num
-                        )));
-                    }
-                    let a1: usize = parts[1].parse().map_err(|e| BgfError::Parse {
-                        line: line_num,
-                        kind: BgfParseErrorKind::InvalidInt {
-                            column: 2,
-                            source: e,
-                        },
-                    })?;
-                    let a2: usize = parts[2].parse().map_err(|e| BgfError::Parse {
-                        line: line_num,
-                        kind: BgfParseErrorKind::InvalidInt {
-                            column: 3,
-                            source: e,
-                        },
-                    })?;
-                    let order = parts
-                        .get(3)
-                        .unwrap_or(&"1")
-                        .parse()
-                        .unwrap_or(BondOrder::Single);
-                    temp_orders.insert((a1.min(a2), a1.max(a2)), order);
                 }
                 "FORMAT" => metadata.format_lines.push(line.clone()),
                 "END" => break,
@@ -312,21 +294,15 @@ impl MolecularFile for BgfFile {
         }
 
         for atom in system.atoms() {
-            let (chain_id, res_id, res_name, chain_type) =
-                atom_meta_map.get(&atom.index).ok_or_else(|| {
-                    BgfError::Inconsistency(format!(
-                        "Atom index {} not found in any residue",
-                        atom.index
-                    ))
-                })?;
+            let (chain_id, res_id, res_name, chain_type) = atom_meta_map.get(&atom.index).unwrap();
             let record_type = if *chain_type == ChainType::Protein {
-                "ATOM  "
+                "ATOM"
             } else {
                 "HETATM"
             };
 
-            let mut line = format!(
-                "{}{:>5} {:<5} {:<3} {} {:>5}    {:8.3}{:8.3}{:8.3} {:<2} {:<5} {:8.4}",
+            let line_start = format!(
+                "{:<6} {:>5} {:<5} {:<3} {:<1} {:>5}{:>10.5}{:>10.5}{:>10.5} {:<2} {:<5}   {:>8.5}",
                 record_type,
                 atom.serial,
                 atom.name,
@@ -341,12 +317,12 @@ impl MolecularFile for BgfFile {
                 atom.partial_charge
             );
 
-            if let Some(io_data) = metadata.atom_io_data.get(&atom.serial) {
-                for (_, val) in &io_data.extra_columns {
-                    line.push_str(&format!(" {}", val));
-                }
-            }
-            writeln!(writer, "{}", line)?;
+            let extra_cols = metadata
+                .atom_io_data
+                .get(&atom.serial)
+                .map_or("", |data| &data.extra_columns);
+
+            writeln!(writer, "{}{}", line_start, extra_cols)?;
         }
 
         if !system.bonds().is_empty() {
@@ -388,6 +364,7 @@ impl MolecularFile for BgfFile {
                 }
             }
         }
+
         writeln!(writer, "END")?;
         Ok(())
     }
