@@ -1,5 +1,4 @@
-use super::traits::MolecularFile;
-use crate::core::models::atom::Element;
+use crate::core::io::traits::MolecularFile;
 use crate::core::models::chain::ChainType;
 use crate::core::models::system::{MolecularSystem, MolecularSystemBuilder};
 use crate::core::models::topology::BondOrder;
@@ -15,7 +14,7 @@ pub struct RawLine {
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct BgfAtomIoData {
-    pub extra_columns: String,
+    pub raw_suffix: String,
 }
 
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -42,16 +41,16 @@ pub enum BgfError {
 
 #[derive(Debug, Error)]
 pub enum BgfParseErrorKind {
-    #[error("Invalid integer format in columns {columns}: '{value}'")]
+    #[error("Invalid integer format in columns {columns} (value: '{value}')")]
     InvalidInt { columns: String, value: String },
-    #[error("Invalid float format in columns {columns}: '{value}'")]
+    #[error("Invalid float format in columns {columns} (value: '{value}')")]
     InvalidFloat { columns: String, value: String },
-    #[error("Invalid element symbol '{symbol}'")]
-    InvalidElement { symbol: String },
     #[error("Required field in columns {columns} is empty")]
     MissingRequiredField { columns: String },
-    #[error("Line is too short for ATOM/HETATM record")]
+    #[error("Line is too short for ATOM/HETATM record (must be at least 80 chars)")]
     LineTooShort,
+    #[error("CONECT line requires at least two atoms")]
+    InvalidConectFormat,
 }
 
 fn slice_and_trim(line: &str, start: usize, end: usize) -> &str {
@@ -94,7 +93,7 @@ impl MolecularFile for BgfFile {
 
             match record_type {
                 "ATOM" | "HETATM" => {
-                    if line.len() < 60 {
+                    if line.len() < 80 {
                         return Err(BgfError::Parse {
                             line: line_num,
                             kind: BgfParseErrorKind::LineTooShort,
@@ -108,11 +107,18 @@ impl MolecularFile for BgfFile {
                     let res_id_str = slice_and_trim(&line, 25, 30);
                     let x_str = slice_and_trim(&line, 30, 40);
                     let y_str = slice_and_trim(&line, 40, 50);
-                    let element_str = slice_and_trim(&line, 51, 53);
-                    let ff_type_str = slice_and_trim(&line, 54, 59);
-                    let charge_str = slice_and_trim(&line, 62, 70);
                     let z_str = slice_and_trim(&line, 50, 60);
+                    let ff_type_str = slice_and_trim(&line, 61, 66);
+                    let charge_str = slice_and_trim(&line, 72, 80);
 
+                    if name_str.is_empty() {
+                        return Err(BgfError::Parse {
+                            line: line_num,
+                            kind: BgfParseErrorKind::MissingRequiredField {
+                                columns: "14-18".into(),
+                            },
+                        });
+                    }
                     let serial: usize = serial_str.parse().map_err(|_| BgfError::Parse {
                         line: line_num,
                         kind: BgfParseErrorKind::InvalidInt {
@@ -126,14 +132,7 @@ impl MolecularFile for BgfFile {
                             serial
                         )));
                     }
-                    if name_str.is_empty() {
-                        return Err(BgfError::Parse {
-                            line: line_num,
-                            kind: BgfParseErrorKind::MissingRequiredField {
-                                columns: "14-18".into(),
-                            },
-                        });
-                    }
+
                     let chain_id: char = chain_id_str.chars().next().unwrap_or('A');
                     let res_id: isize = res_id_str.parse().map_err(|_| BgfError::Parse {
                         line: line_num,
@@ -163,24 +162,18 @@ impl MolecularFile for BgfFile {
                             value: z_str.into(),
                         },
                     })?;
-                    let element: Element = element_str.parse().map_err(|_| BgfError::Parse {
-                        line: line_num,
-                        kind: BgfParseErrorKind::InvalidElement {
-                            symbol: element_str.to_string(),
-                        },
-                    })?;
                     if ff_type_str.is_empty() {
                         return Err(BgfError::Parse {
                             line: line_num,
                             kind: BgfParseErrorKind::MissingRequiredField {
-                                columns: "55-59".into(),
+                                columns: "62-66".into(),
                             },
                         });
                     }
                     let charge: f64 = charge_str.parse().map_err(|_| BgfError::Parse {
                         line: line_num,
                         kind: BgfParseErrorKind::InvalidFloat {
-                            columns: "63-70".into(),
+                            columns: "73-80".into(),
                             value: charge_str.into(),
                         },
                     })?;
@@ -197,45 +190,38 @@ impl MolecularFile for BgfFile {
                         };
                         builder.start_chain(chain_id, chain_type);
                         current_chain_id = chain_id;
+                        current_residue_id = isize::MIN;
                     }
                     if res_id != current_residue_id {
                         builder.start_residue(res_id, res_name_str);
                         current_residue_id = res_id;
                     }
-                    builder.add_atom(
-                        serial,
-                        name_str,
-                        element,
-                        Point3::new(x, y, z),
-                        charge,
-                        ff_type_str,
-                    );
+                    builder.add_atom(serial, name_str, Point3::new(x, y, z), charge, ff_type_str);
 
-                    if line.len() > 70 {
-                        metadata.atom_io_data.insert(
-                            serial,
-                            BgfAtomIoData {
-                                extra_columns: line[70..].to_string(),
-                            },
-                        );
-                    }
+                    metadata.atom_io_data.insert(
+                        serial,
+                        BgfAtomIoData {
+                            raw_suffix: line[80..].to_string(),
+                        },
+                    );
                 }
                 "CONECT" | "ORDER" => {
                     let parts: Vec<&str> = line.split_whitespace().collect();
                     if parts.len() < 3 {
                         continue;
                     }
-                    if let (Ok(a1), Ok(a2)) = (parts[1].parse::<usize>(), parts[2].parse::<usize>())
-                    {
+                    let a1_res = parts[1].parse::<usize>();
+                    let a2_res = parts[2].parse::<usize>();
+                    if let (Ok(a1), Ok(a2)) = (a1_res, a2_res) {
                         let key = (a1.min(a2), a1.max(a2));
                         if record_type == "CONECT" {
                             temp_conect.push(key);
                         } else {
-                            let order = parts
-                                .get(3)
-                                .unwrap_or(&"1")
-                                .parse()
-                                .unwrap_or(BondOrder::Single);
+                            let order = if parts.len() > 3 {
+                                parts[3].parse().unwrap_or_default()
+                            } else {
+                                BondOrder::default()
+                            };
                             temp_orders.insert(key, order);
                         }
                     }
@@ -281,7 +267,7 @@ impl MolecularFile for BgfFile {
             writeln!(writer, "{}", line)?;
         }
 
-        let mut atom_meta_map: HashMap<usize, (char, isize, &str, ChainType)> = HashMap::new();
+        let mut atom_meta_map = BTreeMap::new();
         for chain in system.chains() {
             for residue in chain.residues() {
                 for &atom_idx in &residue.atom_indices {
@@ -301,8 +287,8 @@ impl MolecularFile for BgfFile {
                 "HETATM"
             };
 
-            let line_start = format!(
-                "{:<6} {:>5} {:<5} {:<3} {:<1} {:>5}{:>10.5}{:>10.5}{:>10.5} {:<2} {:<5}   {:>8.5}",
+            let line = format!(
+                "{:<6} {:>5} {:<5} {:>3}  {:1}{:>4}    {:>8.3}{:>8.3}{:>8.3}{}{}{:>6}{:>12.5}",
                 record_type,
                 atom.serial,
                 atom.name,
@@ -312,17 +298,16 @@ impl MolecularFile for BgfFile {
                 atom.position.x,
                 atom.position.y,
                 atom.position.z,
-                atom.element,
+                "  1.00",
+                "  0.00",
                 atom.force_field_type,
                 atom.partial_charge
             );
-
-            let extra_cols = metadata
+            let suffix = metadata
                 .atom_io_data
                 .get(&atom.serial)
-                .map_or("", |data| &data.extra_columns);
-
-            writeln!(writer, "{}{}", line_start, extra_cols)?;
+                .map_or("", |d| &d.raw_suffix);
+            writeln!(writer, "{}{}", line, suffix)?;
         }
 
         if !system.bonds().is_empty() {
