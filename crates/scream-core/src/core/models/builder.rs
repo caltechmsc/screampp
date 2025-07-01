@@ -123,3 +123,126 @@ impl MolecularSystemBuilder {
         self.system
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use nalgebra::Point3;
+
+    #[test]
+    fn builder_creates_system_with_single_chain_residue_atom() {
+        let mut builder = MolecularSystemBuilder::new();
+        builder
+            .start_chain('A', ChainType::Protein)
+            .start_residue(1, "GLY")
+            .add_atom(
+                100,
+                "CA",
+                "GLY",
+                Point3::new(1.0, 2.0, 3.0),
+                Some(-0.1),
+                Some("C.3"),
+            );
+        let system = builder.build();
+        assert_eq!(system.chains().len(), 1);
+        assert_eq!(system.chains()[0].residues().len(), 1);
+        assert_eq!(system.atoms().len(), 1);
+        assert_eq!(system.atoms()[0].serial, 100);
+        assert_eq!(system.atoms()[0].name, "CA");
+        assert_eq!(system.atoms()[0].res_name, "GLY");
+        assert_eq!(system.atoms()[0].partial_charge, -0.1);
+        assert_eq!(system.atoms()[0].force_field_type, "C.3");
+    }
+
+    #[test]
+    fn builder_adds_multiple_chains_and_residues() {
+        let mut builder = MolecularSystemBuilder::new();
+        builder
+            .start_chain('A', ChainType::Protein)
+            .start_residue(1, "GLY")
+            .add_atom(1, "CA", "GLY", Point3::new(0.0, 0.0, 0.0), None, None)
+            .start_residue(2, "ALA")
+            .add_atom(2, "CB", "ALA", Point3::new(1.0, 1.0, 1.0), None, None)
+            .start_chain('B', ChainType::Protein)
+            .start_residue(1, "SER")
+            .add_atom(3, "OG", "SER", Point3::new(2.0, 2.0, 2.0), None, None);
+        let system = builder.build();
+        assert_eq!(system.chains().len(), 2);
+        assert_eq!(system.chains()[0].residues().len(), 2);
+        assert_eq!(system.chains()[1].residues().len(), 1);
+        assert_eq!(system.atoms().len(), 3);
+    }
+
+    #[test]
+    fn builder_adds_bond_between_atoms() {
+        let mut builder = MolecularSystemBuilder::new();
+        builder
+            .start_chain('A', ChainType::Protein)
+            .start_residue(1, "GLY")
+            .add_atom(1, "CA", "GLY", Point3::new(0.0, 0.0, 0.0), None, None)
+            .add_atom(2, "CB", "GLY", Point3::new(1.0, 1.0, 1.0), None, None)
+            .add_bond(1, 2, BondOrder::Single);
+        let system = builder.build();
+        assert_eq!(system.bonds().len(), 1);
+        let bond = &system.bonds()[0];
+        assert_eq!(bond.atom1_idx, 0);
+        assert_eq!(bond.atom2_idx, 1);
+    }
+
+    #[test]
+    fn builder_add_atom_without_charge_and_ff_type_defaults() {
+        let mut builder = MolecularSystemBuilder::new();
+        builder
+            .start_chain('A', ChainType::Protein)
+            .start_residue(1, "GLY")
+            .add_atom(1, "CA", "GLY", Point3::new(0.0, 0.0, 0.0), None, None);
+        let system = builder.build();
+        let atom = &system.atoms()[0];
+        assert_eq!(atom.partial_charge, 0.0);
+        assert_eq!(atom.force_field_type, "");
+    }
+
+    #[test]
+    #[should_panic(expected = "Must start a chain before starting a residue")]
+    fn builder_panics_if_start_residue_without_chain() {
+        let mut builder = MolecularSystemBuilder::new();
+        builder.start_residue(1, "GLY");
+    }
+
+    #[test]
+    #[should_panic(expected = "Cannot add atom without a current chain")]
+    fn builder_panics_if_add_atom_without_chain() {
+        let mut builder = MolecularSystemBuilder::new();
+        builder.add_atom(1, "CA", "GLY", Point3::new(0.0, 0.0, 0.0), None, None);
+    }
+
+    #[test]
+    #[should_panic(expected = "Cannot add atom without a current residue")]
+    fn builder_panics_if_add_atom_without_residue() {
+        let mut builder = MolecularSystemBuilder::new();
+        builder.start_chain('A', ChainType::Protein);
+        builder.add_atom(1, "CA", "GLY", Point3::new(0.0, 0.0, 0.0), None, None);
+    }
+
+    #[test]
+    #[should_panic(expected = "Atom 1 for bond not found")]
+    fn builder_panics_if_add_bond_with_invalid_serial1() {
+        let mut builder = MolecularSystemBuilder::new();
+        builder
+            .start_chain('A', ChainType::Protein)
+            .start_residue(1, "GLY")
+            .add_atom(1, "CA", "GLY", Point3::new(0.0, 0.0, 0.0), None, None)
+            .add_bond(99, 1, BondOrder::Single);
+    }
+
+    #[test]
+    #[should_panic(expected = "Atom 2 for bond not found")]
+    fn builder_panics_if_add_bond_with_invalid_serial2() {
+        let mut builder = MolecularSystemBuilder::new();
+        builder
+            .start_chain('A', ChainType::Protein)
+            .start_residue(1, "GLY")
+            .add_atom(1, "CA", "GLY", Point3::new(0.0, 0.0, 0.0), None, None)
+            .add_bond(1, 99, BondOrder::Single);
+    }
+}
