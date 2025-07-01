@@ -1,36 +1,37 @@
+use bitflags::bitflags;
 use nalgebra::Point3;
+
+bitflags! {
+    #[derive(Default, Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub struct AtomFlags: u8 {
+        const IS_FIXED_ROLE      = 0b0000_0001; // The atom's fundamental role is fixed (e.g., a backbone atom)
+        const IS_TREATED_AS_FIXED = 0b0000_0010; // The atom is currently being treated as fixed in the energy expression
+        const IS_VISIBLE_INTERACTION = 0b0000_0100; // The atom is visible in sidechain-sidechain interaction calculations
+        const IS_VISIBLE_LATTICE     = 0b0000_1000; // The atom is visible in empty-lattice (sidechain-environment) calculations
+    }
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Atom {
-    pub index: usize,             // Index in the global atom vector
-    pub serial: usize,            // Original serial from source file (e.g., PDB)
-    pub name: String,             // Atom name (e.g., "CA" for alpha carbon)
-    pub force_field_type: String, // Force field type (e.g., "C.3" for sp3 carbon)
-    pub partial_charge: f64,      // Partial charge of the atom
-    pub position: Point3<f64>,    // 3D coordinates of the atom
-}
+    // --- Identity & Topology ---
+    pub index: usize,     // Global index in the system's atom list
+    pub serial: usize,    // Atom serial number from source file
+    pub name: String,     // Atom name (e.g., "CA", "N", "O")
+    pub res_name: String, // Residue name (e.g., "ALA", "GLY")
+    pub res_id: isize,    // Residue sequence number from source file
+    pub chain_id: char,   // Chain identifier (e.g., 'A', 'B')
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use nalgebra::Point3;
+    // --- Physicochemical Properties ---
+    pub force_field_type: String, // Force field atom type (e.g., "C.3", "N.2")
+    pub partial_charge: f64,      // Partial atomic charge
+    pub position: Point3<f64>,    // 3D coordinates
 
-    #[test]
-    fn test_atom_creation() {
-        let atom = Atom {
-            index: 0,
-            serial: 1,
-            name: "CA".to_string(),
-            force_field_type: "C.3".to_string(),
-            partial_charge: 0.1,
-            position: Point3::new(1.0, 2.0, 3.0),
-        };
+    // --- SCREAM Algorithm Specific Parameters ---
+    pub flags: AtomFlags, // Bitflags for various atom properties
+    pub delta: f64,       // "Delta" value for the flat-bottom potential
 
-        assert_eq!(atom.index, 0);
-        assert_eq!(atom.serial, 1);
-        assert_eq!(atom.name, "CA");
-        assert_eq!(atom.force_field_type, "C.3");
-        assert_eq!(atom.partial_charge, 0.1);
-        assert_eq!(atom.position, Point3::new(1.0, 2.0, 3.0));
-    }
+    // --- Cached Force Field Parameters for Performance ---
+    pub vdw_radius: f64,     // van der Waals radius
+    pub vdw_well_depth: f64, // van der Waals well depth (epsilon)
+    pub hbond_type_id: i8,   // Hydrogen bond type identifier
 }
