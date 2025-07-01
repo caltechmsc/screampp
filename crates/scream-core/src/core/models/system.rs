@@ -185,6 +185,21 @@ mod tests {
     }
 
     #[test]
+    fn get_atom_by_serial_mut_allows_modification() {
+        let mut system = mock_system();
+        if let Some(atom) = system.get_atom_by_serial_mut(10) {
+            atom.name = "NZ".to_string();
+        }
+        assert_eq!(system.get_atom_by_serial(10).unwrap().name, "NZ");
+    }
+
+    #[test]
+    fn get_atom_by_serial_mut_returns_none_for_invalid_serial() {
+        let mut system = mock_system();
+        assert!(system.get_atom_by_serial_mut(999).is_none());
+    }
+
+    #[test]
     fn get_chain_returns_correct_chain() {
         let system = mock_system();
         assert!(system.get_chain(0).is_some());
@@ -199,10 +214,24 @@ mod tests {
     }
 
     #[test]
+    fn get_chain_by_id_returns_none_for_invalid_id() {
+        let system = mock_system();
+        assert!(system.get_chain_by_id('Z').is_none());
+    }
+
+    #[test]
     fn atoms_in_residue_iterates_correct_atoms() {
         let system = mock_system();
         let residue = &system.chains()[0].residues()[0];
         let indices: Vec<_> = system.atoms_in_residue(residue).map(|a| a.index).collect();
         assert_eq!(indices, vec![0, 1]);
+    }
+
+    #[test]
+    fn atoms_in_residue_empty_for_residue_with_no_atoms() {
+        let mut system = mock_system();
+        let empty_residue = Residue::new(6, "ALA");
+        let atoms: Vec<_> = system.atoms_in_residue(&empty_residue).collect();
+        assert!(atoms.is_empty());
     }
 }
