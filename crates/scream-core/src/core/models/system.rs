@@ -43,7 +43,15 @@ impl MolecularSystem {
     pub fn get_atom_by_serial(&self, serial: usize) -> Option<&Atom> {
         self.atom_serial_map
             .get(&serial)
-            .and_then(|&idx| self.get_atom(idx))
+            .and_then(|&index| self.atoms.get(index))
+    }
+
+    pub fn get_atom_by_serial_mut(&mut self, serial: usize) -> Option<&mut Atom> {
+        if let Some(&index) = self.atom_serial_map.get(&serial) {
+            self.atoms.get_mut(index)
+        } else {
+            None
+        }
     }
 
     pub fn get_chain(&self, index: usize) -> Option<&Chain> {
@@ -53,7 +61,7 @@ impl MolecularSystem {
     pub fn get_chain_by_id(&self, id: char) -> Option<&Chain> {
         self.chain_id_map
             .get(&id)
-            .and_then(|&idx| self.get_chain(idx))
+            .and_then(|&index| self.chains.get(index))
     }
 
     pub fn atoms_in_residue<'a>(&'a self, residue: &'a Residue) -> impl Iterator<Item = &'a Atom> {
