@@ -8,6 +8,9 @@ pub struct MolecularSystem {
     pub(crate) atoms: Vec<Atom>,
     pub(crate) chains: Vec<Chain>,
     pub(crate) bonds: Vec<Bond>,
+
+    pub(crate) atom_serial_map: std::collections::HashMap<usize, usize>,
+    pub(crate) chain_id_map: std::collections::HashMap<char, usize>,
 }
 
 impl MolecularSystem {
@@ -36,7 +39,9 @@ impl MolecularSystem {
     }
 
     pub fn get_atom_by_serial(&self, serial: usize) -> Option<&Atom> {
-        self.atoms.iter().find(|a| a.serial == serial)
+        self.atom_serial_map
+            .get(&serial)
+            .and_then(|&index| self.atoms.get(index))
     }
 
     pub fn get_chain(&self, index: usize) -> Option<&Chain> {
@@ -44,7 +49,9 @@ impl MolecularSystem {
     }
 
     pub fn get_chain_by_id(&self, id: char) -> Option<&Chain> {
-        self.chains.iter().find(|c| c.id == id)
+        self.chain_id_map
+            .get(&id)
+            .and_then(|&index| self.chains.get(index))
     }
 
     pub fn atoms_in_residue<'a>(&'a self, residue: &'a Residue) -> impl Iterator<Item = &'a Atom> {
@@ -108,6 +115,8 @@ mod tests {
             atoms: vec![atom1, atom2],
             chains: vec![chain],
             bonds: vec![bond],
+            atom_serial_map: vec![(10, 0), (20, 1)].into_iter().collect(),
+            chain_id_map: vec![('A', 0)].into_iter().collect(),
         }
     }
 
