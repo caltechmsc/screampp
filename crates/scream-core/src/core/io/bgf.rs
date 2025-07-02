@@ -10,7 +10,9 @@ use thiserror::Error;
 
 #[derive(Debug, Default, Clone)]
 pub struct BgfMetadata {
-    pub extra_lines: Vec<String>,
+    pub header_lines: Vec<String>, // Lines before the ATOM records
+    pub order_lines: Vec<String>,  // Lines containing bond orders
+    pub footer_lines: Vec<String>, // Lines after the ATOM records
 }
 
 #[derive(Debug, Default)]
@@ -33,65 +35,75 @@ impl MolecularFile for BgfFile {
     ) -> Result<(MolecularSystem, Self::Metadata), Self::Error> {
         let mut builder = MolecularSystemBuilder::new();
         let mut metadata = BgfMetadata::default();
-        let mut connectivity_lines: Vec<(String, usize)> = Vec::new();
+
+        let mut atom_lines = Vec::new();
+        let mut conect_lines = Vec::new();
+
+        let mut atom_section_started = false;
+        let lines: Vec<String> = reader.lines().collect::<Result<_, _>>()?;
+
+        for line in lines {
+            if line.trim().is_empty() {
+                continue;
+            }
+            if line.trim() == "END" {
+                break;
+            }
+
+            if line.starts_with("ATOM") || line.starts_with("HETATM") {
+                atom_section_started = true;
+                atom_lines.push(line);
+            } else if line.starts_with("CONECT") {
+                conect_lines.push(line);
+            } else if line.starts_with("ORDER") {
+                metadata.order_lines.push(line);
+            } else if !line.trim().starts_with("FORMAT") {
+                if !atom_section_started {
+                    metadata.header_lines.push(line);
+                } else {
+                    metadata.footer_lines.push(line);
+                }
+            }
+        }
 
         let mut current_chain_id = '\0';
         let mut current_res_id = isize::MIN;
 
-        for (line_num, line_result) in reader.lines().enumerate() {
-            let line = line_result?;
-            let line_num = line_num + 1; // 1-based for error reporting
+        for (i, line) in atom_lines.iter().enumerate() {
+            let (record_type, serial, name, res_name, chain_id, res_id, pos, charge, ff_type) =
+                parse_atom_line(line).map_err(|msg| BgfError::Parse {
+                    line_num: i + 1,
+                    message: msg,
+                })?;
 
-            if line.starts_with("ATOM") || line.starts_with("HETATM") {
-                let (record_type, serial, name, res_name, chain_id, res_id, pos, charge, ff_type) =
-                    parse_atom_line(&line).map_err(|msg| BgfError::Parse {
-                        line_num,
-                        message: msg,
-                    })?;
-
-                if chain_id != current_chain_id {
-                    let chain_type = match record_type.as_str() {
-                        "ATOM" => ChainType::Protein,
-                        "HETATM" => match res_name.as_str() {
-                            "HOH" | "TIP3" => ChainType::Water,
-                            _ => ChainType::Ligand, // Default to Ligand for HETATM
-                        },
-                        _ => ChainType::Other,
-                    };
-                    builder.start_chain(chain_id, chain_type);
-                    current_chain_id = chain_id;
-                    current_res_id = isize::MIN;
-                }
-
-                if res_id != current_res_id {
-                    builder.start_residue(res_id, &res_name);
-                    current_res_id = res_id;
-                }
-
-                builder.add_atom(serial, &name, &res_name, pos, Some(charge), Some(&ff_type));
-            } else if line.starts_with("CONECT") || line.starts_with("ORDER") {
-                connectivity_lines.push((line, line_num));
-            } else if line.trim().starts_with("FORMAT") {
-                // Ignore format lines
-            } else if line.trim() == "END" {
-                break;
-            } else if !line.trim().is_empty() {
-                metadata.extra_lines.push(line);
+            if chain_id != current_chain_id {
+                let chain_type = match record_type.as_str() {
+                    "ATOM" => ChainType::Protein,
+                    "HETATM" => match res_name.as_str() {
+                        "HOH" | "TIP3" => ChainType::Water,
+                        _ => ChainType::Ligand,
+                    },
+                    _ => ChainType::Other,
+                };
+                builder.start_chain(chain_id, chain_type);
+                current_chain_id = chain_id;
+                current_res_id = isize::MIN;
             }
+            if res_id != current_res_id {
+                builder.start_residue(res_id, &res_name);
+                current_res_id = res_id;
+            }
+            builder.add_atom(serial, &name, &res_name, pos, Some(charge), Some(&ff_type));
         }
 
-        for (conn_line, line_num) in connectivity_lines {
-            if conn_line.starts_with("CONECT") {
-                let (base_serial, connected_serials) =
-                    parse_conect_line(&conn_line).map_err(|msg| BgfError::Parse {
-                        line_num,
-                        message: msg,
-                    })?;
-                for &connected_serial in &connected_serials {
-                    builder.add_bond(base_serial, connected_serial, BondOrder::Single);
-                }
-            } else {
-                metadata.extra_lines.push(conn_line);
+        for (i, line) in conect_lines.iter().enumerate() {
+            let (base_serial, connected_serials) =
+                parse_conect_line(line).map_err(|msg| BgfError::Parse {
+                    line_num: i + 1,
+                    message: msg,
+                })?;
+            for &connected_serial in &connected_serials {
+                builder.add_bond(base_serial, connected_serial, BondOrder::Single);
             }
         }
 
@@ -103,7 +115,7 @@ impl MolecularFile for BgfFile {
         metadata: &Self::Metadata,
         writer: &mut impl Write,
     ) -> Result<(), Self::Error> {
-        for line in &metadata.extra_lines {
+        for line in &metadata.header_lines {
             writeln!(writer, "{}", line)?;
         }
 
@@ -115,15 +127,16 @@ impl MolecularFile for BgfFile {
             for residue in chain.residues() {
                 for &atom_index in &residue.atom_indices {
                     let atom = system.get_atom(atom_index).unwrap();
-
-                    // TODO: Replace with actual logic once implemented in the core.
-                    let atoms_connected = 0;
-                    let lone_pair = 0;
-
+                    let atoms_connected = 0; // TODO: Replace with actual logic (placeholder)
+                    let lone_pair = 0; // TODO: Replace with actual logic (placeholder)
                     let atom_line = format_atom_line(record_type, atom, atoms_connected, lone_pair);
                     writeln!(writer, "{}", atom_line)?;
                 }
             }
+        }
+
+        for line in &metadata.footer_lines {
+            writeln!(writer, "{}", line)?;
         }
 
         let mut bond_map: HashMap<usize, Vec<usize>> = HashMap::new();
@@ -143,31 +156,28 @@ impl MolecularFile for BgfFile {
 
         for &atom_index in &sorted_indices {
             let base_serial = system.get_atom(atom_index).unwrap().serial;
-
             let mut neighbor_serials: Vec<_> = bond_map[&atom_index]
                 .iter()
-                .filter_map(|&neighbor_idx| {
-                    if neighbor_idx > atom_index {
-                        Some(system.get_atom(neighbor_idx).unwrap().serial)
-                    } else {
-                        None
-                    }
-                })
+                .filter(|&&neighbor_idx| neighbor_idx > atom_index)
+                .map(|&idx| system.get_atom(idx).unwrap().serial)
                 .collect();
 
             if neighbor_serials.is_empty() {
                 continue;
             }
-
             neighbor_serials.sort_unstable();
 
             for chunk in neighbor_serials.chunks(14) {
-                let mut connect_line = format!("CONECT{:>6}", base_serial);
+                let mut connect_line = format!("CONECT {:>5}", base_serial);
                 for &neighbor_serial in chunk {
                     connect_line.push_str(&format!("{:>6}", neighbor_serial));
                 }
                 writeln!(writer, "{}", connect_line)?;
             }
+        }
+
+        for line in &metadata.order_lines {
+            writeln!(writer, "{}", line)?;
         }
 
         writeln!(writer, "END")?;
@@ -179,13 +189,14 @@ impl MolecularFile for BgfFile {
         writer: &mut impl Write,
     ) -> Result<(), Self::Error> {
         let minimal_metadata = BgfMetadata {
-            extra_lines: vec![
+            header_lines: vec![
                 "BIOGRF  332".to_string(),
                 "FORCEFIELD DREIDING".to_string(),
                 "FORMAT ATOM   (a6,1x,i5,1x,a5,1x,a3,1x,a1,1x,a5,3f10.5,1x,a5,i3,i2,1x,f8.5)"
                     .to_string(),
-                "FORMAT CONECT (a6,14i6)".to_string(),
             ],
+            order_lines: Vec::new(),
+            footer_lines: Vec::new(),
         };
         Self::write_to(system, &minimal_metadata, writer)
     }
@@ -337,7 +348,8 @@ END
         assert_eq!(system.chains().len(), 1);
         assert_eq!(system.chains()[0].residues().len(), 1);
         assert_eq!(system.bonds().len(), 1);
-        assert_eq!(metadata.extra_lines, vec!["BIOGRF 332"]);
+        assert_eq!(metadata.header_lines.len(), 1);
+        assert_eq!(metadata.header_lines[0], "BIOGRF 332");
         assert_eq!(system.get_atom_by_serial(1).unwrap().name, "N");
         assert_eq!(system.get_atom_by_serial(2).unwrap().partial_charge, 0.27);
     }
@@ -387,7 +399,9 @@ END
     fn write_to_produces_correct_bgf_format() {
         let system = create_test_system();
         let metadata = BgfMetadata {
-            extra_lines: vec!["BIOGRF 332".to_string()],
+            header_lines: vec!["BIOGRF 332".to_string()],
+            order_lines: vec![],
+            footer_lines: vec!["END".to_string()],
         };
         let mut buffer = Vec::new();
         let result = BgfFile::write_to(&system, &metadata, &mut buffer);
