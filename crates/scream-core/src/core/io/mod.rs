@@ -1,2 +1,2 @@
-mod bgf;
+pub mod bgf;
 pub mod traits;
