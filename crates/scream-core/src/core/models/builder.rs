@@ -29,6 +29,8 @@ impl MolecularSystemBuilder {
                 atoms: Vec::new(),
                 chains: Vec::new(),
                 bonds: Vec::new(),
+                atom_serial_map: HashMap::new(),
+                chain_id_map: HashMap::new(),
             },
             atom_serial_map: HashMap::new(),
             chain_id_map: HashMap::new(),
@@ -119,8 +121,14 @@ impl MolecularSystemBuilder {
         self
     }
 
-    pub fn build(self) -> MolecularSystem {
-        self.system
+    pub fn build(mut self) -> MolecularSystem {
+        MolecularSystem {
+            atoms: self.system.atoms,
+            chains: self.system.chains,
+            bonds: self.system.bonds,
+            atom_serial_map: self.atom_serial_map,
+            chain_id_map: self.chain_id_map,
+        }
     }
 }
 
