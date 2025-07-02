@@ -71,6 +71,8 @@ impl MolecularFile for BgfFile {
                 builder.add_atom(serial, &name, &res_name, pos, Some(charge), Some(&ff_type));
             } else if line.starts_with("CONECT") || line.starts_with("ORDER") {
                 connectivity_lines.push((line, line_num));
+            } else if line.trim().starts_with("FORMAT") {
+                // Ignore format lines
             } else if line.trim() == "END" {
                 break;
             } else if !line.trim().is_empty() {
@@ -257,7 +259,7 @@ fn format_atom_line(
     lone_pair: u8,
 ) -> String {
     format!(
-        "{:<6} {:>5} {:<5} {:>3} {:1} {:>5}{:>10.5}{:>10.5}{:>10.5} {:<5} {:>3}{:>2}{:>9.5}",
+        "{:<6} {:>5} {:<5} {:>3} {:1} {:>5}{:>10.5}{:>10.5}{:>10.5} {:<5}{:>3}{:>2} {:>8.5}",
         record_type,
         atom.serial,
         atom.name,
