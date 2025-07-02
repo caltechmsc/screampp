@@ -33,9 +33,9 @@ impl MolecularFile for BgfFile {
     ) -> Result<(MolecularSystem, Self::Metadata), Self::Error> {
         let mut builder = MolecularSystemBuilder::new();
         let mut metadata = BgfMetadata::default();
-        let mut connectivity_lines = Vec::new();
+        let mut connectivity_lines: Vec<(String, usize)> = Vec::new();
 
-        let mut current_chain_id = '\0';
+        let mut current_chain_id = '\0'; // Use a null character as an uninitialized sentinel
         let mut current_res_id = isize::MIN;
 
         for (line_num, line_result) in reader.lines().enumerate() {
@@ -43,17 +43,26 @@ impl MolecularFile for BgfFile {
             let line_num = line_num + 1; // 1-based for error reporting
 
             if line.starts_with("ATOM") || line.starts_with("HETATM") {
-                let (serial, name, res_name, chain_id, res_id, pos, charge, ff_type) =
+                let (record_type, serial, name, res_name, chain_id, res_id, pos, charge, ff_type) =
                     parse_atom_line(&line).map_err(|msg| BgfError::Parse {
                         line_num,
                         message: msg,
                     })?;
 
                 if chain_id != current_chain_id {
-                    builder.start_chain(chain_id, ChainType::Protein); // Assuming protein for now
+                    let chain_type = match record_type.as_str() {
+                        "ATOM" => ChainType::Protein,
+                        "HETATM" => match res_name.as_str() {
+                            "HOH" | "TIP3" => ChainType::Water,
+                            _ => ChainType::Other, // Default for other HETATMs
+                        },
+                        _ => ChainType::Other,
+                    };
+                    builder.start_chain(chain_id, chain_type);
                     current_chain_id = chain_id;
-                    current_res_id = isize::MIN; // Reset residue ID when chain changes
+                    current_res_id = isize::MIN; // Reset residue on new chain
                 }
+
                 if res_id != current_res_id {
                     builder.start_residue(res_id, &res_name);
                     current_res_id = res_id;
@@ -61,29 +70,30 @@ impl MolecularFile for BgfFile {
 
                 builder.add_atom(serial, &name, &res_name, pos, Some(charge), Some(&ff_type));
             } else if line.starts_with("CONECT") || line.starts_with("ORDER") {
-                connectivity_lines.push(line);
-            } else if line.starts_with("END") {
+                connectivity_lines.push((line, line_num));
+            } else if line.trim() == "END" {
                 break;
-            } else {
+            } else if !line.trim().is_empty() {
                 metadata.extra_lines.push(line);
             }
         }
 
-        for (line_num, conn_line) in connectivity_lines.iter().enumerate() {
+        for (conn_line, line_num) in connectivity_lines {
             if conn_line.starts_with("CONECT") {
                 let (base_serial, connected_serials) =
-                    parse_conect_line(conn_line).map_err(|msg| BgfError::Parse {
+                    parse_conect_line(&conn_line).map_err(|msg| BgfError::Parse {
                         line_num,
                         message: msg,
                     })?;
                 for &connected_serial in &connected_serials {
                     builder.add_bond(base_serial, connected_serial, BondOrder::Single);
                 }
+            } else {
+                metadata.extra_lines.push(conn_line);
             }
         }
 
-        let system = builder.build();
-        Ok((system, metadata))
+        Ok((builder.build(), metadata))
     }
 
     fn write_to(
@@ -95,13 +105,23 @@ impl MolecularFile for BgfFile {
             writeln!(writer, "{}", line)?;
         }
 
-        for atom in system.atoms() {
-            // TODO: Replace these placeholder values with actual calculations later.
-            let atoms_connected = 0; // "Dumb" data for now
-            let lone_pair = 0; // "Dumb" data for now
+        for chain in system.chains() {
+            let record_type = match chain.chain_type {
+                ChainType::Protein | ChainType::DNA | ChainType::RNA => "ATOM  ",
+                _ => "HETATM",
+            };
+            for residue in chain.residues() {
+                for &atom_index in &residue.atom_indices {
+                    let atom = system.get_atom(atom_index).unwrap();
 
-            let atom_line = format_atom_line(atom, atoms_connected, lone_pair);
-            writeln!(writer, "{}", atom_line)?;
+                    // TODO: Replace with actual logic once implemented in the core.
+                    let atoms_connected = 0;
+                    let lone_pair = 0;
+
+                    let atom_line = format_atom_line(record_type, atom, atoms_connected, lone_pair);
+                    writeln!(writer, "{}", atom_line)?;
+                }
+            }
         }
 
         let mut bond_map: HashMap<usize, Vec<usize>> = HashMap::new();
@@ -116,17 +136,21 @@ impl MolecularFile for BgfFile {
                 .push(bond.atom1_idx);
         }
 
-        let mut sorted_keys: Vec<_> = bond_map.keys().collect();
-        sorted_keys.sort();
+        let mut sorted_indices: Vec<_> = bond_map.keys().copied().collect();
+        sorted_indices.sort();
 
-        for &key_idx in sorted_keys {
-            let base_serial = system.get_atom(key_idx).unwrap().serial;
+        for &atom_index in &sorted_indices {
+            let base_serial = system.get_atom(atom_index).unwrap().serial;
             let mut connect_line = format!("CONECT {:>5}", base_serial);
-            for &neighbor_idx in &bond_map[&key_idx] {
-                connect_line.push_str(&format!(
-                    " {:>5}",
-                    system.get_atom(neighbor_idx).unwrap().serial
-                ));
+
+            let mut neighbor_serials: Vec<_> = bond_map[&atom_index]
+                .iter()
+                .map(|&idx| system.get_atom(idx).unwrap().serial)
+                .collect();
+            neighbor_serials.sort(); // Sort neighbors for deterministic output.
+
+            for serial in neighbor_serials {
+                connect_line.push_str(&format!(" {:>5}", serial));
             }
             writeln!(writer, "{}", connect_line)?;
         }
@@ -154,40 +178,55 @@ impl MolecularFile for BgfFile {
 
 fn parse_atom_line(
     line: &str,
-) -> Result<(usize, String, String, char, isize, Point3<f64>, f64, String), String> {
+) -> Result<
+    (
+        String,
+        usize,
+        String,
+        String,
+        char,
+        isize,
+        Point3<f64>,
+        f64,
+        String,
+    ),
+    String,
+> {
+    let record_type = line.get(0..6).unwrap_or("").trim().to_string();
     let serial = line
         .get(7..12)
         .and_then(|s| s.trim().parse().ok())
-        .ok_or("Invalid serial")?;
-    let name = line.get(13..17).unwrap_or("").trim().to_string();
+        .ok_or("Invalid serial number".to_string())?;
+    let name = line.get(13..18).unwrap_or("").trim().to_string();
     let res_name = line.get(19..22).unwrap_or("").trim().to_string();
     let chain_id = line
         .get(23..24)
         .and_then(|s| s.chars().next())
         .unwrap_or(' ');
     let res_id = line
-        .get(25..29)
+        .get(25..30)
         .and_then(|s| s.trim().parse().ok())
-        .ok_or("Invalid residue ID")?;
+        .ok_or("Invalid residue ID".to_string())?;
     let x = line
         .get(30..40)
         .and_then(|s| s.trim().parse().ok())
-        .ok_or("Invalid X coordinate")?;
+        .ok_or("Invalid X coordinate".to_string())?;
     let y = line
         .get(40..50)
         .and_then(|s| s.trim().parse().ok())
-        .ok_or("Invalid Y coordinate")?;
+        .ok_or("Invalid Y coordinate".to_string())?;
     let z = line
         .get(50..60)
         .and_then(|s| s.trim().parse().ok())
-        .ok_or("Invalid Z coordinate")?;
+        .ok_or("Invalid Z coordinate".to_string())?;
     let ff_type = line.get(61..66).unwrap_or("").trim().to_string();
     let charge = line
-        .get(71..79)
+        .get(72..80)
         .and_then(|s| s.trim().parse().ok())
         .unwrap_or(0.0);
 
     Ok((
+        record_type,
         serial,
         name,
         res_name,
@@ -201,24 +240,25 @@ fn parse_atom_line(
 
 fn parse_conect_line(line: &str) -> Result<(usize, Vec<usize>), String> {
     let parts: Vec<_> = line.split_whitespace().collect();
-    if parts.is_empty() || parts[0] != "CONECT" {
-        return Err("Not a CONECT line".to_string());
+    if parts.len() < 2 || parts[0] != "CONECT" {
+        return Err("Invalid CONECT line format".to_string());
     }
-    let base_serial = parts
-        .get(1)
-        .and_then(|s| s.parse().ok())
-        .ok_or("Invalid base serial in CONECT")?;
+    let base_serial = parts[1]
+        .parse()
+        .map_err(|e| format!("Invalid base serial in CONECT: {}", e))?;
     let connected_serials = parts[2..].iter().filter_map(|s| s.parse().ok()).collect();
     Ok((base_serial, connected_serials))
 }
 
 fn format_atom_line(
+    record_type: &str,
     atom: &crate::core::models::atom::Atom,
     atoms_connected: u8,
     lone_pair: u8,
 ) -> String {
     format!(
-        "ATOM  {:>5} {:<4}  {:<3} {:1}{:>4}    {:>8.5}{:>10.5}{:>10.5} {:<5}   {:>1}  {:>1} {:>8.5}",
+        "{:<6} {:>5} {:<5} {:>3} {:1} {:>5}{:>10.5}{:>10.5}{:>10.5} {:<5} {:>3}{:>2}{:>9.5}",
+        record_type,
         atom.serial,
         atom.name,
         atom.res_name,
