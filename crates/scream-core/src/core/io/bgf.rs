@@ -35,7 +35,7 @@ impl MolecularFile for BgfFile {
         let mut metadata = BgfMetadata::default();
         let mut connectivity_lines: Vec<(String, usize)> = Vec::new();
 
-        let mut current_chain_id = '\0'; // Use a null character as an uninitialized sentinel
+        let mut current_chain_id = '\0';
         let mut current_res_id = isize::MIN;
 
         for (line_num, line_result) in reader.lines().enumerate() {
@@ -54,13 +54,13 @@ impl MolecularFile for BgfFile {
                         "ATOM" => ChainType::Protein,
                         "HETATM" => match res_name.as_str() {
                             "HOH" | "TIP3" => ChainType::Water,
-                            _ => ChainType::Other, // Default for other HETATMs
+                            _ => ChainType::Ligand, // Default to Ligand for HETATM
                         },
                         _ => ChainType::Other,
                     };
                     builder.start_chain(chain_id, chain_type);
                     current_chain_id = chain_id;
-                    current_res_id = isize::MIN; // Reset residue on new chain
+                    current_res_id = isize::MIN;
                 }
 
                 if res_id != current_res_id {
@@ -139,22 +139,35 @@ impl MolecularFile for BgfFile {
         }
 
         let mut sorted_indices: Vec<_> = bond_map.keys().copied().collect();
-        sorted_indices.sort();
+        sorted_indices.sort_unstable();
 
         for &atom_index in &sorted_indices {
             let base_serial = system.get_atom(atom_index).unwrap().serial;
-            let mut connect_line = format!("CONECT{:>6}", base_serial);
 
             let mut neighbor_serials: Vec<_> = bond_map[&atom_index]
                 .iter()
-                .map(|&idx| system.get_atom(idx).unwrap().serial)
+                .filter_map(|&neighbor_idx| {
+                    if neighbor_idx > atom_index {
+                        Some(system.get_atom(neighbor_idx).unwrap().serial)
+                    } else {
+                        None
+                    }
+                })
                 .collect();
-            neighbor_serials.sort(); // Sort neighbors for deterministic output.
 
-            for serial in neighbor_serials {
-                connect_line.push_str(&format!("{:>6}", serial));
+            if neighbor_serials.is_empty() {
+                continue;
             }
-            writeln!(writer, "{}", connect_line)?;
+
+            neighbor_serials.sort_unstable();
+
+            for chunk in neighbor_serials.chunks(14) {
+                let mut connect_line = format!("CONECT{:>6}", base_serial);
+                for &neighbor_serial in chunk {
+                    connect_line.push_str(&format!("{:>6}", neighbor_serial));
+                }
+                writeln!(writer, "{}", connect_line)?;
+            }
         }
 
         writeln!(writer, "END")?;
@@ -194,38 +207,37 @@ fn parse_atom_line(
     ),
     String,
 > {
-    let record_type = line.get(0..6).unwrap_or("").trim().to_string();
-    let serial = line
-        .get(7..12)
-        .and_then(|s| s.trim().parse().ok())
-        .ok_or("Invalid serial number".to_string())?;
-    let name = line.get(13..18).unwrap_or("").trim().to_string();
-    let res_name = line.get(19..22).unwrap_or("").trim().to_string();
-    let chain_id = line
-        .get(23..24)
-        .and_then(|s| s.chars().next())
-        .unwrap_or(' ');
-    let res_id = line
-        .get(25..30)
-        .and_then(|s| s.trim().parse().ok())
-        .ok_or("Invalid residue ID".to_string())?;
-    let x = line
-        .get(30..40)
-        .and_then(|s| s.trim().parse().ok())
-        .ok_or("Invalid X coordinate".to_string())?;
-    let y = line
-        .get(40..50)
-        .and_then(|s| s.trim().parse().ok())
-        .ok_or("Invalid Y coordinate".to_string())?;
-    let z = line
-        .get(50..60)
-        .and_then(|s| s.trim().parse().ok())
-        .ok_or("Invalid Z coordinate".to_string())?;
-    let ff_type = line.get(61..66).unwrap_or("").trim().to_string();
-    let charge = line
-        .get(72..80)
-        .and_then(|s| s.trim().parse().ok())
-        .unwrap_or(0.0);
+    let get_slice = |start: usize, end: usize| -> Result<&str, String> {
+        line.get(start..end)
+            .ok_or_else(|| format!("Line is too short for slice {}-{}", start, end))
+    };
+
+    let record_type = get_slice(0, 6)?.trim().to_string();
+    let serial = get_slice(7, 12)?
+        .trim()
+        .parse()
+        .map_err(|e| format!("Invalid serial: {}", e))?;
+    let name = get_slice(13, 18)?.trim().to_string();
+    let res_name = get_slice(19, 22)?.trim().to_string();
+    let chain_id = get_slice(23, 24)?.chars().next().unwrap_or(' ');
+    let res_id = get_slice(25, 30)?
+        .trim()
+        .parse()
+        .map_err(|e| format!("Invalid residue ID: {}", e))?;
+    let x = get_slice(30, 40)?
+        .trim()
+        .parse()
+        .map_err(|e| format!("Invalid X coordinate: {}", e))?;
+    let y = get_slice(40, 50)?
+        .trim()
+        .parse()
+        .map_err(|e| format!("Invalid Y coordinate: {}", e))?;
+    let z = get_slice(50, 60)?
+        .trim()
+        .parse()
+        .map_err(|e| format!("Invalid Z coordinate: {}", e))?;
+    let ff_type = get_slice(61, 66)?.trim().to_string();
+    let charge = get_slice(72, 80)?.trim().parse().unwrap_or(0.0);
 
     Ok((
         record_type,
@@ -420,7 +432,10 @@ END
         let line = "ATOM      X  N    GLY A    1      -0.41600  -0.53500   0.00000 N_3      1 3     -0.35000";
         let result = parse_atom_line(line);
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err(), "Invalid serial number".to_string());
+        assert_eq!(
+            result.unwrap_err(),
+            "Invalid serial: invalid digit found in string".to_string()
+        );
     }
 
     #[test]
