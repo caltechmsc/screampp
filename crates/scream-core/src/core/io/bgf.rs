@@ -143,7 +143,7 @@ impl MolecularFile for BgfFile {
 
         for &atom_index in &sorted_indices {
             let base_serial = system.get_atom(atom_index).unwrap().serial;
-            let mut connect_line = format!("CONECT {:>5}", base_serial);
+            let mut connect_line = format!("CONECT{:>6}", base_serial);
 
             let mut neighbor_serials: Vec<_> = bond_map[&atom_index]
                 .iter()
@@ -152,7 +152,7 @@ impl MolecularFile for BgfFile {
             neighbor_serials.sort(); // Sort neighbors for deterministic output.
 
             for serial in neighbor_serials {
-                connect_line.push_str(&format!(" {:>5}", serial));
+                connect_line.push_str(&format!("{:>6}", serial));
             }
             writeln!(writer, "{}", connect_line)?;
         }
