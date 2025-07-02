@@ -275,3 +275,196 @@ fn format_atom_line(
         atom.partial_charge
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::models::atom::{Atom, AtomFlags};
+    use std::io::Cursor;
+
+    fn create_test_system() -> MolecularSystem {
+        let mut builder = MolecularSystemBuilder::new();
+        builder
+            .start_chain('A', ChainType::Protein)
+            .start_residue(1, "GLY")
+            .add_atom(
+                1,
+                "N",
+                "GLY",
+                Point3::new(-0.416, -0.535, 0.0),
+                Some(-0.35),
+                Some("N_3"),
+            )
+            .add_atom(
+                2,
+                "H",
+                "GLY",
+                Point3::new(0.564, -0.535, 0.0),
+                Some(0.27),
+                Some("H_"),
+            )
+            .add_bond(1, 2, BondOrder::Single);
+        builder.build()
+    }
+
+    #[test]
+    fn read_from_parses_valid_bgf_file() {
+        let bgf_data = r#"BIOGRF 332
+FORMAT ATOM   (a6,1x,i5,1x,a5,1x,a3,1x,a1,1x,a5,3f10.5,1x,a5,i3,i2,1x,f8.5)
+ATOM       1 N     GLY A     1  -0.41600  -0.53500   0.00000 N_3    1 3 -0.35000
+ATOM       2 H     GLY A     1   0.56400  -0.53500   0.00000 H_     1 1  0.27000
+CONECT     1     2
+END
+"#;
+        let mut reader = Cursor::new(bgf_data);
+        let result = BgfFile::read_from(&mut reader);
+        assert!(result.is_ok());
+        let (system, metadata) = result.unwrap();
+
+        assert_eq!(system.atoms().len(), 2);
+        assert_eq!(system.chains().len(), 1);
+        assert_eq!(system.chains()[0].residues().len(), 1);
+        assert_eq!(system.bonds().len(), 1);
+        assert_eq!(metadata.extra_lines, vec!["BIOGRF 332"]);
+        assert_eq!(system.get_atom_by_serial(1).unwrap().name, "N");
+        assert_eq!(system.get_atom_by_serial(2).unwrap().partial_charge, 0.27);
+    }
+
+    #[test]
+    fn read_from_handles_hetatm_and_water_chain() {
+        let bgf_data = "HETATM     1 O     HOH A     1   0.00000   0.00000   0.00000 O_3    1 2 -0.83400\nEND\n";
+        let mut reader = Cursor::new(bgf_data);
+        let (system, _) = BgfFile::read_from(&mut reader).unwrap();
+        assert_eq!(system.chains().len(), 1);
+        assert_eq!(system.chains()[0].chain_type, ChainType::Water);
+    }
+
+    #[test]
+    fn read_from_handles_multiple_chains_and_residues() {
+        let bgf_data = r#"
+ATOM       1 N     GLY A     1  -0.41600  -0.53500   0.00000 N_3    1 3 -0.35000
+ATOM       2 CA    ALA A    2    1.00000   1.00000   1.00000 C_3    1 4  0.10000
+ATOM       3 N     SER B    1    2.00000   2.00000   2.00000 N_3    1 3 -0.35000
+END
+"#;
+        let mut reader = Cursor::new(bgf_data);
+        let (system, _) = BgfFile::read_from(&mut reader).unwrap();
+        assert_eq!(system.chains().len(), 2);
+        assert_eq!(system.chains()[0].residues().len(), 2);
+        assert_eq!(system.chains()[1].residues().len(), 1);
+        assert_eq!(system.atoms().len(), 3);
+    }
+
+    #[test]
+    fn read_from_returns_error_for_malformed_atom_line() {
+        let bgf_data = "ATOM      X  N    GLY A    1      -0.41600  -0.53500   0.00000 N_3      1 3     -0.35000\n";
+        let mut reader = Cursor::new(bgf_data);
+        let result = BgfFile::read_from(&mut reader);
+        assert!(matches!(result, Err(BgfError::Parse { line_num: 1, .. })));
+    }
+
+    #[test]
+    fn read_from_ignores_malformed_conect_line_parts() {
+        let bgf_data = "ATOM       1  N    GLY A    1   -0.41600  -0.53500   0.00000 N_3    1 3 -0.35000\nCONECT     1     X\nEND\n";
+        let mut reader = Cursor::new(bgf_data);
+        let (system, _) = BgfFile::read_from(&mut reader).unwrap();
+        assert!(system.bonds().is_empty());
+    }
+
+    #[test]
+    fn write_to_produces_correct_bgf_format() {
+        let system = create_test_system();
+        let metadata = BgfMetadata {
+            extra_lines: vec!["BIOGRF 332".to_string()],
+        };
+        let mut buffer = Vec::new();
+        let result = BgfFile::write_to(&system, &metadata, &mut buffer);
+        assert!(result.is_ok());
+
+        let output = String::from_utf8(buffer).unwrap();
+        assert!(output.starts_with("BIOGRF 332"));
+        assert!(output.contains(
+            "ATOM       1 N     GLY A     1  -0.41600  -0.53500   0.00000 N_3    0 0 -0.35000"
+        ));
+        assert!(output.contains("CONECT     1     2"));
+        assert!(output.ends_with("END\n"));
+    }
+
+    #[test]
+    fn write_system_to_uses_default_metadata() {
+        let system = create_test_system();
+        let mut buffer = Vec::new();
+        let result = BgfFile::write_system_to(&system, &mut buffer);
+        assert!(result.is_ok());
+
+        let output = String::from_utf8(buffer).unwrap();
+        assert!(output.contains("BIOGRF  332"));
+        assert!(output.contains("FORCEFIELD DREIDING"));
+    }
+
+    #[test]
+    fn parse_atom_line_succeeds_on_valid_input() {
+        let line =
+            "ATOM       1 N     GLY A     1  -0.41600  -0.53500   0.00000 N_3    1 3 -0.35000";
+        let result = parse_atom_line(line);
+        assert!(result.is_ok());
+        let (_, serial, name, _, _, _, _, charge, ff_type) = result.unwrap();
+        assert_eq!(serial, 1);
+        assert_eq!(name, "N");
+        assert_eq!(charge, -0.35);
+        assert_eq!(ff_type, "N_3");
+    }
+
+    #[test]
+    fn parse_atom_line_fails_on_invalid_number() {
+        let line = "ATOM      X  N    GLY A    1      -0.41600  -0.53500   0.00000 N_3      1 3     -0.35000";
+        let result = parse_atom_line(line);
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), "Invalid serial number".to_string());
+    }
+
+    #[test]
+    fn parse_conect_line_succeeds_on_valid_input() {
+        let line = "CONECT     1     2     3     4";
+        let result = parse_conect_line(line);
+        assert!(result.is_ok());
+        let (base, connected) = result.unwrap();
+        assert_eq!(base, 1);
+        assert_eq!(connected, vec![2, 3, 4]);
+    }
+
+    #[test]
+    fn parse_conect_line_fails_on_invalid_format() {
+        let line = "CONNECT     1     2";
+        let result = parse_conect_line(line);
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err(),
+            "Invalid CONECT line format".to_string()
+        );
+    }
+
+    #[test]
+    fn format_atom_line_produces_correct_string() {
+        let atom = Atom {
+            index: 1,
+            serial: 1,
+            name: "CA".to_string(),
+            res_name: "ALA".to_string(),
+            res_id: 5,
+            chain_id: 'A',
+            force_field_type: "C_3".to_string(),
+            partial_charge: 0.123,
+            position: Point3::new(1.1, 2.2, 3.3),
+            flags: AtomFlags::empty(),
+            delta: 0.0,
+            vdw_radius: 1.0,
+            vdw_well_depth: 0.1,
+            hbond_type_id: 0,
+        };
+        let line = format_atom_line("ATOM  ", &atom, 4, 0);
+        let expected =
+            "ATOM       1 CA    ALA A     5   1.10000   2.20000   3.30000 C_3    4 0  0.12300";
+        assert_eq!(line, expected);
+    }
+}
