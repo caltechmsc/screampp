@@ -8,4 +8,6 @@ repository.workspace = true
 edition.workspace = true
 
 [dependencies]
+bitflags = "2.9.1"
 nalgebra = "0.33.2"
+thiserror = "2.0.12"

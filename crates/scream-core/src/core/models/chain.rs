@@ -2,16 +2,20 @@ use super::residue::Residue;
 use std::collections::HashMap;
 use std::fmt;
 use std::str::FromStr;
+use thiserror::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ChainType {
     Protein,
     DNA,
     RNA,
+    Ligand,
+    Water,
     Other,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Error)]
+#[error("Invalid chain type string")]
 pub struct ParseChainTypeError;
 
 impl FromStr for ChainType {
@@ -21,6 +25,8 @@ impl FromStr for ChainType {
             "protein" => Ok(ChainType::Protein),
             "dna" => Ok(ChainType::DNA),
             "rna" => Ok(ChainType::RNA),
+            "ligand" => Ok(ChainType::Ligand),
+            "water" => Ok(ChainType::Water),
             _ => Ok(ChainType::Other),
         }
     }
@@ -35,6 +41,8 @@ impl fmt::Display for ChainType {
                 ChainType::Protein => "Protein",
                 ChainType::DNA => "DNA",
                 ChainType::RNA => "RNA",
+                ChainType::Ligand => "Ligand",
+                ChainType::Water => "Water",
                 ChainType::Other => "Other",
             }
         )
@@ -84,6 +92,8 @@ mod tests {
         assert_eq!(ChainType::from_str("protein").unwrap(), ChainType::Protein);
         assert_eq!(ChainType::from_str("dna").unwrap(), ChainType::DNA);
         assert_eq!(ChainType::from_str("rna").unwrap(), ChainType::RNA);
+        assert_eq!(ChainType::from_str("ligand").unwrap(), ChainType::Ligand);
+        assert_eq!(ChainType::from_str("water").unwrap(), ChainType::Water);
         assert_eq!(ChainType::from_str("other").unwrap(), ChainType::Other);
     }
 
@@ -92,6 +102,8 @@ mod tests {
         assert_eq!(ChainType::from_str("PrOtEiN").unwrap(), ChainType::Protein);
         assert_eq!(ChainType::from_str("DNA").unwrap(), ChainType::DNA);
         assert_eq!(ChainType::from_str("rNa").unwrap(), ChainType::RNA);
+        assert_eq!(ChainType::from_str("LiGaNd").unwrap(), ChainType::Ligand);
+        assert_eq!(ChainType::from_str("WATER").unwrap(), ChainType::Water);
     }
 
     #[test]
@@ -109,6 +121,8 @@ mod tests {
         assert_eq!(ChainType::Protein.to_string(), "Protein");
         assert_eq!(ChainType::DNA.to_string(), "DNA");
         assert_eq!(ChainType::RNA.to_string(), "RNA");
+        assert_eq!(ChainType::Ligand.to_string(), "Ligand");
+        assert_eq!(ChainType::Water.to_string(), "Water");
         assert_eq!(ChainType::Other.to_string(), "Other");
     }
 
