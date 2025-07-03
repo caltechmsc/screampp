@@ -92,7 +92,8 @@ impl MolecularSystem {
             self.residues.insert(residue)
         });
 
-        let chain_residues = &mut self.chains.get_mut(chain_id).unwrap().residues;
+        let chain = self.chains.get_mut(chain_id).unwrap();
+        let chain_residues = &mut chain.residues;
         if !chain_residues.contains(&residue_id) {
             chain_residues.push(residue_id);
         }
