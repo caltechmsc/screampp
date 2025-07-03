@@ -70,3 +70,80 @@ impl Bond {
         self.atom1_id == atom_id || self.atom2_id == atom_id
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use slotmap::KeyData;
+
+    fn dummy_atom_id(n: u64) -> AtomId {
+        AtomId::from(KeyData::from_ffi(n))
+    }
+
+    #[test]
+    fn bond_order_from_str_parses_valid_strings() {
+        assert_eq!("1".parse::<BondOrder>().unwrap(), BondOrder::Single);
+        assert_eq!("single".parse::<BondOrder>().unwrap(), BondOrder::Single);
+        assert_eq!("S".parse::<BondOrder>().unwrap(), BondOrder::Single);
+        assert_eq!("2".parse::<BondOrder>().unwrap(), BondOrder::Double);
+        assert_eq!("double".parse::<BondOrder>().unwrap(), BondOrder::Double);
+        assert_eq!("D".parse::<BondOrder>().unwrap(), BondOrder::Double);
+        assert_eq!("3".parse::<BondOrder>().unwrap(), BondOrder::Triple);
+        assert_eq!("triple".parse::<BondOrder>().unwrap(), BondOrder::Triple);
+        assert_eq!("T".parse::<BondOrder>().unwrap(), BondOrder::Triple);
+        assert_eq!("ar".parse::<BondOrder>().unwrap(), BondOrder::Aromatic);
+        assert_eq!(
+            "aromatic".parse::<BondOrder>().unwrap(),
+            BondOrder::Aromatic
+        );
+    }
+
+    #[test]
+    fn bond_order_from_str_rejects_invalid_strings() {
+        assert!("".parse::<BondOrder>().is_err());
+        assert!("quadruple".parse::<BondOrder>().is_err());
+        assert!("unknown".parse::<BondOrder>().is_err());
+        assert!("0".parse::<BondOrder>().is_err());
+    }
+
+    #[test]
+    fn bond_order_display_outputs_expected_strings() {
+        assert_eq!(BondOrder::Single.to_string(), "Single");
+        assert_eq!(BondOrder::Double.to_string(), "Double");
+        assert_eq!(BondOrder::Triple.to_string(), "Triple");
+        assert_eq!(BondOrder::Aromatic.to_string(), "Aromatic");
+    }
+
+    #[test]
+    fn bond_order_default_is_single() {
+        assert_eq!(BondOrder::default(), BondOrder::Single);
+    }
+
+    #[test]
+    fn bond_new_initializes_fields_correctly() {
+        let a1 = dummy_atom_id(1);
+        let a2 = dummy_atom_id(2);
+        let bond = Bond::new(a1, a2, BondOrder::Double);
+        assert_eq!(bond.atom1_id, a1);
+        assert_eq!(bond.atom2_id, a2);
+        assert_eq!(bond.order, BondOrder::Double);
+    }
+
+    #[test]
+    fn bond_contains_returns_true_for_both_atoms() {
+        let a1 = dummy_atom_id(10);
+        let a2 = dummy_atom_id(20);
+        let bond = Bond::new(a1, a2, BondOrder::Single);
+        assert!(bond.contains(a1));
+        assert!(bond.contains(a2));
+    }
+
+    #[test]
+    fn bond_contains_returns_false_for_unrelated_atom() {
+        let a1 = dummy_atom_id(100);
+        let a2 = dummy_atom_id(200);
+        let unrelated = dummy_atom_id(300);
+        let bond = Bond::new(a1, a2, BondOrder::Aromatic);
+        assert!(!bond.contains(unrelated));
+    }
+}
