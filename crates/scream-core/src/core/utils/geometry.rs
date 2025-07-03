@@ -149,3 +149,22 @@ pub fn calculate_named_rmsd(
         Some((squared_dist_sum / count as f64).sqrt())
     }
 }
+
+pub fn find_max_atom_deviation<'a>(
+    coords1: &'a HashMap<String, Point3<f64>>,
+    coords2: &'a HashMap<String, Point3<f64>>,
+) -> Option<(f64, &'a str)> {
+    coords1
+        .iter()
+        .filter_map(|(name, p1)| {
+            coords2.get(name).map(|p2| {
+                let dist = (p1 - p2).norm();
+                (dist, name.as_str())
+            })
+        })
+        .max_by(|(dist1, _), (dist2, _)| {
+            dist1
+                .partial_cmp(dist2)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
+}
