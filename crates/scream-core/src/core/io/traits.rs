@@ -1,7 +1,7 @@
 use crate::core::models::system::MolecularSystem;
 use std::error::Error;
 use std::fs::File;
-use std::io::{self, BufRead, BufReader, Write};
+use std::io::{self, BufRead, BufReader, BufWriter, Write};
 use std::path::Path;
 
 pub trait MolecularFile {
@@ -36,15 +36,17 @@ pub trait MolecularFile {
         metadata: &Self::Metadata,
         path: P,
     ) -> Result<(), Self::Error> {
-        let mut file = File::create(path)?;
-        Self::write_to(system, metadata, &mut file)
+        let file = File::create(path)?;
+        let mut writer = BufWriter::new(file);
+        Self::write_to(system, metadata, &mut writer)
     }
 
     fn write_system_to_path<P: AsRef<Path>>(
         system: &MolecularSystem,
         path: P,
     ) -> Result<(), Self::Error> {
-        let mut file = File::create(path)?;
-        Self::write_system_to(system, &mut file)
+        let file = File::create(path)?;
+        let mut writer = BufWriter::new(file);
+        Self::write_system_to(system, &mut writer)
     }
 }
