@@ -116,3 +116,16 @@ pub fn generate_sp3_hydrogens(
         _ => panic!("generate_sp3_hydrogens expects 1, 2, or 3 neighbors."),
     }
 }
+
+pub fn calculate_rmsd(coords1: &[Point3<f64>], coords2: &[Point3<f64>]) -> Option<f64> {
+    if coords1.len() != coords2.len() || coords1.is_empty() {
+        return None;
+    }
+    let n = coords1.len() as f64;
+    let squared_dist_sum: f64 = coords1
+        .iter()
+        .zip(coords2.iter())
+        .map(|(p1, p2)| (p1 - p2).norm_squared())
+        .sum();
+    Some((squared_dist_sum / n).sqrt())
+}
