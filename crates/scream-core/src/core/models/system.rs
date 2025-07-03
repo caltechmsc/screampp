@@ -179,3 +179,118 @@ impl MolecularSystem {
         self.residues.remove(residue_id)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn create_test_system() -> MolecularSystem {
+        let mut system = MolecularSystem::new();
+
+        let chain_a_id = system.add_chain('A', ChainType::Protein);
+
+        let gly_id = system.add_residue(chain_a_id, 1, "GLY").unwrap();
+        let n_atom = Atom::new(1, "N", gly_id, Point3::new(0.0, 0.0, 0.0));
+        let ca_atom = Atom::new(2, "CA", gly_id, Point3::new(1.4, 0.0, 0.0));
+        let n_id = system.add_atom_to_residue(gly_id, n_atom).unwrap();
+        let ca_id = system.add_atom_to_residue(gly_id, ca_atom).unwrap();
+        system.add_bond(n_id, ca_id, BondOrder::Single);
+
+        let ala_id = system.add_residue(chain_a_id, 2, "ALA").unwrap();
+        let ala_ca_atom = Atom::new(3, "CA", ala_id, Point3::new(2.0, 1.0, 0.0));
+        system.add_atom_to_residue(ala_id, ala_ca_atom);
+
+        system
+    }
+
+    #[test]
+    fn system_creation_and_access() {
+        let system = create_test_system();
+
+        assert_eq!(system.atoms_iter().count(), 3);
+        assert_eq!(system.residues_iter().count(), 2);
+        assert_eq!(system.chains_iter().count(), 1);
+        assert_eq!(system.bonds.len(), 1);
+
+        let chain_a_id = system.find_chain_by_id('A').unwrap();
+        assert!(system.find_chain_by_id('B').is_none());
+
+        let gly_id = system.find_residue_by_id(chain_a_id, 1).unwrap();
+        let ala_id = system.find_residue_by_id(chain_a_id, 2).unwrap();
+
+        assert_eq!(system.residue(gly_id).unwrap().name, "GLY");
+        assert_eq!(system.residue(ala_id).unwrap().name, "ALA");
+
+        let atom_n_id = system.find_atom_by_serial(1).unwrap();
+        assert_eq!(system.atom(atom_n_id).unwrap().name, "N");
+    }
+
+    #[test]
+    fn atom_removal_updates_system_correctly() {
+        let mut system = create_test_system();
+        let atom_n_id = system.find_atom_by_serial(1).unwrap();
+        let atom_ca_id = system.find_atom_by_serial(2).unwrap();
+
+        assert_eq!(system.bonds.len(), 1);
+        assert!(system.bonds[0].contains(atom_n_id));
+        assert!(system.atom(atom_n_id).is_some());
+        let gly_id = system
+            .residue(system.atom(atom_n_id).unwrap().residue_id)
+            .unwrap()
+            .id;
+        assert_eq!(gly_id, 1);
+
+        let removed_atom = system.remove_atom(atom_n_id).unwrap();
+        assert_eq!(removed_atom.name, "N");
+
+        assert_eq!(system.atoms_iter().count(), 2);
+        assert!(system.atom(atom_n_id).is_none());
+        assert!(system.find_atom_by_serial(1).is_none());
+
+        assert!(system.bonds.is_empty());
+
+        assert!(system.bond_adjacency.get(atom_n_id).is_none());
+        assert!(!system.bond_adjacency[atom_ca_id].contains(&atom_n_id));
+
+        let chain_a_id = system.find_chain_by_id('A').unwrap();
+        let gly_id = system.find_residue_by_id(chain_a_id, 1).unwrap();
+        assert_eq!(system.residue(gly_id).unwrap().atoms().len(), 1);
+        assert!(!system.residue(gly_id).unwrap().atoms().contains(&atom_n_id));
+    }
+
+    #[test]
+    fn residue_removal_updates_system_correctly() {
+        let mut system = create_test_system();
+
+        let chain_a_id = system.find_chain_by_id('A').unwrap();
+        let gly_id = system.find_residue_by_id(chain_a_id, 1).unwrap();
+
+        assert_eq!(system.atoms_iter().count(), 3);
+        assert_eq!(system.residues_iter().count(), 2);
+        assert_eq!(system.bonds.len(), 1);
+        assert_eq!(system.chain(chain_a_id).unwrap().residues().len(), 2);
+
+        let removed_residue = system.remove_residue(gly_id).unwrap();
+        assert_eq!(removed_residue.name, "GLY");
+
+        assert_eq!(system.residues_iter().count(), 1);
+        assert!(system.residue(gly_id).is_none());
+        assert!(system.find_residue_by_id(chain_a_id, 1).is_none());
+
+        assert_eq!(system.atoms_iter().count(), 1);
+        assert!(system.find_atom_by_serial(1).is_none());
+        assert!(system.find_atom_by_serial(2).is_none());
+        assert!(system.find_atom_by_serial(3).is_some());
+
+        assert!(system.bonds.is_empty());
+
+        assert_eq!(system.chain(chain_a_id).unwrap().residues().len(), 1);
+        assert!(
+            !system
+                .chain(chain_a_id)
+                .unwrap()
+                .residues()
+                .contains(&gly_id)
+        );
+    }
+}
