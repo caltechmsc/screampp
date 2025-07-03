@@ -68,3 +68,41 @@ impl Chain {
         &self.residues
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_valid_chain_types() {
+        assert_eq!(ChainType::from_str("protein").unwrap(), ChainType::Protein);
+        assert_eq!(ChainType::from_str("dna").unwrap(), ChainType::DNA);
+        assert_eq!(ChainType::from_str("water").unwrap(), ChainType::Water);
+    }
+
+    #[test]
+    fn parses_chain_type_case_insensitive() {
+        assert_eq!(ChainType::from_str("PrOtEiN").unwrap(), ChainType::Protein);
+    }
+
+    #[test]
+    fn parses_unknown_chain_type_as_other() {
+        assert_eq!(
+            ChainType::from_str("carbohydrate").unwrap(),
+            ChainType::Other
+        );
+    }
+
+    #[test]
+    fn displays_chain_type_correctly() {
+        assert_eq!(ChainType::Protein.to_string(), "Protein");
+    }
+
+    #[test]
+    fn creates_chain_with_correct_id_and_type() {
+        let chain = Chain::new('A', ChainType::Protein);
+        assert_eq!(chain.id, 'A');
+        assert_eq!(chain.chain_type, ChainType::Protein);
+        assert!(chain.residues().is_empty());
+    }
+}
