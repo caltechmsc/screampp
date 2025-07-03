@@ -1,29 +1,41 @@
+use super::ids::{AtomId, ChainId};
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Residue {
-    pub id: isize,                         // Residue sequence number from source file
-    pub name: String,                      // Name of the residue (e.g., "ALA", "GLY")
-    pub atom_indices: Vec<usize>,          // Indices of atoms belonging to this residue
-    atom_name_map: HashMap<String, usize>, // Map from atom name to its global index
+    pub id: isize,                          // Residue sequence number from source file
+    pub name: String,                       // Name of the residue (e.g., "ALA", "GLY")
+    pub chain_id: ChainId,                  // ID of the parent chain
+    pub(crate) atoms: Vec<AtomId>,          // Indices of atoms belonging to this residue
+    atom_name_map: HashMap<String, AtomId>, // Map from atom name to its stable ID
 }
 
 impl Residue {
-    pub(crate) fn new(id: isize, name: &str) -> Self {
+    pub(crate) fn new(id: isize, name: &str, chain_id: ChainId) -> Self {
         Self {
             id,
             name: name.to_string(),
-            atom_indices: Vec::new(),
+            chain_id,
+            atoms: Vec::new(),
             atom_name_map: HashMap::new(),
         }
     }
 
-    pub(crate) fn add_atom(&mut self, atom_name: &str, atom_idx: usize) {
-        self.atom_indices.push(atom_idx);
-        self.atom_name_map.insert(atom_name.to_string(), atom_idx);
+    pub(crate) fn add_atom(&mut self, atom_name: &str, atom_id: AtomId) {
+        self.atoms.push(atom_id);
+        self.atom_name_map.insert(atom_name.to_string(), atom_id);
     }
 
-    pub fn get_atom_index_by_name(&self, name: &str) -> Option<usize> {
+    pub(crate) fn remove_atom(&mut self, atom_name: &str, atom_id: AtomId) {
+        self.atoms.retain(|&id| id != atom_id);
+        self.atom_name_map.remove(atom_name);
+    }
+
+    pub fn atoms(&self) -> &[AtomId] {
+        &self.atoms
+    }
+
+    pub fn get_atom_id_by_name(&self, name: &str) -> Option<AtomId> {
         self.atom_name_map.get(name).copied()
     }
 }
@@ -31,50 +43,81 @@ impl Residue {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::models::ids::{AtomId, ChainId};
+    use slotmap::KeyData;
+    use std::collections::HashSet;
+
+    fn dummy_atom_id(n: u64) -> AtomId {
+        AtomId::from(KeyData::from_ffi(n))
+    }
+
+    fn dummy_chain_id(n: u64) -> ChainId {
+        ChainId::from(KeyData::from_ffi(n))
+    }
 
     #[test]
-    fn creates_residue_with_correct_id_and_name() {
-        let residue = Residue::new(42, "GLY");
-        assert_eq!(residue.id, 42);
+    fn new_residue_initializes_fields_correctly() {
+        let chain_id = dummy_chain_id(1);
+        let residue = Residue::new(10, "GLY", chain_id);
+        assert_eq!(residue.id, 10);
         assert_eq!(residue.name, "GLY");
-        assert!(residue.atom_indices.is_empty());
+        assert_eq!(residue.chain_id, chain_id);
+        assert!(residue.atoms().is_empty());
+        assert!(residue.get_atom_id_by_name("CA").is_none());
     }
 
     #[test]
-    fn adds_atom_and_retrieves_index_by_name() {
-        let mut residue = Residue::new(1, "ALA");
-        residue.add_atom("CA", 5);
-        residue.add_atom("CB", 6);
-
-        assert_eq!(residue.atom_indices, vec![5, 6]);
-        assert_eq!(residue.get_atom_index_by_name("CA"), Some(5));
-        assert_eq!(residue.get_atom_index_by_name("CB"), Some(6));
+    fn add_atom_adds_atom_and_maps_name() {
+        let chain_id = dummy_chain_id(2);
+        let mut residue = Residue::new(5, "ALA", chain_id);
+        let atom_id = dummy_atom_id(42);
+        residue.add_atom("CA", atom_id);
+        assert_eq!(residue.atoms(), &[atom_id]);
+        assert_eq!(residue.get_atom_id_by_name("CA"), Some(atom_id));
     }
 
     #[test]
-    fn get_atom_index_by_name_returns_none_for_missing_atom() {
-        let mut residue = Residue::new(2, "SER");
-        residue.add_atom("OG", 10);
-
-        assert_eq!(residue.get_atom_index_by_name("CA"), None);
-        assert_eq!(residue.get_atom_index_by_name("OG"), Some(10));
+    fn add_atom_allows_multiple_atoms_with_different_names() {
+        let chain_id = dummy_chain_id(3);
+        let mut residue = Residue::new(7, "SER", chain_id);
+        let atom_id1 = dummy_atom_id(1);
+        let atom_id2 = dummy_atom_id(2);
+        residue.add_atom("CA", atom_id1);
+        residue.add_atom("CB", atom_id2);
+        let atom_set: HashSet<_> = residue.atoms().iter().copied().collect();
+        assert!(atom_set.contains(&atom_id1));
+        assert!(atom_set.contains(&atom_id2));
+        assert_eq!(residue.get_atom_id_by_name("CA"), Some(atom_id1));
+        assert_eq!(residue.get_atom_id_by_name("CB"), Some(atom_id2));
     }
 
     #[test]
-    fn add_atom_overwrites_existing_atom_name() {
-        let mut residue = Residue::new(3, "THR");
-        residue.add_atom("CG2", 20);
-        residue.add_atom("CG2", 21);
-
-        assert_eq!(residue.atom_indices, vec![20, 21]);
-        assert_eq!(residue.get_atom_index_by_name("CG2"), Some(21));
+    fn remove_atom_removes_atom_and_name_mapping() {
+        let chain_id = dummy_chain_id(4);
+        let mut residue = Residue::new(8, "THR", chain_id);
+        let atom_id = dummy_atom_id(100);
+        residue.add_atom("OG1", atom_id);
+        residue.remove_atom("OG1", atom_id);
+        assert!(residue.atoms().is_empty());
+        assert!(residue.get_atom_id_by_name("OG1").is_none());
     }
 
     #[test]
-    fn add_atom_with_empty_name_and_retrieve() {
-        let mut residue = Residue::new(4, "VAL");
-        residue.add_atom("", 30);
+    fn remove_atom_does_nothing_if_atom_not_present() {
+        let chain_id = dummy_chain_id(5);
+        let mut residue = Residue::new(9, "VAL", chain_id);
+        let atom_id = dummy_atom_id(200);
+        residue.add_atom("CG1", atom_id);
+        residue.remove_atom("CG2", dummy_atom_id(201));
+        assert_eq!(residue.atoms(), &[atom_id]);
+        assert_eq!(residue.get_atom_id_by_name("CG1"), Some(atom_id));
+    }
 
-        assert_eq!(residue.get_atom_index_by_name(""), Some(30));
+    #[test]
+    fn get_atom_id_by_name_returns_none_for_unknown_name() {
+        let chain_id = dummy_chain_id(6);
+        let mut residue = Residue::new(11, "LEU", chain_id);
+        residue.add_atom("CD1", dummy_atom_id(300));
+        assert!(residue.get_atom_id_by_name("CD2").is_none());
     }
 }
