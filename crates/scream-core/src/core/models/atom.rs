@@ -17,7 +17,7 @@ pub struct Atom {
     // --- Identity & Topology ---
     pub serial: usize,         // Atom serial number from source file
     pub name: String,          // Atom name (e.g., "CA", "N", "O")
-    pub residue_id: ResidueId, // Stable ID of the parent residue
+    pub residue_id: ResidueId, // ID of the parent residue
 
     // --- Physicochemical Properties ---
     pub force_field_type: String, // Force field atom type (e.g., "C.3", "N.2")
