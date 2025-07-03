@@ -1,5 +1,4 @@
 pub mod atom;
-pub mod builder;
 pub mod chain;
 pub mod ids;
 pub mod residue;
