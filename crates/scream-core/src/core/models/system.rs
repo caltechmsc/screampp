@@ -119,22 +119,30 @@ impl MolecularSystem {
     }
 
     pub fn add_bond(&mut self, atom1_id: AtomId, atom2_id: AtomId, order: BondOrder) -> Option<()> {
-        if self.atoms.contains_key(atom1_id) && self.atoms.contains_key(atom2_id) {
-            self.bonds.push(Bond::new(atom1_id, atom2_id, order));
-            self.bond_adjacency[atom1_id].push(atom2_id);
-            self.bond_adjacency[atom2_id].push(atom1_id);
-            Some(())
-        } else {
-            None
+        if !self.atoms.contains_key(atom1_id) || !self.atoms.contains_key(atom2_id) {
+            return None;
         }
+
+        if let Some(neighbors) = self.bond_adjacency.get(atom1_id) {
+            if neighbors.contains(&atom2_id) {
+                // Bond already exists, operation is successful (idempotent)
+                return Some(());
+            }
+        }
+
+        self.bonds.push(Bond::new(atom1_id, atom2_id, order));
+        self.bond_adjacency[atom1_id].push(atom2_id);
+        self.bond_adjacency[atom2_id].push(atom1_id);
+        Some(())
     }
 
     pub fn remove_atom(&mut self, atom_id: AtomId) -> Option<Atom> {
         let atom = self.atoms.remove(atom_id)?;
 
         // 1. Remove from parent residue
-        let residue = self.residues.get_mut(atom.residue_id).unwrap();
-        residue.remove_atom(&atom.name, atom_id);
+        if let Some(residue) = self.residues.get_mut(atom.residue_id) {
+            residue.remove_atom(&atom.name, atom_id);
+        }
 
         // 2. Remove from serial map
         self.atom_serial_map.remove(&atom.serial);
@@ -234,11 +242,8 @@ mod tests {
         assert_eq!(system.bonds.len(), 1);
         assert!(system.bonds[0].contains(atom_n_id));
         assert!(system.atom(atom_n_id).is_some());
-        let gly_id = system
-            .residue(system.atom(atom_n_id).unwrap().residue_id)
-            .unwrap()
-            .id;
-        assert_eq!(gly_id, 1);
+        let residue_id = system.atom(atom_n_id).unwrap().residue_id;
+        assert_eq!(system.residue(residue_id).unwrap().id, 1);
 
         let removed_atom = system.remove_atom(atom_n_id).unwrap();
         assert_eq!(removed_atom.name, "N");
