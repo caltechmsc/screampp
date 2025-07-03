@@ -1,9 +1,8 @@
-use super::atom::{Atom, AtomFlags};
+use super::atom::Atom;
 use super::chain::{Chain, ChainType};
 use super::ids::{AtomId, ChainId, ResidueId};
 use super::residue::Residue;
 use super::topology::{Bond, BondOrder};
-use nalgebra::Point3;
 use slotmap::{SecondaryMap, SlotMap};
 use std::collections::HashMap;
 
@@ -183,6 +182,7 @@ impl MolecularSystem {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use nalgebra::Point3;
 
     fn create_test_system() -> MolecularSystem {
         let mut system = MolecularSystem::new();
