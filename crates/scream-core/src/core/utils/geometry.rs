@@ -39,3 +39,17 @@ pub fn calculate_cb_position(
 
     ca_pos + final_cb_vec * params.bond_length
 }
+
+pub fn calculate_hn_position(
+    n_pos: &Point3<f64>,
+    ca_pos: &Point3<f64>,
+    prev_c_pos: &Point3<f64>,
+    bond_length: f64,
+) -> Point3<f64> {
+    let n_ca = (ca_pos - n_pos).normalize();
+    let n_c_prev = (prev_c_pos - n_pos).normalize();
+
+    let hn_dir = -(n_ca + n_c_prev).normalize();
+
+    n_pos + hn_dir * bond_length
+}
