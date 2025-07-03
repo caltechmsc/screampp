@@ -51,3 +51,47 @@ impl Atom {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::models::ids::ResidueId;
+    use nalgebra::Point3;
+
+    #[test]
+    fn new_atom_has_expected_default_fields() {
+        let residue_id = ResidueId::default();
+        let atom = Atom::new(42, "CA", residue_id, Point3::new(1.0, 2.0, 3.0));
+        assert_eq!(atom.serial, 42);
+        assert_eq!(atom.name, "CA");
+        assert_eq!(atom.residue_id, residue_id);
+        assert_eq!(atom.position, Point3::new(1.0, 2.0, 3.0));
+        assert_eq!(atom.force_field_type, "");
+        assert_eq!(atom.partial_charge, 0.0);
+        assert_eq!(atom.flags, AtomFlags::default());
+        assert_eq!(atom.delta, 0.0);
+        assert_eq!(atom.vdw_radius, 0.0);
+        assert_eq!(atom.vdw_well_depth, 0.0);
+        assert_eq!(atom.hbond_type_id, -1);
+    }
+
+    #[test]
+    fn atom_flags_bitwise_operations_work() {
+        let mut flags = AtomFlags::IS_FIXED_ROLE | AtomFlags::IS_VISIBLE_LATTICE;
+        assert!(flags.contains(AtomFlags::IS_FIXED_ROLE));
+        assert!(flags.contains(AtomFlags::IS_VISIBLE_LATTICE));
+        assert!(!flags.contains(AtomFlags::IS_VISIBLE_INTERACTION));
+        flags.insert(AtomFlags::IS_VISIBLE_INTERACTION);
+        assert!(flags.contains(AtomFlags::IS_VISIBLE_INTERACTION));
+        flags.remove(AtomFlags::IS_FIXED_ROLE);
+        assert!(!flags.contains(AtomFlags::IS_FIXED_ROLE));
+    }
+
+    #[test]
+    fn atom_equality_and_clone_works() {
+        let residue_id = ResidueId::default();
+        let atom1 = Atom::new(1, "N", residue_id, Point3::new(0.0, 0.0, 0.0));
+        let atom2 = atom1.clone();
+        assert_eq!(atom1, atom2);
+    }
+}
