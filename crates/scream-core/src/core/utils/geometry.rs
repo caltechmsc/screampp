@@ -8,6 +8,28 @@ pub struct CbCreationParams {
     pub bond_length: f64,
 }
 
+pub fn dihedral_angle(
+    p1: &Point3<f64>,
+    p2: &Point3<f64>,
+    p3: &Point3<f64>,
+    p4: &Point3<f64>,
+) -> f64 {
+    let b1 = p1 - p2;
+    let b2 = p3 - p2;
+    let b3 = p4 - p3;
+
+    let n1 = b1.cross(&b2);
+    let n2 = b2.cross(&b3);
+
+    let angle_rad = n1.angle(&n2);
+
+    if n1.cross(&n2).dot(&b2) < 0.0 {
+        -angle_rad.to_degrees()
+    } else {
+        angle_rad.to_degrees()
+    }
+}
+
 pub fn rotation_to_align(from: &Vector3<f64>, to: &Vector3<f64>) -> Option<Rotation3<f64>> {
     Rotation3::rotation_between(from, to)
 }
@@ -182,28 +204,6 @@ mod tests {
 
     fn f64_approx_equal(a: f64, b: f64) -> bool {
         (a - b).abs() < EPSILON
-    }
-
-    pub fn dihedral_angle(
-        p1: &Point3<f64>,
-        p2: &Point3<f64>,
-        p3: &Point3<f64>,
-        p4: &Point3<f64>,
-    ) -> f64 {
-        let b1 = p1 - p2;
-        let b2 = p3 - p2;
-        let b3 = p4 - p3;
-
-        let n1 = b1.cross(&b2);
-        let n2 = b2.cross(&b3);
-
-        let angle_rad = n1.angle(&n2);
-
-        if n1.cross(&n2).dot(&b2) < 0.0 {
-            -angle_rad.to_degrees()
-        } else {
-            angle_rad.to_degrees()
-        }
     }
 
     #[test]
