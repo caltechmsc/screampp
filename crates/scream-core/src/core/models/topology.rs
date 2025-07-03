@@ -59,6 +59,11 @@ pub struct Bond {
 
 impl Bond {
     pub fn new(atom1_id: AtomId, atom2_id: AtomId, order: BondOrder) -> Self {
+        let (atom1_id, atom2_id) = if atom1_id <= atom2_id {
+            (atom1_id, atom2_id)
+        } else {
+            (atom2_id, atom1_id)
+        };
         Self {
             atom1_id,
             atom2_id,
