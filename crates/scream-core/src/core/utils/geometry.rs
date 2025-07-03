@@ -129,3 +129,23 @@ pub fn calculate_rmsd(coords1: &[Point3<f64>], coords2: &[Point3<f64>]) -> Optio
         .sum();
     Some((squared_dist_sum / n).sqrt())
 }
+
+pub fn calculate_named_rmsd(
+    coords1: &HashMap<String, Point3<f64>>,
+    coords2: &HashMap<String, Point3<f64>>,
+) -> Option<f64> {
+    let mut squared_dist_sum = 0.0;
+    let mut count = 0;
+
+    for (name, p1) in coords1 {
+        if let Some(p2) = coords2.get(name) {
+            squared_dist_sum += (p1 - p2).norm_squared();
+            count += 1;
+        }
+    }
+    if count == 0 {
+        None
+    } else {
+        Some((squared_dist_sum / count as f64).sqrt())
+    }
+}
