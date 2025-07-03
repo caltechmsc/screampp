@@ -11,3 +11,7 @@ pub struct CbCreationParams {
 pub fn rotation_to_align(from: &Vector3<f64>, to: &Vector3<f64>) -> Option<Rotation3<f64>> {
     Rotation3::rotation_between(from, to)
 }
+
+pub fn rotation_from_axis_angle(axis: &Vector3<f64>, angle_degrees: f64) -> Rotation3<f64> {
+    Rotation3::from_axis_angle(&Unit::new_normalize(*axis), angle_degrees.to_radians())
+}
