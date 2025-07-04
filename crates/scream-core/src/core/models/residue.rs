@@ -1,5 +1,44 @@
 use super::ids::{AtomId, ChainId};
 use std::collections::HashMap;
+use std::str::FromStr;
+use thiserror::Error;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum AminoAcidType {
+    // --- Aliphatic, Nonpolar ---
+    Alanine,    // Alanine (ALA)
+    Glycine,    // Glycine (GLY)
+    Isoleucine, // Isoleucine (ILE)
+    Leucine,    // Leucine (LEU)
+    Proline,    // Proline (PRO)
+    Valine,     // Valine (VAL)
+
+    // --- Aromatic ---
+    Phenylalanine, // Phenylalanine (PHE)
+    Tryptophan,    // Tryptophan (TRP)
+    Tyrosine,      // Tyrosine (TYR)
+
+    // --- Polar, Uncharged ---
+    Asparagine, // Asparagine (ASN)
+    Cysteine,   // Cysteine (CYS)
+    Glutamine,  // Glutamine (GLN)
+    Serine,     // Serine (SER)
+    Threonine,  // Threonine (THR)
+    Methionine, // Methionine (MET)
+
+    // --- Positively Charged (Basic) ---
+    Arginine, // Arginine (ARG)
+    Lysine,   // Lysine (LYS)
+
+    // --- Negatively Charged (Acidic) ---
+    AsparticAcid, // Aspartic Acid (ASP)
+    GlutamicAcid, // Glutamic Acid (GLU)
+
+    // --- Special Case: Histidine and its Variants ---
+    Histidine, // Histidine (HIS) - Typically assumed to be the Epsilon-protonated state (HSE)
+    HistidineEpsilon, // Epsilon-protonated Histidine (HSE) - An alias for `Histidine`
+    HistidineProtonated, // Doubly-protonated Histidine (HSP) - The positively charged variant
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Residue {
