@@ -10,5 +10,6 @@ edition.workspace = true
 [dependencies]
 bitflags = "2.9.1"
 nalgebra = "0.33.2"
+phf = { version = "0.12.1", features = ["macros"] }
 slotmap = "1.0.7"
 thiserror = "2.0.12"
