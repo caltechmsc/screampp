@@ -76,6 +76,34 @@ impl FromStr for ResidueType {
 }
 
 impl ResidueType {
+    pub fn from_str_optional(s: &str) -> Option<Self> {
+        match s.trim().to_uppercase().as_str() {
+            "ALA" => Some(ResidueType::Alanine),
+            "GLY" => Some(ResidueType::Glycine),
+            "ILE" => Some(ResidueType::Isoleucine),
+            "LEU" => Some(ResidueType::Leucine),
+            "PRO" => Some(ResidueType::Proline),
+            "VAL" => Some(ResidueType::Valine),
+            "PHE" => Some(ResidueType::Phenylalanine),
+            "TRP" => Some(ResidueType::Tryptophan),
+            "TYR" => Some(ResidueType::Tyrosine),
+            "ASN" => Some(ResidueType::Asparagine),
+            "CYS" => Some(ResidueType::Cysteine),
+            "GLN" => Some(ResidueType::Glutamine),
+            "SER" => Some(ResidueType::Serine),
+            "THR" => Some(ResidueType::Threonine),
+            "MET" => Some(ResidueType::Methionine),
+            "ARG" => Some(ResidueType::Arginine),
+            "LYS" => Some(ResidueType::Lysine),
+            "ASP" => Some(ResidueType::AsparticAcid),
+            "GLU" => Some(ResidueType::GlutamicAcid),
+            "HIS" => Some(ResidueType::Histidine),
+            "HSE" => Some(ResidueType::HistidineEpsilon),
+            "HSP" => Some(ResidueType::HistidineProtonated),
+            _ => None,
+        }
+    }
+
     pub fn to_three_letter(self) -> &'static str {
         match self {
             ResidueType::Alanine => "ALA",
