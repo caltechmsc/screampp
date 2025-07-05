@@ -144,3 +144,78 @@ impl Residue {
         self.atom_name_map.get(name).copied()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::models::ids::{AtomId, ChainId};
+    use slotmap::KeyData;
+
+    fn dummy_atom_id(n: u64) -> AtomId {
+        AtomId::from(KeyData::from_ffi(n))
+    }
+
+    fn dummy_chain_id(n: u64) -> ChainId {
+        ChainId::from(KeyData::from_ffi(n))
+    }
+
+    #[test]
+    fn parses_valid_three_letter_residue_codes() {
+        assert_eq!(ResidueType::from_str("ALA").unwrap(), ResidueType::Alanine);
+        assert_eq!(ResidueType::from_str("gly").unwrap(), ResidueType::Glycine);
+        assert_eq!(
+            ResidueType::from_str("HSE").unwrap(),
+            ResidueType::HistidineEpsilon
+        );
+        assert_eq!(
+            ResidueType::from_str("hsp").unwrap(),
+            ResidueType::HistidineProtonated
+        );
+    }
+
+    #[test]
+    fn fails_to_parse_invalid_residue_code() {
+        let err = ResidueType::from_str("XXX").unwrap_err();
+        assert_eq!(err, ParseResidueTypeError("XXX".to_string()));
+    }
+
+    #[test]
+    fn to_three_letter_returns_correct_code() {
+        assert_eq!(ResidueType::Alanine.to_three_letter(), "ALA");
+        assert_eq!(ResidueType::HistidineProtonated.to_three_letter(), "HSP");
+    }
+
+    #[test]
+    fn residue_adds_and_retrieves_atoms_by_name() {
+        let mut residue = Residue::new(1, "ALA", ResidueType::Alanine, dummy_chain_id(0));
+        let atom_id = dummy_atom_id(42);
+        residue.add_atom("CA", atom_id);
+        assert_eq!(residue.atoms(), &[atom_id]);
+        assert_eq!(residue.get_atom_id_by_name("CA"), Some(atom_id));
+    }
+
+    #[test]
+    fn residue_removes_atom_by_name_and_id() {
+        let mut residue = Residue::new(2, "GLY", ResidueType::Glycine, dummy_chain_id(1));
+        let atom_id1 = dummy_atom_id(1);
+        let atom_id2 = dummy_atom_id(2);
+        residue.add_atom("N", atom_id1);
+        residue.add_atom("CA", atom_id2);
+        residue.remove_atom("N", atom_id1);
+        assert_eq!(residue.atoms(), &[atom_id2]);
+        assert_eq!(residue.get_atom_id_by_name("N"), None);
+        assert_eq!(residue.get_atom_id_by_name("CA"), Some(atom_id2));
+    }
+
+    #[test]
+    fn residue_get_atom_id_by_name_returns_none_for_unknown_atom() {
+        let residue = Residue::new(3, "SER", ResidueType::Serine, dummy_chain_id(2));
+        assert_eq!(residue.get_atom_id_by_name("CB"), None);
+    }
+
+    #[test]
+    fn residue_atoms_returns_empty_slice_when_no_atoms() {
+        let residue = Residue::new(4, "THR", ResidueType::Threonine, dummy_chain_id(3));
+        assert!(residue.atoms().is_empty());
+    }
+}
