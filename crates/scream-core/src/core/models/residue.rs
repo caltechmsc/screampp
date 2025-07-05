@@ -47,36 +47,13 @@ pub struct ParseResidueTypeError(pub String);
 impl FromStr for ResidueType {
     type Err = ParseResidueTypeError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.trim().to_uppercase().as_str() {
-            "ALA" => Ok(ResidueType::Alanine),
-            "GLY" => Ok(ResidueType::Glycine),
-            "ILE" => Ok(ResidueType::Isoleucine),
-            "LEU" => Ok(ResidueType::Leucine),
-            "PRO" => Ok(ResidueType::Proline),
-            "VAL" => Ok(ResidueType::Valine),
-            "PHE" => Ok(ResidueType::Phenylalanine),
-            "TRP" => Ok(ResidueType::Tryptophan),
-            "TYR" => Ok(ResidueType::Tyrosine),
-            "ASN" => Ok(ResidueType::Asparagine),
-            "CYS" => Ok(ResidueType::Cysteine),
-            "GLN" => Ok(ResidueType::Glutamine),
-            "SER" => Ok(ResidueType::Serine),
-            "THR" => Ok(ResidueType::Threonine),
-            "MET" => Ok(ResidueType::Methionine),
-            "ARG" => Ok(ResidueType::Arginine),
-            "LYS" => Ok(ResidueType::Lysine),
-            "ASP" => Ok(ResidueType::AsparticAcid),
-            "GLU" => Ok(ResidueType::GlutamicAcid),
-            "HIS" => Ok(ResidueType::Histidine),
-            "HSE" => Ok(ResidueType::HistidineEpsilon),
-            "HSP" => Ok(ResidueType::HistidineProtonated),
-            unsupported => Err(ParseResidueTypeError(unsupported.to_string())),
-        }
+        ResidueType::from_str_optional(s)
+            .ok_or_else(|| ParseResidueTypeError(s.trim().to_uppercase()))
     }
 }
 
 impl ResidueType {
-    pub fn from_str_optional(s: &str) -> Option<Self> {
+    fn parse_code(s: &str) -> Option<Self> {
         match s.trim().to_uppercase().as_str() {
             "ALA" => Some(ResidueType::Alanine),
             "GLY" => Some(ResidueType::Glycine),
@@ -102,6 +79,10 @@ impl ResidueType {
             "HSP" => Some(ResidueType::HistidineProtonated),
             _ => None,
         }
+    }
+
+    pub fn from_str_optional(s: &str) -> Option<Self> {
+        Self::parse_code(s)
     }
 
     pub fn to_three_letter(self) -> &'static str {
