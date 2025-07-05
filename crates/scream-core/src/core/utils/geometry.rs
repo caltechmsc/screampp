@@ -80,7 +80,7 @@ pub fn generate_sp3_hydrogens(
     base_pos: &Point3<f64>,
     neighbors: &[Point3<f64>],
     bond_length: f64,
-) -> Vec<Point3<f64>> {
+) -> Result<Vec<Point3<f64>>, &'static str> {
     let neighbor_vecs: Vec<Vector3<f64>> = neighbors
         .iter()
         .map(|p| (p - base_pos).normalize())
@@ -106,7 +106,7 @@ pub fn generate_sp3_hydrogens(
             let h1 = base_pos + h1_dir.normalize() * bond_length;
             let h2 = base_pos + (rot * (h1 - base_pos));
             let h3 = base_pos + (rot * (h2 - base_pos));
-            vec![h1, h2, h3]
+            Ok(vec![h1, h2, h3])
         }
         2 => {
             let n1 = neighbor_vecs[0];
@@ -126,16 +126,16 @@ pub fn generate_sp3_hydrogens(
                     &Unit::new_normalize(bisector),
                     -109.5f64.to_radians(),
                 ) * (h1 - base_pos));
-            vec![h1, h2]
+            Ok(vec![h1, h2])
         }
         3 => {
             let n1 = neighbor_vecs[0];
             let n2 = neighbor_vecs[1];
             let n3 = neighbor_vecs[2];
             let h_dir = -(n1 + n2 + n3).normalize();
-            vec![base_pos + h_dir * bond_length]
+            Ok(vec![base_pos + h_dir * bond_length])
         }
-        _ => panic!("generate_sp3_hydrogens expects 1, 2, or 3 neighbors."),
+        _ => Err("generate_sp3_hydrogens expects 1, 2, or 3 neighbors."),
     }
 }
 
@@ -303,12 +303,12 @@ mod tests {
     }
 
     #[test]
-    fn test_generate_sp3_hydrogens_one_neighbor() {
+    fn generate_sp3_hydrogens_one_neighbor_returns_three_hydrogens() {
         let base_pos = Point3::new(0.0, 0.0, 0.0);
         let neighbors = [Point3::new(1.0, 0.0, 0.0)];
         let bond_length = 1.0;
 
-        let hydrogens = generate_sp3_hydrogens(&base_pos, &neighbors, bond_length);
+        let hydrogens = generate_sp3_hydrogens(&base_pos, &neighbors, bond_length).unwrap();
         assert_eq!(hydrogens.len(), 3);
 
         let neighbor_vec = (neighbors[0] - base_pos).normalize();
@@ -325,12 +325,12 @@ mod tests {
     }
 
     #[test]
-    fn test_generate_sp3_hydrogens_two_neighbors() {
+    fn generate_sp3_hydrogens_two_neighbors_returns_two_hydrogens() {
         let base_pos = Point3::new(0.0, 0.0, 0.0);
         let neighbors = [Point3::new(1.0, 0.0, 0.0), Point3::new(0.0, 1.0, 0.0)];
         let bond_length = 1.0;
 
-        let hydrogens = generate_sp3_hydrogens(&base_pos, &neighbors, bond_length);
+        let hydrogens = generate_sp3_hydrogens(&base_pos, &neighbors, bond_length).unwrap();
         assert_eq!(hydrogens.len(), 2);
 
         assert!(f64_approx_equal(hydrogens[0].z, -hydrogens[1].z));
@@ -339,7 +339,7 @@ mod tests {
     }
 
     #[test]
-    fn test_generate_sp3_hydrogens_three_neighbors() {
+    fn generate_sp3_hydrogens_three_neighbors_returns_one_hydrogen() {
         let base_pos = Point3::new(0.0, 0.0, 0.0);
         let neighbors = [
             Point3::new(1.0, 0.0, 0.0),
@@ -348,7 +348,7 @@ mod tests {
         ];
         let bond_length = 1.0;
 
-        let hydrogens = generate_sp3_hydrogens(&base_pos, &neighbors, bond_length);
+        let hydrogens = generate_sp3_hydrogens(&base_pos, &neighbors, bond_length).unwrap();
         assert_eq!(hydrogens.len(), 1);
 
         let h_pos = hydrogens[0];
@@ -360,7 +360,7 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn test_generate_sp3_hydrogens_panics_on_invalid_count() {
+    fn generate_sp3_hydrogens_panics_on_invalid_count() {
         let base_pos = Point3::new(0.0, 0.0, 0.0);
         let neighbors = [];
         generate_sp3_hydrogens(&base_pos, &neighbors, 1.0);
