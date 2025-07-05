@@ -208,6 +208,12 @@ mod tests {
     }
 
     #[test]
+    fn from_str_optional_returns_none_for_unknown_code() {
+        assert!(ResidueType::from_str_optional("XYZ").is_none());
+        assert!(ResidueType::from_str_optional("unknown").is_none());
+    }
+
+    #[test]
     fn to_three_letter_returns_correct_code() {
         assert_eq!(ResidueType::Alanine.to_three_letter(), "ALA");
         assert_eq!(ResidueType::HistidineProtonated.to_three_letter(), "HSP");
