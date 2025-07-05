@@ -84,7 +84,7 @@ impl MolecularSystem {
         chain_id: ChainId,
         res_seq: isize,
         name: &str,
-        res_type: ResidueType,
+        res_type: Option<ResidueType>,
     ) -> Option<ResidueId> {
         let chain = self.chains.get_mut(chain_id)?;
         let key = (chain_id, res_seq);
@@ -201,7 +201,7 @@ mod tests {
         let chain_a_id = system.add_chain('A', ChainType::Protein);
 
         let gly_id = system
-            .add_residue(chain_a_id, 1, "GLY", ResidueType::Glycine)
+            .add_residue(chain_a_id, 1, "GLY", Some(ResidueType::Glycine))
             .unwrap();
         let n_atom = Atom::new(1, "N", gly_id, Point3::new(0.0, 0.0, 0.0));
         let ca_atom = Atom::new(2, "CA", gly_id, Point3::new(1.4, 0.0, 0.0));
@@ -210,7 +210,7 @@ mod tests {
         system.add_bond(n_id, ca_id, BondOrder::Single).unwrap();
 
         let ala_id = system
-            .add_residue(chain_a_id, 2, "ALA", ResidueType::Alanine)
+            .add_residue(chain_a_id, 2, "ALA", Some(ResidueType::Alanine))
             .unwrap();
         let ala_ca_atom = Atom::new(3, "CA", ala_id, Point3::new(2.0, 1.0, 0.0));
         system.add_atom_to_residue(ala_id, ala_ca_atom).unwrap();
@@ -315,11 +315,11 @@ mod tests {
         assert_eq!(system.residue(gly_id).unwrap().name, "GLY");
         assert_eq!(
             system.residue(gly_id).unwrap().res_type,
-            ResidueType::Glycine
+            Some(ResidueType::Glycine)
         );
         assert_eq!(
             system.residue(ala_id).unwrap().res_type,
-            ResidueType::Alanine
+            Some(ResidueType::Alanine)
         );
     }
 }
