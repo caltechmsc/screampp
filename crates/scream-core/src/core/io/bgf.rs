@@ -2,6 +2,7 @@ use super::traits::MolecularFile;
 use crate::core::models::atom::Atom;
 use crate::core::models::chain::ChainType;
 use crate::core::models::ids::{ChainId, ResidueId};
+use crate::core::models::residue::ResidueType;
 use crate::core::models::system::MolecularSystem;
 use crate::core::models::topology::BondOrder;
 use nalgebra::Point3;
@@ -115,8 +116,12 @@ impl MolecularFile for BgfFile {
             }
 
             if new_residue {
-                current_residue_id =
-                    system.add_residue(active_chain_id, res_seq, &atom_info.res_name);
+                current_residue_id = system.add_residue(
+                    active_chain_id,
+                    res_seq,
+                    &atom_info.res_name,
+                    ResidueType::from_str_optional(&atom_info.res_name),
+                );
             }
             let active_residue_id = current_residue_id
                 .ok_or_else(|| BgfError::Logic("Failed to create or find residue".to_string()))?;
@@ -371,7 +376,9 @@ mod tests {
     fn create_test_system() -> MolecularSystem {
         let mut system = MolecularSystem::new();
         let chain_a = system.add_chain('A', ChainType::Protein);
-        let res1 = system.add_residue(chain_a, 1, "GLY").unwrap();
+        let res1 = system
+            .add_residue(chain_a, 1, "GLY", ResidueType::from_str_optional("GLY"))
+            .unwrap();
         let mut atom_n = Atom::new(1, "N", res1, Point3::new(-0.416, -0.535, 0.0));
         atom_n.partial_charge = -0.35;
         atom_n.force_field_type = "N_3".to_string();
@@ -561,7 +568,7 @@ END
         let chain_id = ChainId::default();
         let res_id = ResidueId::default();
         let atom = Atom::new(1, "CA", res_id, Point3::new(1.1, 2.2, 3.3));
-        let residue = Residue::new(5, "ALA", chain_id);
+        let residue = Residue::new(5, "ALA", Some(ResidueType::Alanine), chain_id);
         let chain = Chain::new('A', ChainType::Protein);
 
         let mut atom_to_format = atom;
