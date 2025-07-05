@@ -136,14 +136,19 @@ impl ResidueType {
 pub struct Residue {
     pub id: isize,                          // Residue sequence number from source file
     pub name: String,                       // Name of the residue (e.g., "ALA", "GLY")
-    pub res_type: ResidueType,              // Type of the residue (e.g., Alanine, Glycine)
+    pub res_type: Option<ResidueType>,      // Optional residue type (e.g., Alanine, Glycine)
     pub chain_id: ChainId,                  // ID of the parent chain
     pub(crate) atoms: Vec<AtomId>,          // Indices of atoms belonging to this residue
     atom_name_map: HashMap<String, AtomId>, // Map from atom name to its stable ID
 }
 
 impl Residue {
-    pub(crate) fn new(id: isize, name: &str, res_type: ResidueType, chain_id: ChainId) -> Self {
+    pub(crate) fn new(
+        id: isize,
+        name: &str,
+        res_type: Option<ResidueType>,
+        chain_id: ChainId,
+    ) -> Self {
         Self {
             id,
             name: name.to_string(),
@@ -221,7 +226,7 @@ mod tests {
 
     #[test]
     fn residue_adds_and_retrieves_atoms_by_name() {
-        let mut residue = Residue::new(1, "ALA", ResidueType::Alanine, dummy_chain_id(0));
+        let mut residue = Residue::new(1, "ALA", Some(ResidueType::Alanine), dummy_chain_id(0));
         let atom_id = dummy_atom_id(42);
         residue.add_atom("CA", atom_id);
         assert_eq!(residue.atoms(), &[atom_id]);
@@ -230,7 +235,7 @@ mod tests {
 
     #[test]
     fn residue_removes_atom_by_name_and_id() {
-        let mut residue = Residue::new(2, "GLY", ResidueType::Glycine, dummy_chain_id(1));
+        let mut residue = Residue::new(2, "GLY", Some(ResidueType::Glycine), dummy_chain_id(1));
         let atom_id1 = dummy_atom_id(1);
         let atom_id2 = dummy_atom_id(2);
         residue.add_atom("N", atom_id1);
@@ -243,13 +248,13 @@ mod tests {
 
     #[test]
     fn residue_get_atom_id_by_name_returns_none_for_unknown_atom() {
-        let residue = Residue::new(3, "SER", ResidueType::Serine, dummy_chain_id(2));
+        let residue = Residue::new(3, "SER", Some(ResidueType::Serine), dummy_chain_id(2));
         assert_eq!(residue.get_atom_id_by_name("CB"), None);
     }
 
     #[test]
     fn residue_atoms_returns_empty_slice_when_no_atoms() {
-        let residue = Residue::new(4, "THR", ResidueType::Threonine, dummy_chain_id(3));
+        let residue = Residue::new(4, "THR", Some(ResidueType::Threonine), dummy_chain_id(3));
         assert!(residue.atoms().is_empty());
     }
 }
