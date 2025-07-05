@@ -363,7 +363,7 @@ mod tests {
     fn generate_sp3_hydrogens_panics_on_invalid_count() {
         let base_pos = Point3::new(0.0, 0.0, 0.0);
         let neighbors = [];
-        generate_sp3_hydrogens(&base_pos, &neighbors, 1.0);
+        generate_sp3_hydrogens(&base_pos, &neighbors, 1.0).unwrap();
     }
 
     #[test]
