@@ -32,7 +32,11 @@ pub fn is_backbone_atom(atom_name: &str) -> bool {
 }
 
 pub fn is_heavy_atom(atom_name: &str) -> bool {
-    let first_char = atom_name.trim().chars().next();
+    let first_char = atom_name
+        .trim()
+        .chars()
+        .next()
+        .map(|c| c.to_ascii_uppercase());
     !matches!(first_char, Some('H') | Some('D'))
 }
 
@@ -44,4 +48,81 @@ pub fn residue_atom_order(atom1_name: &str, atom2_name: &str) -> Ordering {
         .get(atom2_name.trim())
         .unwrap_or(&i32::MAX);
     weight1.cmp(weight2)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn is_backbone_atom_recognizes_standard_backbone_atoms() {
+        assert!(is_backbone_atom("N"));
+        assert!(is_backbone_atom("CA"));
+        assert!(is_backbone_atom("C"));
+        assert!(is_backbone_atom("O"));
+        assert!(is_backbone_atom("OXT"));
+    }
+
+    #[test]
+    fn is_backbone_atom_is_case_sensitive_and_trims_whitespace() {
+        assert!(!is_backbone_atom("ca"));
+        assert!(is_backbone_atom(" CA "));
+        assert!(!is_backbone_atom("cb"));
+    }
+
+    #[test]
+    fn is_backbone_atom_returns_false_for_non_backbone_atoms() {
+        assert!(!is_backbone_atom("CB"));
+        assert!(!is_backbone_atom("SG"));
+        assert!(!is_backbone_atom(""));
+    }
+
+    #[test]
+    fn is_heavy_atom_returns_false_for_hydrogen_and_deuterium() {
+        assert!(!is_heavy_atom("H"));
+        assert!(!is_heavy_atom("HA"));
+        assert!(!is_heavy_atom("H1"));
+        assert!(!is_heavy_atom("D"));
+        assert!(!is_heavy_atom("D2"));
+    }
+
+    #[test]
+    fn is_heavy_atom_returns_true_for_non_hydrogen_atoms() {
+        assert!(is_heavy_atom("C"));
+        assert!(is_heavy_atom("CA"));
+        assert!(is_heavy_atom("O"));
+        assert!(is_heavy_atom("N"));
+        assert!(is_heavy_atom("SG"));
+    }
+
+    #[test]
+    fn is_heavy_atom_trims_whitespace_and_is_case_sensitive() {
+        assert!(is_heavy_atom(" CA "));
+        assert!(!is_heavy_atom(" H "));
+        assert!(is_heavy_atom("c"));
+        assert!(!is_heavy_atom("h"));
+    }
+
+    #[test]
+    fn residue_atom_order_returns_ordering_based_on_weights() {
+        use std::cmp::Ordering::*;
+        assert_eq!(residue_atom_order("N", "CA"), Less);
+        assert_eq!(residue_atom_order("O", "C"), Greater);
+        assert_eq!(residue_atom_order("CA", "CA"), Equal);
+    }
+
+    #[test]
+    fn residue_atom_order_handles_unknown_atoms_as_last() {
+        use std::cmp::Ordering::*;
+        assert_eq!(residue_atom_order("N", "UNKNOWN"), Less);
+        assert_eq!(residue_atom_order("UNKNOWN", "N"), Greater);
+        assert_eq!(residue_atom_order("UNKNOWN1", "UNKNOWN2"), Equal);
+    }
+
+    #[test]
+    fn residue_atom_order_trims_whitespace() {
+        use std::cmp::Ordering::*;
+        assert_eq!(residue_atom_order(" N ", " CA "), Less);
+        assert_eq!(residue_atom_order(" O ", " C "), Greater);
+    }
 }
