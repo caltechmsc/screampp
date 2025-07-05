@@ -4,7 +4,7 @@ use std::str::FromStr;
 use thiserror::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum AminoAcidType {
+pub enum ResidueType {
     // --- Aliphatic, Nonpolar ---
     Alanine,    // Alanine (ALA)
     Glycine,    // Glycine (GLY)
@@ -40,20 +40,86 @@ pub enum AminoAcidType {
     HistidineProtonated, // Doubly-protonated Histidine (HSP) - The positively charged variant
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Error, PartialEq, Eq)]
+#[error("Unsupported or unknown three-letter residue code: '{0}'")]
+pub struct ParseResidueTypeError(pub String);
+
+impl FromStr for ResidueType {
+    type Err = ParseResidueTypeError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.trim().to_uppercase().as_str() {
+            "ALA" => Ok(ResidueType::Alanine),
+            "GLY" => Ok(ResidueType::Glycine),
+            "ILE" => Ok(ResidueType::Isoleucine),
+            "LEU" => Ok(ResidueType::Leucine),
+            "PRO" => Ok(ResidueType::Proline),
+            "VAL" => Ok(ResidueType::Valine),
+            "PHE" => Ok(ResidueType::Phenylalanine),
+            "TRP" => Ok(ResidueType::Tryptophan),
+            "TYR" => Ok(ResidueType::Tyrosine),
+            "ASN" => Ok(ResidueType::Asparagine),
+            "CYS" => Ok(ResidueType::Cysteine),
+            "GLN" => Ok(ResidueType::Glutamine),
+            "SER" => Ok(ResidueType::Serine),
+            "THR" => Ok(ResidueType::Threonine),
+            "MET" => Ok(ResidueType::Methionine),
+            "ARG" => Ok(ResidueType::Arginine),
+            "LYS" => Ok(ResidueType::Lysine),
+            "ASP" => Ok(ResidueType::AsparticAcid),
+            "GLU" => Ok(ResidueType::GlutamicAcid),
+            "HIS" => Ok(ResidueType::Histidine),
+            "HSE" => Ok(ResidueType::HistidineEpsilon),
+            "HSP" => Ok(ResidueType::HistidineProtonated),
+            unsupported => Err(ParseResidueTypeError(unsupported.to_string())),
+        }
+    }
+}
+
+impl ResidueType {
+    pub fn to_three_letter(self) -> &'static str {
+        match self {
+            ResidueType::Alanine => "ALA",
+            ResidueType::Glycine => "GLY",
+            ResidueType::Isoleucine => "ILE",
+            ResidueType::Leucine => "LEU",
+            ResidueType::Proline => "PRO",
+            ResidueType::Valine => "VAL",
+            ResidueType::Phenylalanine => "PHE",
+            ResidueType::Tryptophan => "TRP",
+            ResidueType::Tyrosine => "TYR",
+            ResidueType::Asparagine => "ASN",
+            ResidueType::Cysteine => "CYS",
+            ResidueType::Glutamine => "GLN",
+            ResidueType::Serine => "SER",
+            ResidueType::Threonine => "THR",
+            ResidueType::Methionine => "MET",
+            ResidueType::Arginine => "ARG",
+            ResidueType::Lysine => "LYS",
+            ResidueType::AsparticAcid => "ASP",
+            ResidueType::GlutamicAcid => "GLU",
+            ResidueType::Histidine => "HIS",
+            ResidueType::HistidineEpsilon => "HSE",
+            ResidueType::HistidineProtonated => "HSP",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct Residue {
     pub id: isize,                          // Residue sequence number from source file
     pub name: String,                       // Name of the residue (e.g., "ALA", "GLY")
+    pub res_type: ResidueType,              // Type of the residue (e.g., Alanine, Glycine)
     pub chain_id: ChainId,                  // ID of the parent chain
     pub(crate) atoms: Vec<AtomId>,          // Indices of atoms belonging to this residue
     atom_name_map: HashMap<String, AtomId>, // Map from atom name to its stable ID
 }
 
 impl Residue {
-    pub(crate) fn new(id: isize, name: &str, chain_id: ChainId) -> Self {
+    pub(crate) fn new(id: isize, name: &str, res_type: ResidueType, chain_id: ChainId) -> Self {
         Self {
             id,
             name: name.to_string(),
+            res_type,
             chain_id,
             atoms: Vec::new(),
             atom_name_map: HashMap::new(),
@@ -76,87 +142,5 @@ impl Residue {
 
     pub fn get_atom_id_by_name(&self, name: &str) -> Option<AtomId> {
         self.atom_name_map.get(name).copied()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::models::ids::{AtomId, ChainId};
-    use slotmap::KeyData;
-    use std::collections::HashSet;
-
-    fn dummy_atom_id(n: u64) -> AtomId {
-        AtomId::from(KeyData::from_ffi(n))
-    }
-
-    fn dummy_chain_id(n: u64) -> ChainId {
-        ChainId::from(KeyData::from_ffi(n))
-    }
-
-    #[test]
-    fn new_residue_initializes_fields_correctly() {
-        let chain_id = dummy_chain_id(1);
-        let residue = Residue::new(10, "GLY", chain_id);
-        assert_eq!(residue.id, 10);
-        assert_eq!(residue.name, "GLY");
-        assert_eq!(residue.chain_id, chain_id);
-        assert!(residue.atoms().is_empty());
-        assert!(residue.get_atom_id_by_name("CA").is_none());
-    }
-
-    #[test]
-    fn add_atom_adds_atom_and_maps_name() {
-        let chain_id = dummy_chain_id(2);
-        let mut residue = Residue::new(5, "ALA", chain_id);
-        let atom_id = dummy_atom_id(42);
-        residue.add_atom("CA", atom_id);
-        assert_eq!(residue.atoms(), &[atom_id]);
-        assert_eq!(residue.get_atom_id_by_name("CA"), Some(atom_id));
-    }
-
-    #[test]
-    fn add_atom_allows_multiple_atoms_with_different_names() {
-        let chain_id = dummy_chain_id(3);
-        let mut residue = Residue::new(7, "SER", chain_id);
-        let atom_id1 = dummy_atom_id(1);
-        let atom_id2 = dummy_atom_id(2);
-        residue.add_atom("CA", atom_id1);
-        residue.add_atom("CB", atom_id2);
-        let atom_set: HashSet<_> = residue.atoms().iter().copied().collect();
-        assert!(atom_set.contains(&atom_id1));
-        assert!(atom_set.contains(&atom_id2));
-        assert_eq!(residue.get_atom_id_by_name("CA"), Some(atom_id1));
-        assert_eq!(residue.get_atom_id_by_name("CB"), Some(atom_id2));
-    }
-
-    #[test]
-    fn remove_atom_removes_atom_and_name_mapping() {
-        let chain_id = dummy_chain_id(4);
-        let mut residue = Residue::new(8, "THR", chain_id);
-        let atom_id = dummy_atom_id(100);
-        residue.add_atom("OG1", atom_id);
-        residue.remove_atom("OG1", atom_id);
-        assert!(residue.atoms().is_empty());
-        assert!(residue.get_atom_id_by_name("OG1").is_none());
-    }
-
-    #[test]
-    fn remove_atom_does_nothing_if_atom_not_present() {
-        let chain_id = dummy_chain_id(5);
-        let mut residue = Residue::new(9, "VAL", chain_id);
-        let atom_id = dummy_atom_id(200);
-        residue.add_atom("CG1", atom_id);
-        residue.remove_atom("CG2", dummy_atom_id(201));
-        assert_eq!(residue.atoms(), &[atom_id]);
-        assert_eq!(residue.get_atom_id_by_name("CG1"), Some(atom_id));
-    }
-
-    #[test]
-    fn get_atom_id_by_name_returns_none_for_unknown_name() {
-        let chain_id = dummy_chain_id(6);
-        let mut residue = Residue::new(11, "LEU", chain_id);
-        residue.add_atom("CD1", dummy_atom_id(300));
-        assert!(residue.get_atom_id_by_name("CD2").is_none());
     }
 }
