@@ -38,7 +38,7 @@ pub struct NonBondedParams {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct DeltaParam {
-    pub residue_type: String,
+    pub res_type: String,
     pub atom_name: String,
     pub mu: f64,
     pub sigma: f64,
@@ -46,7 +46,7 @@ pub struct DeltaParam {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct ChargeParam {
-    pub residue_type: String,
+    pub res_type: String,
     pub atom_name: String,
     pub partial_charge: f64,
 }
@@ -95,7 +95,7 @@ pub enum ParamLoadError {
 impl Forcefield {
     pub fn load(base_path: &Path) -> Result<Self, ParamLoadError> {
         let non_bonded =
-            Self::load_non_bonded(&base_path.join("forcefield/buckingham_exp_6.toml"))?;
+            Self::load_non_bonded(&base_path.join("forcefield/dreiding-buckingham-exp-6.toml"))?;
         let deltas = Self::load_delta_directory(&base_path.join("delta/"))?;
         let charges = Self::load_charge_directory(&base_path.join("charges/"))?;
         let topology = Self::load_topology(&base_path.join("topology/topology.toml"))?;
@@ -146,10 +146,7 @@ impl Forcefield {
                         path: path.to_string_lossy().to_string(),
                         source: e,
                     })?;
-                    lib_deltas.insert(
-                        (record.residue_type.clone(), record.atom_name.clone()),
-                        record,
-                    );
+                    lib_deltas.insert((record.res_type.clone(), record.atom_name.clone()), record);
                 }
                 all_deltas.insert(library_key, lib_deltas);
             }
@@ -191,10 +188,8 @@ impl Forcefield {
                         path: path.to_string_lossy().to_string(),
                         source: e,
                     })?;
-                    scheme_charges.insert(
-                        (record.residue_type.clone(), record.atom_name.clone()),
-                        record,
-                    );
+                    scheme_charges
+                        .insert((record.res_type.clone(), record.atom_name.clone()), record);
                 }
                 all_charges.insert(charge_scheme_key, scheme_charges);
             }
@@ -247,7 +242,7 @@ mod tests {
             well_depth = 5.0
             "#
         )
-            .unwrap();
+        .unwrap();
 
         let params = Forcefield::load_non_bonded(&file_path).unwrap();
         assert_eq!(params.globals.dielectric_constant, 1.0);
@@ -289,11 +284,7 @@ mod tests {
     fn load_delta_directory_succeeds_with_valid_csv() {
         let dir = tempdir().unwrap();
         let file_path = dir.path().join("test_lib.csv");
-        fs::write(
-            &file_path,
-            "residue_type,atom_name,mu,sigma\nALA,CA,1.0,0.5",
-        )
-            .unwrap();
+        fs::write(&file_path, "res_type,atom_name,mu,sigma\nALA,CA,1.0,0.5").unwrap();
 
         let deltas = Forcefield::load_delta_directory(dir.path()).unwrap();
         assert!(deltas.contains_key("test_lib"));
@@ -316,11 +307,7 @@ mod tests {
     fn load_charge_directory_succeeds_with_valid_csv() {
         let dir = tempdir().unwrap();
         let file_path = dir.path().join("test_scheme.csv");
-        fs::write(
-            &file_path,
-            "residue_type,atom_name,partial_charge\nGLY,N,-0.5",
-        )
-            .unwrap();
+        fs::write(&file_path, "res_type,atom_name,partial_charge\nGLY,N,-0.5").unwrap();
 
         let charges = Forcefield::load_charge_directory(dir.path()).unwrap();
         assert!(charges.contains_key("test_scheme"));
@@ -349,7 +336,7 @@ mod tests {
             bonds = [ ["N", "CA"] ]
             "#,
         )
-            .unwrap();
+        .unwrap();
 
         let topology = Forcefield::load_topology(&file_path).unwrap();
         assert!(topology.contains_key("ALA"));
