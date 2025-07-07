@@ -63,8 +63,10 @@ pub struct TopologyResidueParams {
     pub bonds: Vec<[String; 2]>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
-pub struct TopologyParams {
-    #[serde(flatten)]
-    pub residues: HashMap<String, TopologyResidueParams>,
+#[derive(Debug, Clone)]
+pub struct Forcefield {
+    pub non_bonded: NonBondedParams,
+    pub deltas: HashMap<String, HashMap<(String, String), DeltaParam>>,
+    pub charges: HashMap<String, HashMap<(String, String), ChargeParam>>,
+    pub topology: HashMap<String, TopologyResidueParams>,
 }
