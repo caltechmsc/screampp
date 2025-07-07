@@ -23,6 +23,12 @@ pub struct HBondParam {
     pub well_depth: f64,
 }
 
+#[derive(Debug, Deserialize, Clone, PartialEq)]
+pub struct GlobalParams {
+    pub dielectric_constant: f64,
+    pub potential_function: String,
+}
+
 #[derive(Debug, Deserialize, Clone)]
 pub struct DeltaParam {
     pub residue_type: String,
