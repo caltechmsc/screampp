@@ -30,3 +30,10 @@ pub struct DeltaParam {
     pub mu: f64,
     pub sigma: f64,
 }
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct ChargeParam {
+    pub residue_type: String,
+    pub atom_name: String,
+    pub partial_charge: f64,
+}
