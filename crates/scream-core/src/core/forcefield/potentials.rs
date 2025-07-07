@@ -55,3 +55,20 @@ pub fn dreiding_hbond(dist_ad: f64, angle_ahd_deg: f64, r_hb: f64, d_hb: f64) ->
 
     distance_term * angular_factor
 }
+
+#[inline]
+pub fn apply_flat_bottom<F>(dist: f64, ideal_dist: f64, delta: f64, base_potential_fn: F) -> f64
+where
+    F: Fn(f64) -> f64,
+{
+    if dist >= ideal_dist {
+        return base_potential_fn(dist);
+    }
+
+    if dist > ideal_dist - delta {
+        return base_potential_fn(ideal_dist);
+    }
+
+    let effective_dist = dist + delta;
+    base_potential_fn(effective_dist)
+}
