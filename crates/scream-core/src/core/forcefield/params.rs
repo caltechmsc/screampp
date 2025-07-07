@@ -37,3 +37,9 @@ pub struct ChargeParam {
     pub atom_name: String,
     pub partial_charge: f64,
 }
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct TopologyAtomParam {
+    pub name: String,
+    pub ff_type: String,
+}
