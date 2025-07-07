@@ -16,3 +16,9 @@ pub enum VdwParam {
         well_depth: f64,
     },
 }
+
+#[derive(Debug, Deserialize, Clone, PartialEq)]
+pub struct HBondParam {
+    pub equilibrium_dist: f64,
+    pub well_depth: f64,
+}
