@@ -41,3 +41,9 @@ pub struct ForcefieldParams {
     pub vdw: HashMap<String, VdwParam>,
     pub hbond: HashMap<String, HBondParam>,
 }
+
+#[derive(Debug, Deserialize, Clone, PartialEq)]
+pub struct DeltaParams {
+    #[serde(flatten)]
+    pub params: HashMap<String, HashMap<String, DeltaParam>>,
+}
