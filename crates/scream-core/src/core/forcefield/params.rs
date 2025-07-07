@@ -43,3 +43,9 @@ pub struct TopologyAtomParam {
     pub name: String,
     pub ff_type: String,
 }
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct TopologyResidueParams {
+    pub atoms: Vec<TopologyAtomParam>,
+    pub bonds: Vec<[String; 2]>,
+}
