@@ -1,4 +1,4 @@
-residue_type,atom_name,mu,sigma
+res_type,atom_name,mu,sigma
 CYS,CB,0.0568,0.0568
 CYS,HCB,0.0568,0.0568
 CYS,SG,0.1829,0.1829
