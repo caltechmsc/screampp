@@ -169,3 +169,209 @@ impl Forcefield {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs::{self, File};
+    use std::io::Write;
+    use tempfile::tempdir;
+
+    #[test]
+    fn load_non_bonded_succeeds_with_valid_toml() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("test.toml");
+        let mut file = File::create(&file_path).unwrap();
+        writeln!(
+            file,
+            r#"
+            [globals]
+            dielectric_constant = 1.0
+            potential_function = "buckingham_exp_6"
+
+            [vdw.C]
+            radius = 3.5
+            well_depth = 0.1
+            scale = 12.0
+
+            [vdw.N]
+            radius = 3.2
+            well_depth = 0.05
+
+            [hbond.N_H]
+            equilibrium_dist = 2.7
+            well_depth = 5.0
+            "#
+        )
+        .unwrap();
+
+        let params = Forcefield::load_non_bonded(&file_path).unwrap();
+        assert_eq!(params.globals.dielectric_constant, 1.0);
+        assert_eq!(
+            params.vdw.get("C"),
+            Some(&VdwParam::Buckingham {
+                radius: 3.5,
+                well_depth: 0.1,
+                scale: 12.0
+            })
+        );
+        assert_eq!(
+            params.vdw.get("N"),
+            Some(&VdwParam::LennardJones {
+                radius: 3.2,
+                well_depth: 0.05,
+            })
+        );
+        assert_eq!(
+            params.hbond.get("N_H"),
+            Some(&HBondParam {
+                equilibrium_dist: 2.7,
+                well_depth: 5.0
+            })
+        );
+    }
+
+    #[test]
+    fn load_non_bonded_fails_for_missing_file() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("non_existent.toml");
+        let result = Forcefield::load_non_bonded(&file_path);
+        assert!(matches!(result, Err(ParamLoadError::Io { .. })));
+    }
+
+    #[test]
+    fn load_non_bonded_fails_for_malformed_toml() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("malformed.toml");
+        fs::write(&file_path, "this is not toml").unwrap();
+        let result = Forcefield::load_non_bonded(&file_path);
+        assert!(matches!(result, Err(ParamLoadError::Toml { .. })));
+    }
+
+    #[test]
+    fn load_delta_csv_succeeds_with_valid_csv() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("test_lib.csv");
+        fs::write(&file_path, "res_type,atom_name,mu,sigma\nALA,CA,1.0,0.5").unwrap();
+
+        let deltas = Forcefield::load_delta_csv(&file_path).unwrap();
+        let param = deltas.get(&("ALA".to_string(), "CA".to_string())).unwrap();
+        assert_eq!(param.mu, 1.0);
+        assert_eq!(param.sigma, 0.5);
+    }
+
+    #[test]
+    fn load_delta_csv_fails_for_malformed_csv() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("malformed.csv");
+        fs::write(&file_path, "header1,header2\nval1").unwrap();
+        let result = Forcefield::load_delta_csv(&file_path);
+        assert!(matches!(result, Err(ParamLoadError::Csv { .. })));
+    }
+
+    #[test]
+    fn load_charge_csv_succeeds_with_valid_csv() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("test_scheme.csv");
+        fs::write(&file_path, "res_type,atom_name,partial_charge\nGLY,N,-0.5").unwrap();
+
+        let charges = Forcefield::load_charge_csv(&file_path).unwrap();
+        let param = charges.get(&("GLY".to_string(), "N".to_string())).unwrap();
+        assert_eq!(param.partial_charge, -0.5);
+    }
+
+    #[test]
+    fn load_charge_csv_fails_for_malformed_csv() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("malformed.csv");
+        fs::write(&file_path, "header1,header2\nval1").unwrap();
+        let result = Forcefield::load_charge_csv(&file_path);
+        assert!(matches!(result, Err(ParamLoadError::Csv { .. })));
+    }
+
+    #[test]
+    fn load_topology_succeeds_with_valid_toml() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("topology.toml");
+        fs::write(
+            &file_path,
+            r#"
+            [ALA]
+            atoms = [ { name = "N", ff_type = "N" }, { name = "CA", ff_type = "C" } ]
+            bonds = [ ["N", "CA"] ]
+            "#,
+        )
+        .unwrap();
+
+        let topology = Forcefield::load_topology(&file_path).unwrap();
+        assert!(topology.contains_key("ALA"));
+        let ala_topo = topology.get("ALA").unwrap();
+        assert_eq!(ala_topo.atoms.len(), 2);
+        assert_eq!(ala_topo.bonds.len(), 1);
+        assert_eq!(ala_topo.bonds[0], ["N", "CA"]);
+    }
+
+    #[test]
+    fn load_forcefield_succeeds_with_valid_files() {
+        let dir = tempdir().unwrap();
+
+        let non_bonded_path = dir.path().join("non_bonded.toml");
+        fs::write(
+            &non_bonded_path,
+            r#"[globals]
+            dielectric_constant = 1.0
+            potential_function = "lj"
+            [vdw.C]
+            radius = 1.0
+            well_depth = 1.0
+            [hbond.N]
+            equilibrium_dist = 1.0
+            well_depth = 1.0"#,
+        )
+        .unwrap();
+
+        let delta_path = dir.path().join("delta.csv");
+        fs::write(&delta_path, "res_type,atom_name,mu,sigma\nALA,CA,1.0,0.5").unwrap();
+
+        let charge_path = dir.path().join("charge.csv");
+        fs::write(
+            &charge_path,
+            "res_type,atom_name,partial_charge\nALA,N,-0.5",
+        )
+        .unwrap();
+
+        let topology_path = dir.path().join("topology.toml");
+        fs::write(
+            &topology_path,
+            r#"[ALA]
+            atoms = [ { name = "N", ff_type = "N" } ]
+            bonds = [ ]"#,
+        )
+        .unwrap();
+
+        let ff =
+            Forcefield::load(&non_bonded_path, &delta_path, &charge_path, &topology_path).unwrap();
+
+        assert!(!ff.non_bonded.vdw.is_empty());
+        assert!(!ff.deltas.is_empty());
+        assert!(!ff.charges.is_empty());
+        assert!(!ff.topology.is_empty());
+        assert!(ff.topology.contains_key("ALA"));
+    }
+
+    #[test]
+    fn load_forcefield_fails_if_any_file_is_missing() {
+        let dir = tempdir().unwrap();
+        let non_bonded_path = dir.path().join("non_bonded.toml");
+        let delta_path = dir.path().join("delta.csv");
+        fs::write(&non_bonded_path, "").unwrap();
+
+        let result = Forcefield::load(
+            &non_bonded_path,
+            &delta_path, // This one is missing
+            &dir.path().join("c.csv"),
+            &dir.path().join("t.toml"),
+        );
+        assert!(matches!(result, Err(ParamLoadError::Toml { .. })));
+    }
+}
