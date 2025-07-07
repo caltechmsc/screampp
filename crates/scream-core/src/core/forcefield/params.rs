@@ -22,3 +22,9 @@ pub struct HBondParam {
     pub equilibrium_dist: f64,
     pub well_depth: f64,
 }
+
+#[derive(Debug, Deserialize, Clone, PartialEq)]
+pub struct DeltaParam {
+    pub mu: f64,
+    pub sigma: f64,
+}
