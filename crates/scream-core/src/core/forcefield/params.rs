@@ -91,3 +91,90 @@ pub enum ParamLoadError {
         source: std::io::Error,
     },
 }
+
+impl Forcefield {
+    pub fn load(base_path: &Path) -> Result<Self, ParamLoadError> {
+        let non_bonded =
+            Self::load_non_bonded(&base_path.join("forcefield/buckingham_exp_6.toml"))?;
+        let deltas = Self::load_delta_directory(&base_path.join("delta/"))?;
+        let charges = Self::load_charge_directory(&base_path.join("charges/"))?;
+        let topology = Self::load_topology(&base_path.join("topology/topology.toml"))?;
+
+        Ok(Self {
+            non_bonded,
+            deltas,
+            charges,
+            topology,
+        })
+    }
+
+    pub fn load_non_bonded(path: &Path) -> Result<NonBondedParams, ParamLoadError> {
+        let content = std::fs::read_to_string(path).map_err(|e| ParamLoadError::Io {
+            path: path.to_string_lossy().to_string(),
+            source: e,
+        })?;
+        toml::from_str(&content).map_err(|e| ParamLoadError::Toml {
+            path: path.to_string_lossy().to_string(),
+            source: e,
+        })
+    }
+
+    pub fn load_delta_directory(
+        dir_path: &Path,
+    ) -> Result<HashMap<String, HashMap<(String, String), DeltaParam>>, ParamLoadError> {
+        let mut all_deltas = HashMap::new();
+        for entry in std::fs::read_dir(dir_path).map_err(|e| ParamLoadError::ReadDir {
+            path: dir_path.to_string_lossy().to_string(),
+            source: e,
+        })? {
+            let entry = entry.map_err(|e| ParamLoadError::ReadDir {
+                path: dir_path.to_string_lossy().to_string(),
+                source: e,
+            })?;
+            let path = entry.path();
+            if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("csv") {
+                let library_key = path.file_stem().unwrap().to_string_lossy().to_string();
+                let mut reader =
+                    csv::Reader::from_path(&path).map_err(|e| ParamLoadError::Csv {
+                        path: path.to_string_lossy().to_string(),
+                        source: e,
+                    })?;
+
+                let mut lib_deltas = HashMap::new();
+                for result in reader.deserialize::<DeltaParam>() {
+                    let record = result.map_err(|e| ParamLoadError::Csv {
+                        path: path.to_string_lossy().to_string(),
+                        source: e,
+                    })?;
+                    lib_deltas.insert(
+                        (record.residue_type.clone(), record.atom_name.clone()),
+                        record,
+                    );
+                }
+                all_deltas.insert(library_key, lib_deltas);
+            }
+        }
+        Ok(all_deltas)
+    }
+
+    pub fn load_charge_directory(
+        dir_path: &Path,
+    ) -> Result<HashMap<String, HashMap<(String, String), ChargeParam>>, ParamLoadError> {
+        unimplemented!("Implement charge directory loading similarly to delta loading.")
+    }
+
+    pub fn load_topology(
+        path: &Path,
+    ) -> Result<HashMap<String, TopologyResidueParams>, ParamLoadError> {
+        let content = std::fs::read_to_string(path).map_err(|e| ParamLoadError::Io {
+            path: path.to_string_lossy().to_string(),
+            source: e,
+        })?;
+        let topo_params: HashMap<String, TopologyResidueParams> = toml::from_str(&content)
+            .map_err(|e| ParamLoadError::Toml {
+                path: path.to_string_lossy().to_string(),
+                source: e,
+            })?;
+        Ok(topo_params)
+    }
+}
