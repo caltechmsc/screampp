@@ -13,3 +13,4 @@ phf = { version = "0.12.1", features = ["macros"] }
 serde = { version = "1.0.188", features = ["derive"] }
 slotmap = "1.0.7"
 thiserror = "2.0.12"
+toml = "0.8.23"
