@@ -27,3 +27,11 @@ pub fn buckingham_exp_6(dist: f64, r_min: f64, well_depth: f64, gamma: f64) -> f
     let factor = gamma / (gamma - 6.0);
     well_depth * (6.0 / (gamma - 6.0) * (gamma * (1.0 - rho)).exp() - factor * rho.powi(-6))
 }
+
+#[inline]
+pub fn coulomb(dist: f64, q1: f64, q2: f64, dielectric: f64) -> f64 {
+    if dist < 1e-6 {
+        return q1.signum() * q2.signum() * 1e10; // Return a large energy of the correct sign
+    }
+    COULOMB_CONSTANT * q1 * q2 / (dielectric * dist)
+}
