@@ -49,3 +49,9 @@ pub struct TopologyResidueParams {
     pub atoms: Vec<TopologyAtomParam>,
     pub bonds: Vec<[String; 2]>,
 }
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct TopologyParams {
+    #[serde(flatten)]
+    pub residues: HashMap<String, TopologyResidueParams>,
+}
