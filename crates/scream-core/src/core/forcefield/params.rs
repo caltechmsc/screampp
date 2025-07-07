@@ -47,3 +47,11 @@ pub struct DeltaParams {
     #[serde(flatten)]
     pub params: HashMap<String, HashMap<String, DeltaParam>>,
 }
+
+#[derive(Debug, Error)]
+pub enum ParamLoadError {
+    #[error("File I/O error: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("TOML deserialization error: {0}")]
+    Toml(#[from] toml::de::Error),
+}
