@@ -35,3 +35,23 @@ pub fn coulomb(dist: f64, q1: f64, q2: f64, dielectric: f64) -> f64 {
     }
     COULOMB_CONSTANT * q1 * q2 / (dielectric * dist)
 }
+
+#[inline]
+pub fn dreiding_hbond(dist_ad: f64, angle_ahd_deg: f64, r_hb: f64, d_hb: f64) -> f64 {
+    if angle_ahd_deg < 90.0 {
+        return 0.0;
+    }
+    let cos_theta = (angle_ahd_deg * PI / 180.0).cos();
+
+    let angular_factor = cos_theta.powi(4);
+
+    if dist_ad < 1e-6 {
+        return 1e10;
+    }
+    let rho = r_hb / dist_ad;
+    let rho10 = rho.powi(10);
+    let rho12 = rho.powi(12);
+    let distance_term = d_hb * (5.0 * rho12 - 6.0 * rho10);
+
+    distance_term * angular_factor
+}
