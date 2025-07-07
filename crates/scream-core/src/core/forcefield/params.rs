@@ -361,15 +361,13 @@ mod tests {
 
     #[test]
     fn load_forcefield_succeeds_with_valid_data_directory() {
-        // This test assumes it's run from the project root and `data` directory exists.
-        let base_path = Path::new("data");
-        if !base_path.exists() {
-            // Skip test if data directory is not found.
-            // In a real CI environment, this data should be available.
-            eprintln!("Skipping `load_forcefield_succeeds_with_valid_data_directory`: `data` directory not found.");
-            return;
-        }
-        let ff = Forcefield::load(base_path).unwrap();
+        let base_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .join("data");
+        let ff = Forcefield::load(&base_path).unwrap();
 
         assert!(!ff.non_bonded.vdw.is_empty());
         assert!(!ff.deltas.is_empty());
