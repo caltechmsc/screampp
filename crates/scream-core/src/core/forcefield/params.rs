@@ -70,3 +70,24 @@ pub struct Forcefield {
     pub charges: HashMap<String, HashMap<(String, String), ChargeParam>>,
     pub topology: HashMap<String, TopologyResidueParams>,
 }
+
+#[derive(Debug, Error)]
+pub enum ParamLoadError {
+    #[error("File I/O error for '{path}': {source}")]
+    Io {
+        path: String,
+        source: std::io::Error,
+    },
+    #[error("CSV parsing error for '{path}': {source}")]
+    Csv { path: String, source: csv::Error },
+    #[error("TOML parsing error for '{path}': {source}")]
+    Toml {
+        path: String,
+        source: toml::de::Error,
+    },
+    #[error("Directory reading error for '{path}': {source}")]
+    ReadDir {
+        path: String,
+        source: std::io::Error,
+    },
+}
