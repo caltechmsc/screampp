@@ -34,3 +34,10 @@ pub struct Globals {
     pub dielectric_constant: f64,
     pub potential_function: String,
 }
+
+#[derive(Debug, Deserialize, Clone, PartialEq)]
+pub struct ForcefieldParams {
+    pub globals: Globals,
+    pub vdw: HashMap<String, VdwParam>,
+    pub hbond: HashMap<String, HBondParam>,
+}
