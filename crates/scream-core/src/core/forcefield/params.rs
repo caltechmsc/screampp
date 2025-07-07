@@ -63,3 +63,11 @@ impl ForcefieldParams {
         Ok(params)
     }
 }
+
+impl DeltaParams {
+    pub fn load_from_toml(path: &Path) -> Result<Self, ParamLoadError> {
+        let content = std::fs::read_to_string(path)?;
+        let params: DeltaParams = toml::from_str(&content)?;
+        Ok(params)
+    }
+}
