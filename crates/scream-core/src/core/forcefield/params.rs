@@ -28,3 +28,9 @@ pub struct DeltaParam {
     pub mu: f64,
     pub sigma: f64,
 }
+
+#[derive(Debug, Deserialize, Clone, PartialEq)]
+pub struct Globals {
+    pub dielectric_constant: f64,
+    pub potential_function: String,
+}
