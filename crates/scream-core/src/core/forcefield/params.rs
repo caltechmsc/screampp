@@ -55,3 +55,11 @@ pub enum ParamLoadError {
     #[error("TOML deserialization error: {0}")]
     Toml(#[from] toml::de::Error),
 }
+
+impl ForcefieldParams {
+    pub fn load_from_toml(path: &Path) -> Result<Self, ParamLoadError> {
+        let content = std::fs::read_to_string(path)?;
+        let params: ForcefieldParams = toml::from_str(&content)?;
+        Ok(params)
+    }
+}
