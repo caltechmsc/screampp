@@ -29,6 +29,13 @@ pub struct GlobalParams {
     pub potential_function: String,
 }
 
+#[derive(Debug, Deserialize, Clone, PartialEq)]
+pub struct NonBondedParams {
+    pub globals: GlobalParams,
+    pub vdw: HashMap<String, VdwParam>,
+    pub hbond: HashMap<String, HBondParam>,
+}
+
 #[derive(Debug, Deserialize, Clone)]
 pub struct DeltaParam {
     pub residue_type: String,
