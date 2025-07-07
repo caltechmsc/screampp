@@ -160,7 +160,46 @@ impl Forcefield {
     pub fn load_charge_directory(
         dir_path: &Path,
     ) -> Result<HashMap<String, HashMap<(String, String), ChargeParam>>, ParamLoadError> {
-        unimplemented!("Implement charge directory loading similarly to delta loading.")
+        let mut all_charges = HashMap::new();
+
+        if !dir_path.exists() || !dir_path.is_dir() {
+            return Ok(all_charges);
+        }
+
+        for entry in std::fs::read_dir(dir_path).map_err(|e| ParamLoadError::ReadDir {
+            path: dir_path.to_string_lossy().to_string(),
+            source: e,
+        })? {
+            let entry = entry.map_err(|e| ParamLoadError::ReadDir {
+                path: dir_path.to_string_lossy().to_string(),
+                source: e,
+            })?;
+            let path = entry.path();
+
+            if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("csv") {
+                let charge_scheme_key = path.file_stem().unwrap().to_string_lossy().to_string();
+
+                let mut reader =
+                    csv::Reader::from_path(&path).map_err(|e| ParamLoadError::Csv {
+                        path: path.to_string_lossy().to_string(),
+                        source: e,
+                    })?;
+
+                let mut scheme_charges = HashMap::new();
+                for result in reader.deserialize::<ChargeParam>() {
+                    let record = result.map_err(|e| ParamLoadError::Csv {
+                        path: path.to_string_lossy().to_string(),
+                        source: e,
+                    })?;
+                    scheme_charges.insert(
+                        (record.residue_type.clone(), record.atom_name.clone()),
+                        record,
+                    );
+                }
+                all_charges.insert(charge_scheme_key, scheme_charges);
+            }
+        }
+        Ok(all_charges)
     }
 
     pub fn load_topology(
