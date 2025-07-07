@@ -23,8 +23,10 @@ pub struct HBondParam {
     pub well_depth: f64,
 }
 
-#[derive(Debug, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct DeltaParam {
+    pub residue_type: String,
+    pub atom_name: String,
     pub mu: f64,
     pub sigma: f64,
 }
@@ -42,12 +44,6 @@ pub struct ForcefieldParams {
     pub hbond: HashMap<String, HBondParam>,
 }
 
-#[derive(Debug, Deserialize, Clone, PartialEq)]
-pub struct DeltaParams {
-    #[serde(flatten)]
-    pub params: HashMap<String, HashMap<String, DeltaParam>>,
-}
-
 #[derive(Debug, Error)]
 pub enum ParamLoadError {
     #[error("File I/O error: {0}")]
@@ -60,14 +56,6 @@ impl ForcefieldParams {
     pub fn load_from_toml(path: &Path) -> Result<Self, ParamLoadError> {
         let content = std::fs::read_to_string(path)?;
         let params: ForcefieldParams = toml::from_str(&content)?;
-        Ok(params)
-    }
-}
-
-impl DeltaParams {
-    pub fn load_from_toml(path: &Path) -> Result<Self, ParamLoadError> {
-        let content = std::fs::read_to_string(path)?;
-        let params: DeltaParams = toml::from_str(&content)?;
         Ok(params)
     }
 }
