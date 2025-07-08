@@ -210,4 +210,28 @@ impl Parameterizer {
         }
         Ok(())
     }
+
+    fn build_peptide_bonds(&self, system: &mut MolecularSystem) {
+        let mut peptide_bonds_to_add = Vec::new();
+
+        for (_chain_id, chain) in system.chains_iter() {
+            for residue_pair in chain.residues().windows(2) {
+                let res1_id = residue_pair[0];
+                let res2_id = residue_pair[1];
+
+                let res1 = system.residue(res1_id).unwrap();
+                let res2 = system.residue(res2_id).unwrap();
+
+                if let (Some(c_id), Some(n_id)) =
+                    (res1.get_atom_id_by_name("C"), res2.get_atom_id_by_name("N"))
+                {
+                    peptide_bonds_to_add.push((c_id, n_id));
+                }
+            }
+        }
+
+        for (atom1_id, atom2_id) in peptide_bonds_to_add {
+            let _ = system.add_bond(atom1_id, atom2_id, BondOrder::Single);
+        }
+    }
 }
