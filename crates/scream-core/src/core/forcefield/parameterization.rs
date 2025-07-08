@@ -99,4 +99,32 @@ impl Parameterizer {
 
         Ok(())
     }
+
+    pub fn parameterize_charges(
+        &self,
+        system: &mut MolecularSystem,
+    ) -> Result<(), ParameterizationError> {
+        let atom_ids: Vec<_> = system.atoms_iter().map(|(id, _)| id).collect();
+        for atom_id in atom_ids {
+            let (res_type_str, atom_name) = {
+                let atom = system.atom(atom_id).unwrap();
+                let residue = system.residue(atom.residue_id).unwrap();
+                (residue.name.clone(), atom.name.clone())
+            };
+
+            let charge_param = self
+                .forcefield
+                .charges
+                .get(&(res_type_str.clone(), atom_name.clone()))
+                .ok_or_else(|| ParameterizationError::MissingCharge {
+                    res_type: res_type_str,
+                    atom_name,
+                })?;
+
+            if let Some(atom) = system.atom_mut(atom_id) {
+                atom.partial_charge = charge_param.partial_charge;
+            }
+        }
+        Ok(())
+    }
 }
