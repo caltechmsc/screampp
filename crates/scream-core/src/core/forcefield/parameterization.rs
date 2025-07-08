@@ -127,4 +127,58 @@ impl Parameterizer {
         }
         Ok(())
     }
+
+    pub fn parameterize_non_bonded_properties(
+        &self,
+        system: &mut MolecularSystem,
+    ) -> Result<(), ParameterizationError> {
+        let atom_ids: Vec<_> = system.atoms_iter().map(|(id, _)| id).collect();
+        for atom_id in atom_ids {
+            let ff_type = system.atom(atom_id).unwrap().force_field_type.clone();
+
+            if ff_type.is_empty() {
+                return Err(ParameterizationError::MissingForceFieldType {
+                    res_type: system
+                        .residue(system.atom(atom_id).unwrap().residue_id)
+                        .unwrap()
+                        .name
+                        .clone(),
+                    atom_name: system.atom(atom_id).unwrap().name.clone(),
+                });
+            }
+
+            let vdw_param = self
+                .forcefield
+                .non_bonded
+                .vdw
+                .get(&ff_type)
+                .ok_or_else(|| ParameterizationError::MissingVdwParams(ff_type.clone()))?;
+
+            let (vdw_radius, vdw_well_depth) = match vdw_param {
+                super::params::VdwParam::LennardJones { radius, well_depth } => {
+                    (*radius, *well_depth)
+                }
+                super::params::VdwParam::Buckingham {
+                    radius, well_depth, ..
+                } => (*radius, *well_depth),
+            };
+
+            let hbond_type_id = if ff_type == "H___A" {
+                0
+            } else {
+                self.forcefield
+                    .non_bonded
+                    .hbond
+                    .get(&ff_type)
+                    .map_or(-1, |_| 1)
+            };
+
+            if let Some(atom) = system.atom_mut(atom_id) {
+                atom.vdw_radius = vdw_radius;
+                atom.vdw_well_depth = vdw_well_depth;
+                atom.hbond_type_id = hbond_type_id;
+            }
+        }
+        Ok(())
+    }
 }
