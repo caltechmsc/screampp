@@ -181,4 +181,33 @@ impl Parameterizer {
         }
         Ok(())
     }
+
+    pub fn parameterize_deltas(
+        &self,
+        system: &mut MolecularSystem,
+        _library_id: &str,
+    ) -> Result<(), ParameterizationError> {
+        let atom_ids: Vec<_> = system.atoms_iter().map(|(id, _)| id).collect();
+        for atom_id in atom_ids {
+            let (res_type_str, atom_name) = {
+                let atom = system.atom(atom_id).unwrap();
+                let residue = system.residue(atom.residue_id).unwrap();
+                (residue.name.clone(), atom.name.clone())
+            };
+
+            let delta = if res_type_str == "GLY" {
+                0.0
+            } else {
+                self.forcefield
+                    .deltas
+                    .get(&(res_type_str.clone(), atom_name.clone()))
+                    .map_or(0.0, |p| p.mu)
+            };
+
+            if let Some(atom) = system.atom_mut(atom_id) {
+                atom.delta = delta;
+            }
+        }
+        Ok(())
+    }
 }
