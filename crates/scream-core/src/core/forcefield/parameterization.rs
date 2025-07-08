@@ -32,4 +32,14 @@ impl Parameterizer {
     pub fn new(forcefield: Forcefield) -> Self {
         Self { forcefield }
     }
+
+    pub fn parameterize_system(
+        &self,
+        system: &mut MolecularSystem,
+    ) -> Result<(), ParameterizationError> {
+        self.parameterize_topology(system)?;
+        self.parameterize_charges(system)?;
+        self.parameterize_non_bonded_properties(system)?;
+        Ok(())
+    }
 }
