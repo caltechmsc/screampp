@@ -23,3 +23,13 @@ pub enum ParameterizationError {
     #[error("Atom with name '{0}' not found in residue ID {1:?}")]
     AtomNameNotFound(String, ResidueId),
 }
+
+pub struct Parameterizer {
+    forcefield: Forcefield,
+}
+
+impl Parameterizer {
+    pub fn new(forcefield: Forcefield) -> Self {
+        Self { forcefield }
+    }
+}
