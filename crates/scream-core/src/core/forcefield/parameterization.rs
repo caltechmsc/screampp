@@ -1,4 +1,4 @@
-use crate::core::forcefield::params::Forcefield;
+use super::params::Forcefield;
 use crate::core::models::ids::ResidueId;
 use crate::core::models::system::MolecularSystem;
 use crate::core::models::topology::BondOrder;
