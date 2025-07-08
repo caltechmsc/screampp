@@ -95,3 +95,133 @@ where
         potential_fn(ideal_dist)
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const TOLERANCE: f64 = 1e-9;
+
+    fn f64_approx_equal(a: f64, b: f64) -> bool {
+        (a - b).abs() < TOLERANCE
+    }
+
+    #[test]
+    fn lennard_jones_at_minimum_distance_returns_negative_well_depth() {
+        let energy = lennard_jones_12_6(2.0, 2.0, 10.0);
+        assert!(f64_approx_equal(energy, -10.0));
+    }
+
+    #[test]
+    fn lennard_jones_at_very_small_distance_returns_large_positive_energy() {
+        let energy = lennard_jones_12_6(1e-7, 2.0, 10.0);
+        assert!(f64_approx_equal(energy, 1e10));
+    }
+
+    #[test]
+    fn buckingham_at_minimum_distance_returns_negative_well_depth() {
+        let energy = buckingham_exp_6(2.0, 2.0, 10.0, 12.0);
+        assert!(f64_approx_equal(energy, -10.0));
+    }
+
+    #[test]
+    fn buckingham_at_very_small_distance_returns_large_positive_energy() {
+        let energy = buckingham_exp_6(1e-7, 2.0, 10.0, 12.0);
+        assert!(f64_approx_equal(energy, 1e10));
+    }
+
+    #[test]
+    fn coulomb_calculates_repulsive_force_correctly() {
+        let energy = coulomb(1.0, 1.0, 1.0, 1.0);
+        assert!(f64_approx_equal(energy, COULOMB_CONSTANT));
+    }
+
+    #[test]
+    fn coulomb_calculates_attractive_force_correctly() {
+        let energy = coulomb(2.0, 1.0, -1.0, 1.0);
+        assert!(f64_approx_equal(energy, -COULOMB_CONSTANT / 2.0));
+    }
+
+    #[test]
+    fn coulomb_at_very_small_distance_returns_large_energy_with_correct_sign() {
+        assert!(f64_approx_equal(coulomb(1e-7, 1.0, 1.0, 1.0), 1e10));
+        assert!(f64_approx_equal(coulomb(1e-7, -1.0, 1.0, 1.0), -1e10));
+    }
+
+    #[test]
+    fn dreiding_hbond_12_10_at_equilibrium_distance_returns_negative_well_depth() {
+        let energy = dreiding_hbond_12_10(2.7, 2.7, 5.0);
+        assert!(f64_approx_equal(energy, -5.0));
+    }
+
+    #[test]
+    fn dreiding_hbond_12_10_at_very_small_distance_returns_large_positive_energy() {
+        let energy = dreiding_hbond_12_10(1e-7, 2.7, 5.0);
+        assert!(f64_approx_equal(energy, 1e10));
+    }
+
+    #[test]
+    fn dreiding_hbond_is_zero_for_angles_less_than_90_degrees() {
+        let energy = dreiding_hbond(3.0, 89.9, 2.7, 5.0);
+        assert!(f64_approx_equal(energy, 0.0));
+    }
+
+    #[test]
+    fn dreiding_hbond_at_ideal_distance_and_180_degrees() {
+        let energy = dreiding_hbond(2.7, 180.0, 2.7, 5.0);
+        assert!(f64_approx_equal(energy, -5.0));
+    }
+
+    #[test]
+    fn dreiding_hbond_at_90_degrees_is_zero() {
+        let energy = dreiding_hbond(2.7, 90.0, 2.7, 5.0);
+        assert!(f64_approx_equal(energy, 0.0));
+    }
+
+    #[test]
+    fn apply_flat_bottom_vdw_uses_base_potential_beyond_ideal_distance() {
+        let potential = apply_flat_bottom_vdw(10.0, 8.0, 1.0, |d| d * d);
+        assert!(f64_approx_equal(potential, 100.0));
+    }
+
+    #[test]
+    fn apply_flat_bottom_vdw_is_flat_within_delta_of_ideal_distance() {
+        let potential = apply_flat_bottom_vdw(7.5, 8.0, 1.0, |d| d * d);
+        assert!(f64_approx_equal(potential, 64.0));
+    }
+
+    #[test]
+    fn apply_flat_bottom_vdw_uses_shifted_distance_below_flat_region() {
+        let potential = apply_flat_bottom_vdw(6.0, 8.0, 1.0, |d| d * d);
+        assert!(f64_approx_equal(potential, 49.0));
+    }
+
+    #[test]
+    fn apply_flat_bottom_vdw_with_zero_delta_is_identity() {
+        let potential = apply_flat_bottom_vdw(5.0, 8.0, 0.0, |d| d * d);
+        assert!(f64_approx_equal(potential, 25.0));
+    }
+
+    #[test]
+    fn apply_flat_bottom_hbond_is_flat_around_ideal_distance() {
+        let potential = apply_flat_bottom_hbond(8.5, 8.0, 1.0, |d| d * d);
+        assert!(f64_approx_equal(potential, 64.0));
+    }
+
+    #[test]
+    fn apply_flat_bottom_hbond_uses_shifted_distance_above_flat_region() {
+        let potential = apply_flat_bottom_hbond(10.0, 8.0, 1.0, |d| d * d);
+        assert!(f64_approx_equal(potential, 81.0));
+    }
+
+    #[test]
+    fn apply_flat_bottom_hbond_uses_shifted_distance_below_flat_region() {
+        let potential = apply_flat_bottom_hbond(6.0, 8.0, 1.0, |d| d * d);
+        assert!(f64_approx_equal(potential, 49.0));
+    }
+
+    #[test]
+    fn apply_flat_bottom_hbond_with_zero_delta_is_identity() {
+        let potential = apply_flat_bottom_hbond(5.0, 8.0, 0.0, |d| d * d);
+        assert!(f64_approx_equal(potential, 25.0));
+    }
+}
