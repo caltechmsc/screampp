@@ -213,6 +213,20 @@ mod tests {
     }
 
     #[test]
+    fn test_bond_angle() {
+        let p1 = Point3::new(1.0, 0.0, 0.0);
+        let p2 = Point3::new(0.0, 0.0, 0.0);
+        let p3 = Point3::new(0.0, 1.0, 0.0);
+        assert!(f64_approx_equal(bond_angle(&p1, &p2, &p3), 90.0));
+
+        let p3_straight = Point3::new(-1.0, 0.0, 0.0);
+        assert!(f64_approx_equal(bond_angle(&p1, &p2, &p3_straight), 180.0));
+
+        let p3_cis = Point3::new(1.0, 1.0, 0.0);
+        assert!(f64_approx_equal(bond_angle(&p1, &p2, &p3_cis), 45.0));
+    }
+
+    #[test]
     fn test_dihedral_angle() {
         let p1 = Point3::new(0.0, -1.0, 0.0);
         let p2 = Point3::new(0.0, 0.0, 0.0);
