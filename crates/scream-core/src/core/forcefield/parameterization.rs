@@ -39,6 +39,7 @@ impl Parameterizer {
     ) -> Result<(), ParameterizationError> {
         self.parameterize_topology(system)?;
         self.parameterize_charges(system)?;
+        self.parameterize_deltas(system)?;
         self.parameterize_non_bonded_properties(system)?;
         Ok(())
     }
@@ -128,6 +129,35 @@ impl Parameterizer {
         Ok(())
     }
 
+    fn parameterize_deltas(
+        &self,
+        system: &mut MolecularSystem,
+    ) -> Result<(), ParameterizationError> {
+        let atom_ids: Vec<_> = system.atoms_iter().map(|(id, _)| id).collect();
+
+        for atom_id in atom_ids {
+            let (res_type_str, atom_name) = {
+                let atom = system.atom(atom_id).unwrap();
+                let residue = system.residue(atom.residue_id).unwrap();
+                (residue.name.clone(), atom.name.clone())
+            };
+
+            let delta = if res_type_str == "GLY" {
+                0.0
+            } else {
+                self.forcefield
+                    .deltas
+                    .get(&(res_type_str, atom_name))
+                    .map_or(0.0, |p| p.mu)
+            };
+
+            if let Some(atom) = system.atom_mut(atom_id) {
+                atom.delta = delta;
+            }
+        }
+        Ok(())
+    }
+
     pub fn parameterize_non_bonded_properties(
         &self,
         system: &mut MolecularSystem,
@@ -177,35 +207,6 @@ impl Parameterizer {
                 atom.vdw_radius = vdw_radius;
                 atom.vdw_well_depth = vdw_well_depth;
                 atom.hbond_type_id = hbond_type_id;
-            }
-        }
-        Ok(())
-    }
-
-    pub fn parameterize_deltas(
-        &self,
-        system: &mut MolecularSystem,
-        _library_id: &str,
-    ) -> Result<(), ParameterizationError> {
-        let atom_ids: Vec<_> = system.atoms_iter().map(|(id, _)| id).collect();
-        for atom_id in atom_ids {
-            let (res_type_str, atom_name) = {
-                let atom = system.atom(atom_id).unwrap();
-                let residue = system.residue(atom.residue_id).unwrap();
-                (residue.name.clone(), atom.name.clone())
-            };
-
-            let delta = if res_type_str == "GLY" {
-                0.0
-            } else {
-                self.forcefield
-                    .deltas
-                    .get(&(res_type_str.clone(), atom_name.clone()))
-                    .map_or(0.0, |p| p.mu)
-            };
-
-            if let Some(atom) = system.atom_mut(atom_id) {
-                atom.delta = delta;
             }
         }
         Ok(())
