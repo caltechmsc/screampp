@@ -8,6 +8,12 @@ pub struct CbCreationParams {
     pub bond_length: f64,
 }
 
+pub fn bond_angle(p1: &Point3<f64>, p2_vertex: &Point3<f64>, p3: &Point3<f64>) -> f64 {
+    let v1 = p1 - p2_vertex;
+    let v2 = p3 - p2_vertex;
+    v1.angle(&v2).to_degrees()
+}
+
 pub fn dihedral_angle(
     p1: &Point3<f64>,
     p2: &Point3<f64>,
