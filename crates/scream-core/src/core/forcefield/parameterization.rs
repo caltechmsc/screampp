@@ -64,6 +64,18 @@ impl Parameterizer {
                 .get(res_type_str)
                 .ok_or_else(|| ParameterizationError::MissingTopology(res_type_str.clone()))?;
 
+            let topo_atom_names: std::collections::HashSet<_> =
+                topology.atoms.iter().map(|a| &a.name).collect();
+            for atom_id in residue.atoms() {
+                let atom = system.atom(*atom_id).unwrap();
+                if !topo_atom_names.contains(&atom.name) {
+                    return Err(ParameterizationError::AtomNotFoundInTopology {
+                        res_type: res_type_str.clone(),
+                        atom_name: atom.name.clone(),
+                    });
+                }
+            }
+
             for atom_topo in &topology.atoms {
                 if let Some(atom_id) = residue.get_atom_id_by_name(&atom_topo.name) {
                     modifications.push((atom_id, atom_topo.ff_type.clone()));
