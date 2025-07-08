@@ -26,11 +26,15 @@ pub enum ParameterizationError {
 
 pub struct Parameterizer {
     forcefield: Forcefield,
+    delta_s_factor: f64,
 }
 
 impl Parameterizer {
-    pub fn new(forcefield: Forcefield) -> Self {
-        Self { forcefield }
+    pub fn new(forcefield: Forcefield, delta_s_factor: f64) -> Self {
+        Self {
+            forcefield,
+            delta_s_factor,
+        }
     }
 
     pub fn parameterize_system(
@@ -48,13 +52,12 @@ impl Parameterizer {
         &self,
         system: &mut MolecularSystem,
     ) -> Result<(), ParameterizationError> {
-        let mut modifications = Vec::new();
+        let mut ff_type_modifications = Vec::new();
         let mut bonds_to_add = Vec::new();
 
         let residue_ids: Vec<_> = system.residues_iter().map(|(id, _)| id).collect();
 
-        for res_id in &residue_ids {
-            let res_id = *res_id;
+        for res_id in residue_ids {
             let residue = system.residue(res_id).unwrap();
             let res_type_str = &residue.name;
 
@@ -64,27 +67,17 @@ impl Parameterizer {
                 .get(res_type_str)
                 .ok_or_else(|| ParameterizationError::MissingTopology(res_type_str.clone()))?;
 
-            let topo_atom_names: std::collections::HashSet<_> =
-                topology.atoms.iter().map(|a| &a.name).collect();
             for atom_id in residue.atoms() {
-                let atom = system.atom(*atom_id).unwrap();
-                if !topo_atom_names.contains(&atom.name) {
-                    return Err(ParameterizationError::AtomNotFoundInTopology {
+                let atom_name = &system.atom(*atom_id).unwrap().name;
+                let atom_topo = topology
+                    .atoms
+                    .iter()
+                    .find(|a| &a.name == atom_name)
+                    .ok_or_else(|| ParameterizationError::AtomNotFoundInTopology {
                         res_type: res_type_str.clone(),
-                        atom_name: atom.name.clone(),
-                    });
-                }
-            }
-
-            for atom_topo in &topology.atoms {
-                if let Some(atom_id) = residue.get_atom_id_by_name(&atom_topo.name) {
-                    modifications.push((atom_id, atom_topo.ff_type.clone()));
-                } else {
-                    return Err(ParameterizationError::AtomNotFoundInTopology {
-                        res_type: res_type_str.clone(),
-                        atom_name: atom_topo.name.clone(),
-                    });
-                }
+                        atom_name: atom_name.clone(),
+                    })?;
+                ff_type_modifications.push((*atom_id, atom_topo.ff_type.clone()));
             }
 
             for bond_pair in &topology.bonds {
@@ -98,7 +91,7 @@ impl Parameterizer {
             }
         }
 
-        for (atom_id, ff_type) in modifications {
+        for (atom_id, ff_type) in ff_type_modifications {
             if let Some(atom) = system.atom_mut(atom_id) {
                 atom.force_field_type = ff_type;
             }
@@ -141,7 +134,7 @@ impl Parameterizer {
         Ok(())
     }
 
-    fn parameterize_deltas(
+    pub fn parameterize_deltas(
         &self,
         system: &mut MolecularSystem,
     ) -> Result<(), ParameterizationError> {
@@ -154,17 +147,22 @@ impl Parameterizer {
                 (residue.name.clone(), atom.name.clone())
             };
 
-            let delta = if res_type_str == "GLY" {
+            let final_delta = if res_type_str == "GLY" {
                 0.0
             } else {
-                self.forcefield
+                let delta_param = self
+                    .forcefield
                     .deltas
-                    .get(&(res_type_str, atom_name))
-                    .map_or(0.0, |p| p.mu)
+                    .get(&(res_type_str.clone(), atom_name.clone()));
+
+                match delta_param {
+                    Some(p) => p.mu + self.delta_s_factor * p.sigma,
+                    None => 0.0,
+                }
             };
 
             if let Some(atom) = system.atom_mut(atom_id) {
-                atom.delta = delta;
+                atom.delta = final_delta;
             }
         }
         Ok(())
@@ -425,7 +423,7 @@ mod tests {
     fn parameterize_topology_assigns_ff_types_and_bonds() {
         let ff = create_dummy_forcefield();
         let mut system = create_test_system();
-        let parameterizer = Parameterizer::new(ff);
+        let parameterizer = Parameterizer::new(ff, 0.0);
 
         parameterizer.parameterize_topology(&mut system).unwrap();
 
@@ -449,7 +447,7 @@ mod tests {
     fn parameterize_topology_creates_peptide_bonds() {
         let ff = create_dummy_forcefield();
         let mut system = create_test_system();
-        let parameterizer = Parameterizer::new(ff);
+        let parameterizer = Parameterizer::new(ff, 0.0);
 
         parameterizer.parameterize_topology(&mut system).unwrap();
 
@@ -470,7 +468,7 @@ mod tests {
         let mut system = MolecularSystem::new();
         let chain_id = system.add_chain('A', ChainType::Protein);
         system.add_residue(chain_id, 1, "UNK", None).unwrap();
-        let parameterizer = Parameterizer::new(ff);
+        let parameterizer = Parameterizer::new(ff, 0.0);
 
         let result = parameterizer.parameterize_topology(&mut system);
         assert!(matches!(
@@ -505,7 +503,7 @@ mod tests {
     fn parameterize_charges_assigns_partial_charges() {
         let ff = create_dummy_forcefield();
         let mut system = create_test_system();
-        let parameterizer = Parameterizer::new(ff);
+        let parameterizer = Parameterizer::new(ff, 0.0);
 
         parameterizer.parameterize_charges(&mut system).unwrap();
 
@@ -524,7 +522,7 @@ mod tests {
         let res_id = system.add_residue(chain_id, 1, "GLY", None).unwrap();
         let atom = Atom::new(1, "CA", res_id, Point3::origin());
         system.add_atom_to_residue(res_id, atom).unwrap();
-        let parameterizer = Parameterizer::new(ff);
+        let parameterizer = Parameterizer::new(ff, 0.0);
 
         let result = parameterizer.parameterize_charges(&mut system);
         assert!(matches!(
@@ -538,7 +536,7 @@ mod tests {
     fn parameterize_deltas_assigns_values_correctly() {
         let ff = create_dummy_forcefield();
         let mut system = create_test_system();
-        let parameterizer = Parameterizer::new(ff);
+        let parameterizer = Parameterizer::new(ff, 0.0);
 
         parameterizer.parameterize_system(&mut system).unwrap();
 
@@ -557,7 +555,7 @@ mod tests {
         let res_id = system.add_residue(chain_id, 1, "GLY", None).unwrap();
         let atom_ca = Atom::new(1, "CA", res_id, Point3::origin());
         system.add_atom_to_residue(res_id, atom_ca).unwrap();
-        let parameterizer = Parameterizer::new(ff);
+        let parameterizer = Parameterizer::new(ff, 0.0);
 
         parameterizer.parameterize_topology(&mut system).unwrap();
         parameterizer.parameterize_deltas(&mut system).unwrap();
@@ -572,7 +570,7 @@ mod tests {
     fn parameterize_non_bonded_properties_assigns_vdw_and_hbond_params() {
         let ff = create_dummy_forcefield();
         let mut system = create_test_system();
-        let parameterizer = Parameterizer::new(ff);
+        let parameterizer = Parameterizer::new(ff, 0.0);
 
         parameterizer.parameterize_topology(&mut system).unwrap();
         parameterizer
@@ -595,7 +593,7 @@ mod tests {
     fn parameterize_non_bonded_properties_fails_for_missing_vdw_params() {
         let ff = create_dummy_forcefield();
         let mut system = create_test_system();
-        let parameterizer = Parameterizer::new(ff);
+        let parameterizer = Parameterizer::new(ff, 0.0);
 
         let atom_id = system.find_atom_by_serial(1).unwrap();
         system.atom_mut(atom_id).unwrap().force_field_type = "UNKNOWN_TYPE".to_string();
@@ -611,7 +609,7 @@ mod tests {
     fn parameterize_non_bonded_properties_fails_if_ff_type_is_not_set() {
         let ff = create_dummy_forcefield();
         let mut system = create_test_system();
-        let parameterizer = Parameterizer::new(ff);
+        let parameterizer = Parameterizer::new(ff, 0.0);
 
         let result = parameterizer.parameterize_non_bonded_properties(&mut system);
         assert!(matches!(
@@ -624,7 +622,7 @@ mod tests {
     fn full_parameterize_system_succeeds_on_valid_system_and_ff() {
         let ff = create_dummy_forcefield();
         let mut system = create_test_system();
-        let parameterizer = Parameterizer::new(ff);
+        let parameterizer = Parameterizer::new(ff, 0.0);
 
         let result = parameterizer.parameterize_system(&mut system);
         assert!(result.is_ok());
