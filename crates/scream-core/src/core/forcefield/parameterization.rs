@@ -42,4 +42,61 @@ impl Parameterizer {
         self.parameterize_non_bonded_properties(system)?;
         Ok(())
     }
+
+    pub fn parameterize_topology(
+        &self,
+        system: &mut MolecularSystem,
+    ) -> Result<(), ParameterizationError> {
+        let mut modifications = Vec::new();
+        let mut bonds_to_add = Vec::new();
+
+        let residue_ids: Vec<_> = system.residues_iter().map(|(id, _)| id).collect();
+
+        for res_id in &residue_ids {
+            let res_id = *res_id;
+            let residue = system.residue(res_id).unwrap();
+            let res_type_str = &residue.name;
+
+            let topology = self
+                .forcefield
+                .topology
+                .get(res_type_str)
+                .ok_or_else(|| ParameterizationError::MissingTopology(res_type_str.clone()))?;
+
+            for atom_topo in &topology.atoms {
+                if let Some(atom_id) = residue.get_atom_id_by_name(&atom_topo.name) {
+                    modifications.push((atom_id, atom_topo.ff_type.clone()));
+                } else {
+                    return Err(ParameterizationError::AtomNotFoundInTopology {
+                        res_type: res_type_str.clone(),
+                        atom_name: atom_topo.name.clone(),
+                    });
+                }
+            }
+
+            for bond_pair in &topology.bonds {
+                let atom1_id = residue.get_atom_id_by_name(&bond_pair[0]).ok_or_else(|| {
+                    ParameterizationError::AtomNameNotFound(bond_pair[0].clone(), res_id)
+                })?;
+                let atom2_id = residue.get_atom_id_by_name(&bond_pair[1]).ok_or_else(|| {
+                    ParameterizationError::AtomNameNotFound(bond_pair[1].clone(), res_id)
+                })?;
+                bonds_to_add.push((atom1_id, atom2_id));
+            }
+        }
+
+        for (atom_id, ff_type) in modifications {
+            if let Some(atom) = system.atom_mut(atom_id) {
+                atom.force_field_type = ff_type;
+            }
+        }
+
+        for (atom1_id, atom2_id) in bonds_to_add {
+            let _ = system.add_bond(atom1_id, atom2_id, BondOrder::default());
+        }
+
+        self.build_peptide_bonds(system);
+
+        Ok(())
+    }
 }
