@@ -150,3 +150,245 @@ impl<'a> Scorer<'a> {
         Ok(energy)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::forcefield::params::{GlobalParams, HBondParam, NonBondedParams, VdwParam};
+    use crate::core::models::atom::Atom;
+    use crate::core::models::ids::ResidueId;
+    use crate::core::models::topology::BondOrder;
+    use nalgebra::Point3;
+    use std::collections::HashMap;
+
+    fn create_test_forcefield() -> Forcefield {
+        let globals = GlobalParams {
+            dielectric_constant: 1.0,
+            potential_function: "mixed".to_string(),
+        };
+
+        let mut vdw = HashMap::new();
+        vdw.insert(
+            "C".to_string(),
+            VdwParam::LennardJones {
+                radius: 4.0,
+                well_depth: 0.1,
+            },
+        );
+        vdw.insert(
+            "N".to_string(),
+            VdwParam::LennardJones {
+                radius: 3.5,
+                well_depth: 0.2,
+            },
+        );
+        vdw.insert(
+            "O".to_string(),
+            VdwParam::LennardJones {
+                radius: 3.2,
+                well_depth: 0.3,
+            },
+        );
+        vdw.insert(
+            "H".to_string(),
+            VdwParam::LennardJones {
+                radius: 1.0,
+                well_depth: 0.01,
+            },
+        );
+
+        let mut hbond = HashMap::new();
+        hbond.insert(
+            "O-N".to_string(),
+            HBondParam {
+                equilibrium_dist: 2.8,
+                well_depth: 5.0,
+            },
+        );
+
+        let non_bonded = NonBondedParams {
+            globals,
+            vdw,
+            hbond,
+        };
+
+        Forcefield {
+            non_bonded,
+            deltas: HashMap::new(),
+            charges: HashMap::new(),
+            topology: HashMap::new(),
+        }
+    }
+
+    fn create_atom(
+        serial: usize,
+        name: &str,
+        residue_id: ResidueId,
+        pos: Point3<f64>,
+        ff_type: &str,
+        charge: f64,
+        hbond_type_id: i8,
+    ) -> Atom {
+        let mut atom = Atom::new(serial, name, residue_id, pos);
+        atom.force_field_type = ff_type.to_string();
+        atom.partial_charge = charge;
+        atom.hbond_type_id = hbond_type_id;
+        atom
+    }
+
+    #[test]
+    fn scores_vdw_and_coulomb_for_simple_query_and_environment() {
+        let mut system = MolecularSystem::new();
+        let ff = create_test_forcefield();
+
+        let chain_id = system.add_chain('A', crate::core::models::chain::ChainType::Protein);
+        let res1_id = system.add_residue(chain_id, 1, "RES", None).unwrap();
+        let res2_id = system.add_residue(chain_id, 2, "RES", None).unwrap();
+
+        let query_atom = create_atom(1, "C1", res1_id, Point3::origin(), "C", 0.5, -1);
+        let env_atom = create_atom(2, "C2", res2_id, Point3::new(4.5, 0.0, 0.0), "C", -0.5, -1);
+
+        let query_id = system.add_atom_to_residue(res1_id, query_atom).unwrap();
+        let env_id = system.add_atom_to_residue(res2_id, env_atom).unwrap();
+
+        let scorer = Scorer::new(&system, &ff);
+        let energy = scorer.score_interaction(&[query_id], &[env_id]).unwrap();
+
+        assert!(energy.vdw < 0.0);
+        assert!(energy.coulomb < 0.0);
+        assert_eq!(energy.hbond, 0.0);
+    }
+
+    #[test]
+    fn ignores_interactions_within_the_same_residue() {
+        let mut system = MolecularSystem::new();
+        let ff = create_test_forcefield();
+
+        let chain_id = system.add_chain('A', crate::core::models::chain::ChainType::Protein);
+        let res1_id = system.add_residue(chain_id, 1, "RES", None).unwrap();
+
+        let atom1 = create_atom(1, "C1", res1_id, Point3::origin(), "C", 0.5, -1);
+        let atom2 = create_atom(2, "C2", res1_id, Point3::new(3.0, 0.0, 0.0), "C", -0.5, -1);
+
+        let id1 = system.add_atom_to_residue(res1_id, atom1).unwrap();
+        let id2 = system.add_atom_to_residue(res1_id, atom2).unwrap();
+
+        let scorer = Scorer::new(&system, &ff);
+        let energy = scorer.score_interaction(&[id1], &[id2]).unwrap();
+
+        assert_eq!(energy.total(), 0.0);
+    }
+
+    #[test]
+    fn scores_hydrogen_bond_between_query_and_environment() {
+        let mut system = MolecularSystem::new();
+        let ff = create_test_forcefield();
+
+        let chain_id = system.add_chain('A', crate::core::models::chain::ChainType::Protein);
+        let res1_id = system.add_residue(chain_id, 1, "RES", None).unwrap();
+        let res2_id = system.add_residue(chain_id, 2, "RES", None).unwrap();
+
+        let donor = create_atom(1, "N", res1_id, Point3::new(0.0, 0.0, 0.0), "N", -0.3, 1);
+        let hydrogen = create_atom(2, "H", res1_id, Point3::new(1.0, 0.0, 0.0), "H", 0.3, 0);
+        let donor_id = system.add_atom_to_residue(res1_id, donor).unwrap();
+        let h_id = system.add_atom_to_residue(res1_id, hydrogen).unwrap();
+        system.add_bond(donor_id, h_id, BondOrder::Single).unwrap();
+
+        let acceptor = create_atom(3, "O", res2_id, Point3::new(2.8, 0.0, 0.0), "O", -0.5, 1);
+        let acceptor_id = system.add_atom_to_residue(res2_id, acceptor).unwrap();
+
+        let scorer = Scorer::new(&system, &ff);
+        let energy = scorer
+            .score_interaction(&[acceptor_id], &[donor_id, h_id])
+            .unwrap();
+
+        assert!(energy.hbond < 0.0);
+        assert_ne!(energy.vdw, 0.0);
+        assert_ne!(energy.coulomb, 0.0);
+    }
+
+    #[test]
+    fn ignores_hydrogen_bond_within_query_set() {
+        let mut system = MolecularSystem::new();
+        let ff = create_test_forcefield();
+
+        let chain_id = system.add_chain('A', crate::core::models::chain::ChainType::Protein);
+        let res1_id = system.add_residue(chain_id, 1, "RES", None).unwrap();
+        let res2_id = system.add_residue(chain_id, 2, "RES", None).unwrap();
+
+        let donor = create_atom(1, "N", res1_id, Point3::new(0.0, 0.0, 0.0), "N", -0.3, 1);
+        let hydrogen = create_atom(2, "H", res1_id, Point3::new(1.0, 0.0, 0.0), "H", 0.3, 0);
+        let acceptor = create_atom(3, "O", res2_id, Point3::new(2.8, 0.0, 0.0), "O", -0.5, 1);
+
+        let donor_id = system.add_atom_to_residue(res1_id, donor).unwrap();
+        let h_id = system.add_atom_to_residue(res1_id, hydrogen).unwrap();
+        let acceptor_id = system.add_atom_to_residue(res2_id, acceptor).unwrap();
+        system.add_bond(donor_id, h_id, BondOrder::Single).unwrap();
+
+        let res3_id = system.add_residue(chain_id, 3, "RES", None).unwrap();
+        let env_atom = create_atom(4, "C", res3_id, Point3::new(5.0, 5.0, 5.0), "C", 0.1, -1);
+        let env_id = system.add_atom_to_residue(res3_id, env_atom).unwrap();
+
+        let scorer = Scorer::new(&system, &ff);
+        let energy = scorer
+            .score_interaction(&[donor_id, h_id, acceptor_id], &[env_id])
+            .unwrap();
+
+        assert_eq!(energy.hbond, 0.0);
+        assert_ne!(energy.vdw, 0.0);
+        assert_ne!(energy.coulomb, 0.0);
+    }
+
+    #[test]
+    fn returns_error_for_missing_atom() {
+        let system = MolecularSystem::new();
+        let ff = create_test_forcefield();
+        let scorer = Scorer::new(&system, &ff);
+
+        let fake_id = AtomId::default();
+        let result = scorer.score_interaction(&[fake_id], &[]);
+
+        assert!(matches!(result, Err(ScoringError::AtomNotFound(_))));
+    }
+
+    #[test]
+    fn returns_error_for_unparameterized_force_field_type() {
+        let mut system = MolecularSystem::new();
+        let ff = create_test_forcefield();
+
+        let chain_id = system.add_chain('A', crate::core::models::chain::ChainType::Protein);
+        let res1_id = system.add_residue(chain_id, 1, "RES", None).unwrap();
+        let res2_id = system.add_residue(chain_id, 2, "RES", None).unwrap();
+
+        let query_atom = create_atom(1, "C1", res1_id, Point3::origin(), "Unknown", 0.0, -1);
+        let env_atom = create_atom(2, "C2", res2_id, Point3::new(3.0, 0.0, 0.0), "C", 0.0, -1);
+
+        let query_id = system.add_atom_to_residue(res1_id, query_atom).unwrap();
+        let env_id = system.add_atom_to_residue(res2_id, env_atom).unwrap();
+
+        let scorer = Scorer::new(&system, &ff);
+        let result = scorer.score_interaction(&[query_id], &[env_id]);
+
+        assert!(matches!(
+            result,
+            Err(ScoringError::ForceFieldTypeMissing(_))
+        ));
+    }
+
+    #[test]
+    fn returns_error_for_hydrogen_without_donor() {
+        let mut system = MolecularSystem::new();
+        let ff = create_test_forcefield();
+
+        let chain_id = system.add_chain('A', crate::core::models::chain::ChainType::Protein);
+        let res1_id = system.add_residue(chain_id, 1, "RES", None).unwrap();
+
+        let hydrogen = create_atom(1, "H", res1_id, Point3::new(1.0, 0.0, 0.0), "H", 0.3, 0);
+        let h_id = system.add_atom_to_residue(res1_id, hydrogen).unwrap();
+
+        let scorer = Scorer::new(&system, &ff);
+        let result = scorer.score_interaction(&[h_id], &[]);
+
+        assert!(matches!(result, Err(ScoringError::DonorNotFound(_))));
+    }
+}
