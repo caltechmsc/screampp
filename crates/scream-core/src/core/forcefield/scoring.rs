@@ -13,3 +13,8 @@ pub enum ScoringError {
     #[error("Could not find donor for hydrogen atom {0:?}")]
     DonorNotFound(AtomId),
 }
+
+pub struct Scorer<'a> {
+    system: &'a MolecularSystem,
+    forcefield: &'a Forcefield,
+}
