@@ -25,3 +25,9 @@ pub struct InteractionEnergy {
     pub coulomb: f64,
     pub hbond: f64,
 }
+
+impl InteractionEnergy {
+    pub fn total(&self) -> f64 {
+        self.vdw + self.coulomb + self.hbond
+    }
+}
