@@ -1,16 +1,5 @@
 use super::ids::ResidueId;
-use bitflags::bitflags;
 use nalgebra::Point3;
-
-bitflags! {
-    #[derive(Default, Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-    pub struct AtomFlags: u8 {
-        const IS_FIXED_ROLE      = 0b0000_0001; // The atom's fundamental role is fixed (e.g., a backbone atom)
-        const IS_TREATED_AS_FIXED = 0b0000_0010; // The atom is currently being treated as fixed in the energy expression
-        const IS_VISIBLE_INTERACTION = 0b0000_0100; // The atom is visible in sidechain-sidechain interaction calculations
-        const IS_VISIBLE_LATTICE     = 0b0000_1000; // The atom is visible in empty-lattice (sidechain-environment) calculations
-    }
-}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Atom {
@@ -25,8 +14,7 @@ pub struct Atom {
     pub position: Point3<f64>,    // 3D coordinates
 
     // --- SCREAM Algorithm Specific Parameters ---
-    pub flags: AtomFlags, // Bitflags for various atom properties
-    pub delta: f64,       // "Delta" value for the flat-bottom potential
+    pub delta: f64, // "Delta" value for the flat-bottom potential
 
     // --- Cached Force Field Parameters for Performance ---
     pub vdw_radius: f64,     // van der Waals radius
@@ -43,7 +31,6 @@ impl Atom {
             position,
             force_field_type: "".to_string(),
             partial_charge: 0.0,
-            flags: AtomFlags::default(),
             delta: 0.0,
             vdw_radius: 0.0,
             vdw_well_depth: 0.0,
@@ -68,23 +55,10 @@ mod tests {
         assert_eq!(atom.position, Point3::new(1.0, 2.0, 3.0));
         assert_eq!(atom.force_field_type, "");
         assert_eq!(atom.partial_charge, 0.0);
-        assert_eq!(atom.flags, AtomFlags::default());
         assert_eq!(atom.delta, 0.0);
         assert_eq!(atom.vdw_radius, 0.0);
         assert_eq!(atom.vdw_well_depth, 0.0);
         assert_eq!(atom.hbond_type_id, -1);
-    }
-
-    #[test]
-    fn atom_flags_bitwise_operations_work() {
-        let mut flags = AtomFlags::IS_FIXED_ROLE | AtomFlags::IS_VISIBLE_LATTICE;
-        assert!(flags.contains(AtomFlags::IS_FIXED_ROLE));
-        assert!(flags.contains(AtomFlags::IS_VISIBLE_LATTICE));
-        assert!(!flags.contains(AtomFlags::IS_VISIBLE_INTERACTION));
-        flags.insert(AtomFlags::IS_VISIBLE_INTERACTION);
-        assert!(flags.contains(AtomFlags::IS_VISIBLE_INTERACTION));
-        flags.remove(AtomFlags::IS_FIXED_ROLE);
-        assert!(!flags.contains(AtomFlags::IS_FIXED_ROLE));
     }
 
     #[test]

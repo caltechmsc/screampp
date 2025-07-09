@@ -8,6 +8,12 @@ pub struct CbCreationParams {
     pub bond_length: f64,
 }
 
+pub fn bond_angle(p1: &Point3<f64>, p2_vertex: &Point3<f64>, p3: &Point3<f64>) -> f64 {
+    let v1 = p1 - p2_vertex;
+    let v2 = p3 - p2_vertex;
+    v1.angle(&v2).to_degrees()
+}
+
 pub fn dihedral_angle(
     p1: &Point3<f64>,
     p2: &Point3<f64>,
@@ -204,6 +210,20 @@ mod tests {
 
     fn f64_approx_equal(a: f64, b: f64) -> bool {
         (a - b).abs() < EPSILON
+    }
+
+    #[test]
+    fn test_bond_angle() {
+        let p1 = Point3::new(1.0, 0.0, 0.0);
+        let p2 = Point3::new(0.0, 0.0, 0.0);
+        let p3 = Point3::new(0.0, 1.0, 0.0);
+        assert!(f64_approx_equal(bond_angle(&p1, &p2, &p3), 90.0));
+
+        let p3_straight = Point3::new(-1.0, 0.0, 0.0);
+        assert!(f64_approx_equal(bond_angle(&p1, &p2, &p3_straight), 180.0));
+
+        let p3_cis = Point3::new(1.0, 1.0, 0.0);
+        assert!(f64_approx_equal(bond_angle(&p1, &p2, &p3_cis), 45.0));
     }
 
     #[test]
