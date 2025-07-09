@@ -18,3 +18,10 @@ pub struct Scorer<'a> {
     system: &'a MolecularSystem,
     forcefield: &'a Forcefield,
 }
+
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
+pub struct InteractionEnergy {
+    pub vdw: f64,
+    pub coulomb: f64,
+    pub hbond: f64,
+}
