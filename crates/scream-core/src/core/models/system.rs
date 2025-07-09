@@ -232,7 +232,7 @@ mod tests {
         assert_eq!(system.atoms_iter().count(), 3);
         assert_eq!(system.residues_iter().count(), 2);
         assert_eq!(system.chains_iter().count(), 1);
-        assert_eq!(system.bonds.len(), 1);
+        assert_eq!(system.bonds.len(), 2);
 
         let chain_a_id = system.find_chain_by_id('A').unwrap();
         assert!(system.find_chain_by_id('B').is_none());
@@ -253,8 +253,8 @@ mod tests {
         let atom_n_id = system.find_atom_by_serial(1).unwrap();
         let atom_ca_id = system.find_atom_by_serial(2).unwrap();
 
-        assert_eq!(system.bonds.len(), 1);
-        assert!(system.bonds[0].contains(atom_n_id));
+        assert_eq!(system.bonds.len(), 2);
+        assert!(system.bonds.iter().any(|b| b.contains(atom_n_id)));
         assert!(system.atom(atom_n_id).is_some());
         let residue_id = system.atom(atom_n_id).unwrap().residue_id;
         assert_eq!(system.residue(residue_id).unwrap().id, 1);
@@ -266,7 +266,7 @@ mod tests {
         assert!(system.atom(atom_n_id).is_none());
         assert!(system.find_atom_by_serial(1).is_none());
 
-        assert!(system.bonds.is_empty());
+        assert_eq!(system.bonds.len(), 1);
 
         assert!(system.bond_adjacency.get(atom_n_id).is_none());
         assert!(!system.bond_adjacency[atom_ca_id].contains(&atom_n_id));
@@ -285,7 +285,7 @@ mod tests {
 
         assert_eq!(system.atoms_iter().count(), 3);
         assert_eq!(system.residues_iter().count(), 2);
-        assert_eq!(system.bonds.len(), 1);
+        assert_eq!(system.bonds.len(), 2);
         assert_eq!(system.chain(chain_a_id).unwrap().residues().len(), 2);
 
         let removed_residue = system.remove_residue(gly_id).unwrap();
@@ -332,7 +332,7 @@ mod tests {
 
     #[test]
     fn get_bonded_neighbors_returns_correct_neighbors() {
-        let mut system = create_test_system();
+        let system = create_test_system();
         let atom_n_id = system.find_atom_by_serial(1).unwrap();
         let atom_ca_id = system.find_atom_by_serial(2).unwrap();
         let atom_ala_ca_id = system.find_atom_by_serial(3).unwrap();

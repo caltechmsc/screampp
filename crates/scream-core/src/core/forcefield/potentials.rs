@@ -95,6 +95,7 @@ where
         potential_fn(ideal_dist)
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
