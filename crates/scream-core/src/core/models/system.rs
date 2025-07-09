@@ -187,6 +187,10 @@ impl MolecularSystem {
         // 4. Finally, remove the residue itself
         self.residues.remove(residue_id)
     }
+
+    pub fn get_bonded_neighbors(&self, atom_id: AtomId) -> Option<&[AtomId]> {
+        self.bond_adjacency.get(atom_id).map(|v| v.as_slice())
+    }
 }
 
 #[cfg(test)]
