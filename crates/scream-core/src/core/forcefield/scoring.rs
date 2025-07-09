@@ -31,3 +31,9 @@ impl InteractionEnergy {
         self.vdw + self.coulomb + self.hbond
     }
 }
+
+impl<'a> Scorer<'a> {
+    pub fn new(system: &'a MolecularSystem, forcefield: &'a Forcefield) -> Self {
+        Self { system, forcefield }
+    }
+}
