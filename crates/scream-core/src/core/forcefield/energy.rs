@@ -54,4 +54,9 @@ impl EnergyCalculator {
 
         potentials::apply_flat_bottom_vdw(dist, r_min_combined, total_delta, base_potential_fn)
     }
+
+    pub fn calculate_coulomb(atom1: &Atom, atom2: &Atom, dielectric: f64) -> f64 {
+        let dist = (atom1.position - atom2.position).norm();
+        potentials::coulomb(dist, atom1.partial_charge, atom2.partial_charge, dielectric)
+    }
 }
