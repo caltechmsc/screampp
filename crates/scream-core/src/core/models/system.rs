@@ -217,7 +217,10 @@ mod tests {
             .add_residue(chain_a_id, 2, "ALA", Some(ResidueType::Alanine))
             .unwrap();
         let ala_ca_atom = Atom::new(3, "CA", ala_id, Point3::new(2.0, 1.0, 0.0));
-        system.add_atom_to_residue(ala_id, ala_ca_atom).unwrap();
+        let ala_ca_id = system.add_atom_to_residue(ala_id, ala_ca_atom).unwrap();
+        system
+            .add_bond(ca_id, ala_ca_id, BondOrder::Single)
+            .unwrap();
 
         system
     }
@@ -325,5 +328,22 @@ mod tests {
             system.residue(ala_id).unwrap().res_type,
             Some(ResidueType::Alanine)
         );
+    }
+
+    #[test]
+    fn get_bonded_neighbors_returns_correct_neighbors() {
+        let mut system = create_test_system();
+        let atom_n_id = system.find_atom_by_serial(1).unwrap();
+        let atom_ca_id = system.find_atom_by_serial(2).unwrap();
+        let atom_ala_ca_id = system.find_atom_by_serial(3).unwrap();
+
+        let neighbors_n = system.get_bonded_neighbors(atom_n_id).unwrap();
+        assert_eq!(neighbors_n, &[atom_ca_id]);
+
+        let neighbors_ca = system.get_bonded_neighbors(atom_ca_id).unwrap();
+        assert_eq!(neighbors_ca, &[atom_n_id, atom_ala_ca_id]);
+
+        let neighbors_ala_ca = system.get_bonded_neighbors(atom_ala_ca_id).unwrap();
+        assert_eq!(neighbors_ala_ca, &[atom_ca_id]);
     }
 }
