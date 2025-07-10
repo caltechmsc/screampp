@@ -40,3 +40,66 @@ pub enum LibraryLoadError {
         source: ParameterizationError,
     },
 }
+
+impl RotamerLibrary {
+    pub fn load(
+        library_path: &Path,
+        forcefield: &Forcefield,
+        delta_s_factor: f64,
+    ) -> Result<Self, LibraryLoadError> {
+        let content = std::fs::read_to_string(library_path).map_err(|e| LibraryLoadError::Io {
+            path: library_path.to_string_lossy().to_string(),
+            source: e,
+        })?;
+
+        let raw_lib: RawRotamerFile =
+            toml::from_str(&content).map_err(|e| LibraryLoadError::Toml {
+                path: library_path.to_string_lossy().to_string(),
+                source: e,
+            })?;
+
+        let parameterizer = Parameterizer::new(forcefield.clone(), delta_s_factor);
+        let mut final_rotamers_map = HashMap::new();
+
+        for (res_name, raw_rotamer_list) in raw_lib {
+            let res_type = ResidueType::from_str(&res_name)
+                .map_err(|_| LibraryLoadError::UnknownResidueType(res_name.clone()))?;
+
+            let mut parameterized_rotamers = Vec::new();
+
+            let placeholder_residue_id = ResidueId::default();
+
+            for raw_rotamer in raw_rotamer_list {
+                let mut atoms = Vec::with_capacity(raw_rotamer.atoms.len());
+
+                for atom_data in raw_rotamer.atoms {
+                    let mut atom = Atom::new(
+                        atom_data.serial,
+                        &atom_data.atom_name,
+                        placeholder_residue_id,
+                        Point3::from(atom_data.position),
+                    );
+                    atom.partial_charge = atom_data.partial_charge;
+
+                    parameterizer
+                        .parameterize_atom(&mut atom, &res_name)
+                        .map_err(|e| LibraryLoadError::Parameterization {
+                            path: library_path.to_string_lossy().to_string(),
+                            res_type: res_name.clone(),
+                            source: e,
+                        })?;
+
+                    atoms.push(atom);
+                }
+
+                parameterized_rotamers.push(Rotamer { atoms });
+            }
+
+            final_rotamers_map.insert(res_type, parameterized_rotamers);
+        }
+
+        Ok(Self {
+            rotamers: final_rotamers_map,
+        })
+    }
+}
