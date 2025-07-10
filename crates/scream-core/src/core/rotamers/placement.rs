@@ -10,3 +10,19 @@ pub struct PlacementInfo {
     pub exact_match_atoms: Vec<String>,
     pub connection_points: Vec<String>,
 }
+
+pub type PlacementRegistry = HashMap<String, PlacementInfo>;
+
+#[derive(Debug, Error)]
+pub enum PlacementLoadError {
+    #[error("File I/O error for '{path}': {source}")]
+    Io {
+        path: String,
+        source: std::io::Error,
+    },
+    #[error("TOML parsing error for '{path}': {source}")]
+    Toml {
+        path: String,
+        source: toml::de::Error,
+    },
+}
