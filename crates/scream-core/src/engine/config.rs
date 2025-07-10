@@ -12,3 +12,10 @@ pub struct InputPaths {
     pub charge_file: PathBuf,
     pub delta_file: PathBuf,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PlacementSelection {
+    All,
+    AllExcept(Vec<(char, isize)>),
+    Explicit(Vec<(char, isize)>),
+}
