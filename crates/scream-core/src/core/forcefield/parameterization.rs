@@ -1,4 +1,5 @@
 use super::params::Forcefield;
+use crate::core::models::atom::Atom;
 use crate::core::models::ids::ResidueId;
 use crate::core::models::system::MolecularSystem;
 use crate::core::models::topology::BondOrder;
@@ -244,6 +245,67 @@ impl Parameterizer {
         for (atom1_id, atom2_id) in peptide_bonds_to_add {
             let _ = system.add_bond(atom1_id, atom2_id, BondOrder::Single);
         }
+    }
+
+    pub fn parameterize_atom(
+        &self,
+        atom: &mut Atom,
+        res_type_str: &str,
+    ) -> Result<(), ParameterizationError> {
+        let topology = self
+            .forcefield
+            .topology
+            .get(res_type_str)
+            .ok_or_else(|| ParameterizationError::MissingTopology(res_type_str.to_string()))?;
+
+        let atom_topo = topology
+            .atoms
+            .iter()
+            .find(|a| a.name == atom.name)
+            .ok_or_else(|| ParameterizationError::AtomNotFoundInTopology {
+                res_type: res_type_str.to_string(),
+                atom_name: atom.name.clone(),
+            })?;
+
+        atom.force_field_type = atom_topo.ff_type.clone();
+
+        atom.delta = if res_type_str == "GLY" {
+            0.0
+        } else {
+            self.forcefield
+                .deltas
+                .get(&(res_type_str.to_string(), atom.name.clone()))
+                .map_or(0.0, |p| p.mu + self.delta_s_factor * p.sigma)
+        };
+
+        let ff_type = &atom.force_field_type;
+        let vdw_param = self
+            .forcefield
+            .non_bonded
+            .vdw
+            .get(ff_type)
+            .ok_or_else(|| ParameterizationError::MissingVdwParams(ff_type.clone()))?;
+
+        let (vdw_radius, vdw_well_depth) = match vdw_param {
+            super::params::VdwParam::LennardJones { radius, well_depth } => (*radius, *well_depth),
+            super::params::VdwParam::Buckingham {
+                radius, well_depth, ..
+            } => (*radius, *well_depth),
+        };
+        atom.vdw_radius = vdw_radius;
+        atom.vdw_well_depth = vdw_well_depth;
+
+        atom.hbond_type_id = if ff_type == "H___A" {
+            0
+        } else {
+            self.forcefield
+                .non_bonded
+                .hbond
+                .get(ff_type)
+                .map_or(-1, |_| 1)
+        };
+
+        Ok(())
     }
 }
 
