@@ -1,4 +1,5 @@
 use super::params::Forcefield;
+use crate::core::models::atom::Atom;
 use crate::core::models::ids::ResidueId;
 use crate::core::models::system::MolecularSystem;
 use crate::core::models::topology::BondOrder;
@@ -245,6 +246,67 @@ impl Parameterizer {
             let _ = system.add_bond(atom1_id, atom2_id, BondOrder::Single);
         }
     }
+
+    pub fn parameterize_atom(
+        &self,
+        atom: &mut Atom,
+        res_type_str: &str,
+    ) -> Result<(), ParameterizationError> {
+        let topology = self
+            .forcefield
+            .topology
+            .get(res_type_str)
+            .ok_or_else(|| ParameterizationError::MissingTopology(res_type_str.to_string()))?;
+
+        let atom_topo = topology
+            .atoms
+            .iter()
+            .find(|a| a.name == atom.name)
+            .ok_or_else(|| ParameterizationError::AtomNotFoundInTopology {
+                res_type: res_type_str.to_string(),
+                atom_name: atom.name.clone(),
+            })?;
+
+        atom.force_field_type = atom_topo.ff_type.clone();
+
+        atom.delta = if res_type_str == "GLY" {
+            0.0
+        } else {
+            self.forcefield
+                .deltas
+                .get(&(res_type_str.to_string(), atom.name.clone()))
+                .map_or(0.0, |p| p.mu + self.delta_s_factor * p.sigma)
+        };
+
+        let ff_type = &atom.force_field_type;
+        let vdw_param = self
+            .forcefield
+            .non_bonded
+            .vdw
+            .get(ff_type)
+            .ok_or_else(|| ParameterizationError::MissingVdwParams(ff_type.clone()))?;
+
+        let (vdw_radius, vdw_well_depth) = match vdw_param {
+            super::params::VdwParam::LennardJones { radius, well_depth } => (*radius, *well_depth),
+            super::params::VdwParam::Buckingham {
+                radius, well_depth, ..
+            } => (*radius, *well_depth),
+        };
+        atom.vdw_radius = vdw_radius;
+        atom.vdw_well_depth = vdw_well_depth;
+
+        atom.hbond_type_id = if ff_type == "H___A" {
+            0
+        } else {
+            self.forcefield
+                .non_bonded
+                .hbond
+                .get(ff_type)
+                .map_or(-1, |_| 1)
+        };
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -417,6 +479,21 @@ mod tests {
         system.add_atom_to_residue(res2_id, atom2_c).unwrap();
 
         system
+    }
+
+    fn create_dummy_forcefield_for_atom_test() -> Forcefield {
+        let mut ff = create_dummy_forcefield();
+
+        ff.deltas.insert(
+            ("ALA".to_string(), "CA".to_string()),
+            DeltaParam {
+                res_type: "ALA".to_string(),
+                atom_name: "CA".to_string(),
+                mu: 1.23,
+                sigma: 0.2,
+            },
+        );
+        ff
     }
 
     #[test]
@@ -633,5 +710,80 @@ mod tests {
         assert_eq!(atom_ca.delta, 1.23);
         assert_eq!(atom_ca.vdw_radius, 2.0);
         assert_eq!(system.bonds().len(), 3);
+    }
+
+    #[test]
+    fn parameterize_atom_updates_atom_correctly() {
+        let ff = create_dummy_forcefield_for_atom_test();
+        let parameterizer = Parameterizer::new(ff, 1.0);
+        let residue_id = ResidueId::default();
+
+        let mut atom = Atom::new(1, "CA", residue_id, Point3::origin());
+        atom.partial_charge = -99.9;
+        atom.force_field_type = "C_from_lib".to_string();
+
+        let result = parameterizer.parameterize_atom(&mut atom, "ALA");
+
+        assert!(result.is_ok(), "Parameterization should succeed");
+
+        assert_eq!(
+            atom.force_field_type, "C_SP3",
+            "Force field type should be overwritten by topology"
+        );
+
+        assert_eq!(
+            atom.partial_charge, -99.9,
+            "Partial charge should NOT be modified by parameterize_atom"
+        );
+
+        assert!(
+            (atom.delta - 1.43).abs() < 1e-9,
+            "Delta value should be mu + s * sigma"
+        );
+
+        assert_eq!(
+            atom.vdw_radius, 2.0,
+            "VDW radius should be set from forcefield"
+        );
+        assert_eq!(
+            atom.vdw_well_depth, 0.1,
+            "VDW well depth should be set from forcefield"
+        );
+
+        assert_eq!(
+            atom.hbond_type_id, -1,
+            "HBond type ID for non-HBond atom should be -1"
+        );
+    }
+
+    #[test]
+    fn parameterize_atom_handles_hbond_donor_hydrogen() {
+        let ff = create_dummy_forcefield_for_atom_test();
+        let parameterizer = Parameterizer::new(ff, 1.0);
+        let residue_id = ResidueId::default();
+
+        let mut atom = Atom::new(1, "HN", residue_id, Point3::origin());
+        atom.force_field_type = "H___A".to_string();
+        atom.partial_charge = 0.35;
+
+        let mut ff_for_hbond = create_dummy_forcefield_for_atom_test();
+        ff_for_hbond
+            .topology
+            .get_mut("ALA")
+            .unwrap()
+            .atoms
+            .push(TopologyAtomParam {
+                name: "HN".to_string(),
+                ff_type: "H___A".to_string(),
+            });
+        let parameterizer_for_hbond = Parameterizer::new(ff_for_hbond, 1.0);
+        let result = parameterizer_for_hbond.parameterize_atom(&mut atom, "ALA");
+
+        assert!(result.is_ok());
+        assert_eq!(atom.force_field_type, "H___A");
+        assert_eq!(
+            atom.hbond_type_id, 0,
+            "Polar hydrogen should have hbond_type_id 0"
+        );
     }
 }
