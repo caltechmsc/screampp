@@ -19,3 +19,19 @@ pub enum PlacementSelection {
     AllExcept(Vec<(char, isize)>),
     Explicit(Vec<(char, isize)>),
 }
+
+pub type DesignMap = HashMap<(char, isize), Vec<ResidueType>>;
+
+#[derive(Debug, Clone)]
+pub enum PlacementMode {
+    Standard(PlacementSelection),
+    Design(DesignMap),
+}
+
+#[derive(Debug, Clone)]
+pub struct EngineConfig {
+    pub mode: PlacementMode,
+    pub s_factor: f64,
+    pub max_iterations: usize,
+    pub convergence_tolerance: f64,
+}
