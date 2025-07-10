@@ -26,3 +26,14 @@ pub enum PlacementLoadError {
         source: toml::de::Error,
     },
 }
+
+pub fn load_placement_registry(path: &Path) -> Result<PlacementRegistry, PlacementLoadError> {
+    let content = std::fs::read_to_string(path).map_err(|e| PlacementLoadError::Io {
+        path: path.to_string_lossy().to_string(),
+        source: e,
+    })?;
+    toml::from_str(&content).map_err(|e| PlacementLoadError::Toml {
+        path: path.to_string_lossy().to_string(),
+        source: e,
+    })
+}
