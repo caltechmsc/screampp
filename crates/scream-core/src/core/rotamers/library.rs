@@ -102,4 +102,8 @@ impl RotamerLibrary {
             rotamers: final_rotamers_map,
         })
     }
+
+    pub fn get_rotamers_for(&self, res_type: ResidueType) -> Option<&Vec<Rotamer>> {
+        self.rotamers.get(&res_type)
+    }
 }
