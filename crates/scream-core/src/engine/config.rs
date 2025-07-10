@@ -35,3 +35,26 @@ pub struct EngineConfig {
     pub max_iterations: usize,
     pub convergence_tolerance: f64,
 }
+
+impl Default for PlacementSelection {
+    fn default() -> Self {
+        PlacementSelection::All
+    }
+}
+
+impl Default for PlacementMode {
+    fn default() -> Self {
+        PlacementMode::Standard(PlacementSelection::default())
+    }
+}
+
+impl Default for EngineConfig {
+    fn default() -> Self {
+        Self {
+            mode: PlacementMode::default(),
+            s_factor: 1.0,
+            max_iterations: 10,
+            convergence_tolerance: 0.01,
+        }
+    }
+}
