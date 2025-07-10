@@ -1,0 +1,905 @@
+[[ALA]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-1.019, 0.54552, -0.85324], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = 0.0337, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.0823, position = [-0.3747, -0.9092, 0.48219], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5973, position = [0.36247, 0.96308, 1.08277], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = -0.1825, position = [1.22589, -0.39219, -0.86079], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0603, position = [1.63879, 0.47556, -1.3814], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = 0.0603, position = [2.00682, -0.83192, -0.23371], force_field_type = "H_" },
+  { serial = 8, atom_name = "HCB", partial_charge = 0.0603, position = [0.93198, -1.13857, -1.60119], force_field_type = "H_" }
+]
+
+[[ARG]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.3896, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.3054, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.1143, position = [-0.51907, -0.49867, 0.81853], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.6924, position = [0.88706, 1.06647, 0.5499], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = -0.0424, position = [0.86059, -1.05958, -0.70913], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = -0.0090, position = [1.31869, -0.61687, -1.59766], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = -0.0090, position = [1.65337, -1.37957, -0.02705], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = -0.0027, position = [0.04245, -2.30649, -1.11539], force_field_type = "C_3" },
+  { serial = 9, atom_name = "HCG", partial_charge = -0.0132, position = [-0.48048, -2.6918, -0.23671], force_field_type = "H_" },
+  { serial = 10, atom_name = "HCG", partial_charge = -0.0132, position = [-0.69503, -2.03384, -1.87278], force_field_type = "H_" },
+  { serial = 11, atom_name = "CD", partial_charge = 0.0069, position = [0.94697, -3.41996, -1.66851], force_field_type = "C_3" },
+  { serial = 12, atom_name = "HCD", partial_charge = 0.0270, position = [1.67801, -3.6897, -0.90498], force_field_type = "H_" },
+  { serial = 13, atom_name = "HCD", partial_charge = 0.0270, position = [0.33771, -4.30075, -1.87681], force_field_type = "H_" },
+  { serial = 14, atom_name = "NE", partial_charge = -0.5712, position = [1.57055, -2.99975, -2.88197], force_field_type = "N_R" },
+  { serial = 15, atom_name = "HNE", partial_charge = 0.3039, position = [0.99852, -2.77215, -3.63255], force_field_type = "H___A" },
+  { serial = 16, atom_name = "CZ", partial_charge = 0.7659, position = [2.90088, -2.88332, -3.05615], force_field_type = "C_R" },
+  { serial = 17, atom_name = "NH1", partial_charge = -0.9044, position = [3.78955, -3.1498, -2.08641], force_field_type = "N_R" },
+  { serial = 18, atom_name = "HNH1", partial_charge = 0.4061, position = [4.73792, -3.05438, -2.26106], force_field_type = "H___A" },
+  { serial = 19, atom_name = "HNH1", partial_charge = 0.4061, position = [3.48595, -3.43721, -1.20977], force_field_type = "H___A" },
+  { serial = 20, atom_name = "NH2", partial_charge = -0.9044, position = [3.35682, -2.47823, -4.24976], force_field_type = "N_R" },
+  { serial = 21, atom_name = "HNH2", partial_charge = 0.4061, position = [4.31209, -2.38994, -4.39997], force_field_type = "H___A" },
+  { serial = 22, atom_name = "HNH2", partial_charge = 0.4061, position = [2.73467, -2.27313, -4.96577], force_field_type = "H___A" }
+]
+
+[[ARG]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.3896, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.3054, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.1143, position = [-0.51908, -0.49867, 0.81853], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.6924, position = [0.88706, 1.06647, 0.5499], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = -0.0424, position = [0.83764, -1.07194, -0.73803], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = -0.0090, position = [0.16157, -1.82364, -1.14942], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = -0.0090, position = [1.36438, -0.60041, -1.57176], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = -0.0027, position = [1.88196, -1.80061, 0.14636], force_field_type = "C_3" },
+  { serial = 9, atom_name = "HCG", partial_charge = -0.0132, position = [2.44878, -2.48165, -0.49164], force_field_type = "H_" },
+  { serial = 10, atom_name = "HCG", partial_charge = -0.0132, position = [2.57519, -1.06868, 0.5663], force_field_type = "H_" },
+  { serial = 11, atom_name = "CD", partial_charge = 0.0069, position = [1.24636, -2.61432, 1.29101], force_field_type = "C_3" },
+  { serial = 12, atom_name = "HCD", partial_charge = 0.0270, position = [0.7909, -1.92683, 2.00786], force_field_type = "H_" },
+  { serial = 13, atom_name = "HCD", partial_charge = 0.0270, position = [0.46559, -3.25862, 0.88621], force_field_type = "H_" },
+  { serial = 14, atom_name = "NE", partial_charge = -0.5712, position = [2.22625, -3.44093, 1.91769], force_field_type = "N_R" },
+  { serial = 15, atom_name = "HNE", partial_charge = 0.3039, position = [2.71001, -4.07079, 1.36121], force_field_type = "H___A" },
+  { serial = 16, atom_name = "CZ", partial_charge = 0.7659, position = [2.52906, -3.4182, 3.23113], force_field_type = "C_R" },
+  { serial = 17, atom_name = "NH1", partial_charge = -0.9044, position = [1.92065, -2.60556, 4.10932], force_field_type = "N_R" },
+  { serial = 18, atom_name = "HNH1", partial_charge = 0.4061, position = [2.1755, -2.62721, 5.04397], force_field_type = "H___A" },
+  { serial = 19, atom_name = "HNH1", partial_charge = 0.4061, position = [1.22574, -1.99892, 3.80988], force_field_type = "H___A" },
+  { serial = 20, atom_name = "NH2", partial_charge = -0.9044, position = [3.47887, -4.2476, 3.68365], force_field_type = "N_R" },
+  { serial = 21, atom_name = "HNH2", partial_charge = 0.4061, position = [3.71172, -4.24686, 4.62495], force_field_type = "H___A" },
+  { serial = 22, atom_name = "HNH2", partial_charge = 0.4061, position = [3.93368, -4.84859, 3.07231], force_field_type = "H___A" }
+]
+
+[[ARG]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.3896, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.3054, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.1143, position = [-0.51908, -0.49867, 0.81853], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.6924, position = [0.88706, 1.06647, 0.5499], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = -0.0424, position = [0.84859, -1.06058, -0.74124], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = -0.0090, position = [1.32621, -0.59272, -1.60638], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = -0.0090, position = [1.63434, -1.42581, -0.07691], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = -0.0027, position = [0.02219, -2.27312, -1.23588], force_field_type = "C_3" },
+  { serial = 9, atom_name = "HCG", partial_charge = -0.0132, position = [-0.81189, -1.91406, -1.84266], force_field_type = "H_" },
+  { serial = 10, atom_name = "HCG", partial_charge = -0.0132, position = [0.66091, -2.8931, -1.86804], force_field_type = "H_" },
+  { serial = 11, atom_name = "CD", partial_charge = 0.0069, position = [-0.52046, -3.14335, -0.08187], force_field_type = "C_3" },
+  { serial = 12, atom_name = "HCD", partial_charge = 0.0270, position = [0.31558, -3.57915, 0.46745], force_field_type = "H_" },
+  { serial = 13, atom_name = "HCD", partial_charge = 0.0270, position = [-1.09678, -2.53164, 0.61371], force_field_type = "H_" },
+  { serial = 14, atom_name = "NE", partial_charge = -0.5712, position = [-1.3259, -4.20444, -0.58402], force_field_type = "N_R" },
+  { serial = 15, atom_name = "HNE", partial_charge = 0.3039, position = [-0.87536, -4.98757, -0.93573], force_field_type = "H___A" },
+  { serial = 16, atom_name = "CZ", partial_charge = 0.7659, position = [-2.67515, -4.20429, -0.59537], force_field_type = "C_R" },
+  { serial = 17, atom_name = "NH1", partial_charge = -0.9044, position = [-3.41897, -3.15848, -0.19939], force_field_type = "N_R" },
+  { serial = 18, atom_name = "HNH1", partial_charge = 0.4061, position = [-4.38701, -3.21804, -0.2205], force_field_type = "H___A" },
+  { serial = 19, atom_name = "HNH1", partial_charge = 0.4061, position = [-2.99264, -2.34213, 0.10568], force_field_type = "H___A" },
+  { serial = 20, atom_name = "NH2", partial_charge = -0.9044, position = [-3.30134, -5.30771, -1.02519], force_field_type = "N_R" },
+  { serial = 21, atom_name = "HNH2", partial_charge = 0.4061, position = [-4.27038, -5.34096, -1.03588], force_field_type = "H___A" },
+  { serial = 22, atom_name = "HNH2", partial_charge = 0.4061, position = [-2.78581, -6.07546, -1.31835], force_field_type = "H___A" }
+]
+
+[[ASN]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = 0.0143, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.1048, position = [-0.33252, -0.98862, 0.31649], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5973, position = [0.18469, 0.86988, 1.19826], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = -0.2041, position = [1.36199, -0.14757, -0.71213], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0797, position = [1.69418, 0.83479, -1.05572], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = 0.0797, position = [2.09849, -0.52673, -0.00056], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = 0.7130, position = [1.30714, -1.07064, -1.85659], force_field_type = "C_R" },
+  { serial = 9, atom_name = "OD1", partial_charge = -0.5931, position = [0.96619, -2.26513, -1.69554], force_field_type = "O_2" },
+  { serial = 10, atom_name = "ND2", partial_charge = -0.9191, position = [1.63266, -0.63837, -3.08283], force_field_type = "N_R" },
+  { serial = 11, atom_name = "HND2", partial_charge = 0.4196, position = [1.59364, -1.24416, -3.83822], force_field_type = "H___A" },
+  { serial = 12, atom_name = "HND2", partial_charge = 0.4196, position = [1.90996, 0.28163, -3.21543], force_field_type = "H___A" }
+]
+
+[[ASP]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4330, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = 0.1214, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.1713, position = [-0.5184, -0.53503, 0.79568], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.6199, position = [0.85027, 1.07279, 0.59397], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = 0.0530, position = [0.90944, -0.99971, -0.75082], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0711, position = [1.42749, -0.47899, -1.56011], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = 0.0711, position = [1.6612, -1.3926, -0.06266], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = 0.8827, position = [0.15882, -2.13678, -1.3082], force_field_type = "C_R" },
+  { serial = 9, atom_name = "OD1", partial_charge = -0.7181, position = [-0.43556, -2.93889, -0.55407], force_field_type = "O_2" },
+  { serial = 10, atom_name = "OD2", partial_charge = -0.7181, position = [0.11499, -2.3207, -2.5447], force_field_type = "O_2" }
+]
+
+[[CYS]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = 0.0213, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.1124, position = [0.18829, -1.03598, -0.28177], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5973, position = [-0.46864, 0.0531, 1.41569], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = -0.1231, position = [1.33972, 0.74847, -0.1364], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.1112, position = [1.19579, 1.81486, 0.05914], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = 0.1112, position = [2.05177, 0.34184, 0.5835], force_field_type = "H_" },
+  { serial = 8, atom_name = "SG", partial_charge = -0.3119, position = [2.04662, 0.53453, -1.78184], force_field_type = "S_3" },
+  { serial = 9, atom_name = "HSG", partial_charge = 0.1933, position = [1.00089, 1.17749, -2.36535], force_field_type = "H___A" }
+]
+
+[[GLN]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.0031, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.0850, position = [-0.41503, -0.89488, 0.46373], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5973, position = [0.37358, 0.98177, 1.0598], force_field_type = "C_2" },
+  { serial = 5, atom_name = "CB", partial_charge = -0.0036, position = [1.26764, -0.40118, -0.7826], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0171, position = [1.68585, 0.4828, -1.27021], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = 0.0171, position = [2.00478, -0.79594, -0.07926], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = -0.0645, position = [0.97721, -1.48498, -1.84232], force_field_type = "C_3" },
+  { serial = 9, atom_name = "HCG", partial_charge = 0.0352, position = [0.56721, -2.36444, -1.33926], force_field_type = "H_" },
+  { serial = 10, atom_name = "HCG", partial_charge = 0.0352, position = [0.23746, -1.11595, -2.55579], force_field_type = "H_" },
+  { serial = 11, atom_name = "CD", partial_charge = 0.6951, position = [2.19278, -1.86424, -2.5772], force_field_type = "C_R" },
+  { serial = 12, atom_name = "OE1", partial_charge = -0.6086, position = [2.78904, -1.02931, -3.29616], force_field_type = "O_2" },
+  { serial = 13, atom_name = "NE2", partial_charge = -0.9407, position = [2.66442, -3.11624, -2.49004], force_field_type = "N_R" },
+  { serial = 14, atom_name = "HNE2", partial_charge = 0.4251, position = [3.46247, -3.3687, -2.97833], force_field_type = "H___A" },
+  { serial = 15, atom_name = "HNE2", partial_charge = 0.4251, position = [2.20517, -3.77195, -1.9398], force_field_type = "H___A" }
+]
+
+[[GLU]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4496, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = 0.1064, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.1772, position = [-0.06288, -1.08751, -0.03849], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.6033, position = [-0.22719, 0.4621, 1.40052], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = 0.1227, position = [1.41575, 0.42496, -0.45064], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0494, position = [1.47075, 1.5162, -0.47042], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = 0.0494, position = [2.14381, 0.04817, 0.2718], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = 0.0803, position = [1.78128, -0.12907, -1.8453], force_field_type = "C_3" },
+  { serial = 9, atom_name = "HCG", partial_charge = 0.0242, position = [1.71667, -1.21873, -1.82004], force_field_type = "H_" },
+  { serial = 10, atom_name = "HCG", partial_charge = 0.0242, position = [1.07109, 0.24613, -2.58385], force_field_type = "H_" },
+  { serial = 11, atom_name = "CD", partial_charge = 0.8721, position = [3.13594, 0.26902, -2.25497], force_field_type = "C_R" },
+  { serial = 12, atom_name = "OE1", partial_charge = -0.7521, position = [3.43377, 1.47821, -2.3827], force_field_type = "O_2" },
+  { serial = 13, atom_name = "OE2", partial_charge = -0.7521, position = [4.00266, -0.59857, -2.50028], force_field_type = "O_2" }
+]
+
+[[GLY]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-1.019, 0.54552, -0.85324], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.0252, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.0698, position = [-0.3747, -0.9092, 0.48219], force_field_type = "H_" },
+  { serial = 4, atom_name = "HCA", partial_charge = 0.0698, position = [0.89152, -0.21484, -0.58998], force_field_type = "H_" },
+  { serial = 5, atom_name = "C", partial_charge = 0.5973, position = [0.36247, 0.96308, 1.08277], force_field_type = "C_R" }
+]
+
+[[HIS]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = 0.0188, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.0881, position = [0.13423, -1.05592, -0.23479], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5973, position = [-0.42543, 0.14293, 1.4231], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = -0.0462, position = [1.36122, 0.697, -0.22567], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0402, position = [1.25536, 1.76453, -0.02013], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = 0.0402, position = [2.09797, 0.28557, 0.46783], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = -0.0266, position = [1.86904, 0.51555, -1.60007], force_field_type = "C_R" },
+  { serial = 9, atom_name = "ND1", partial_charge = -0.3811, position = [2.22981, -0.63633, -2.18325], force_field_type = "N_R" },
+  { serial = 10, atom_name = "HND1", partial_charge = 0.3649, position = [2.20277, -1.51841, -1.77558], force_field_type = "H___A" },
+  { serial = 11, atom_name = "CD2", partial_charge = 0.1292, position = [2.06956, 1.51308, -2.54892], force_field_type = "C_R" },
+  { serial = 12, atom_name = "HCD2", partial_charge = 0.1147, position = [1.88705, 2.51053, -2.41568], force_field_type = "H_" },
+  { serial = 13, atom_name = "CE1", partial_charge = 0.2057, position = [2.63201, -0.36359, -3.4325], force_field_type = "C_R" },
+  { serial = 14, atom_name = "HCE1", partial_charge = 0.1392, position = [2.96103, -1.05673, -4.10565], force_field_type = "H_" },
+  { serial = 15, atom_name = "NE2", partial_charge = -0.5727, position = [2.53966, 0.95537, -3.67575], force_field_type = "N_R" }
+]
+
+[[HSE]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.0581, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.1360, position = [0.13423, -1.05592, -0.23479], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5973, position = [-0.42543, 0.14293, 1.4231], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = -0.0074, position = [1.36122, 0.697, -0.22567], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0367, position = [1.25536, 1.76453, -0.02013], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = 0.0367, position = [2.09797, 0.28557, 0.46783], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = 0.1868, position = [1.86904, 0.51555, -1.60007], force_field_type = "C_R" },
+  { serial = 9, atom_name = "ND1", partial_charge = -0.5432, position = [2.22981, -0.63633, -2.18325], force_field_type = "N_R" },
+  { serial = 10, atom_name = "CD2", partial_charge = -0.2207, position = [2.06956, 1.51308, -2.54892], force_field_type = "C_R" },
+  { serial = 11, atom_name = "HCD2", partial_charge = 0.1862, position = [1.88705, 2.51053, -2.41568], force_field_type = "H_" },
+  { serial = 12, atom_name = "CE1", partial_charge = 0.1635, position = [2.63201, -0.36359, -3.4325], force_field_type = "C_R" },
+  { serial = 13, atom_name = "HCE1", partial_charge = 0.1435, position = [2.96103, -1.05673, -4.10565], force_field_type = "H_" },
+  { serial = 14, atom_name = "NE2", partial_charge = -0.2795, position = [2.53966, 0.95537, -3.67575], force_field_type = "N_R" },
+  { serial = 15, atom_name = "HNE2", partial_charge = 0.3339, position = [2.76719, 1.4125, -4.50047], force_field_type = "H___A" }
+]
+
+[[HSP]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4035, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.1910, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.0656, position = [0.13423, -1.05592, -0.23479], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.6785, position = [-0.42543, 0.14293, 1.4231], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = -0.0970, position = [1.36122, 0.697, -0.22567], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0254, position = [1.25536, 1.76453, -0.02013], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = 0.0254, position = [2.09797, 0.28557, 0.46783], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = -0.0568, position = [1.86904, 0.51555, -1.60007], force_field_type = "C_R" },
+  { serial = 9, atom_name = "ND1", partial_charge = -0.2069, position = [2.22981, -0.63633, -2.18325], force_field_type = "N_R" },
+  { serial = 10, atom_name = "HND1", partial_charge = 0.3310, position = [2.20277, -1.51841, -1.77558], force_field_type = "H___A" },
+  { serial = 11, atom_name = "CD2", partial_charge = -0.1697, position = [2.06956, 1.51308, -2.54892], force_field_type = "C_R" },
+  { serial = 12, atom_name = "HCD2", partial_charge = 0.1761, position = [1.88705, 2.51053, -2.41568], force_field_type = "H_" },
+  { serial = 13, atom_name = "CE1", partial_charge = -0.0726, position = [2.63201, -0.36359, -3.4325], force_field_type = "C_R" },
+  { serial = 14, atom_name = "HCE1", partial_charge = 0.2125, position = [2.96103, -1.05673, -4.10565], force_field_type = "H_" },
+  { serial = 15, atom_name = "NE2", partial_charge = -0.2274, position = [2.53966, 0.95537, -3.67575], force_field_type = "N_R" },
+  { serial = 16, atom_name = "HNE2", partial_charge = 0.3355, position = [2.76719, 1.4125, -4.50047], force_field_type = "H___A" }
+]
+
+[[ILE]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.0597, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.0869, position = [-0.24779, -1.04433, 0.18996], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5973, position = [0.03086, 0.74674, 1.29153], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = 0.1303, position = [1.41671, 0.04319, -0.64586], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0187, position = [2.13297, -0.26619, 0.11983], force_field_type = "H_" },
+  { serial = 7, atom_name = "CG1", partial_charge = -0.0430, position = [1.83305, 1.46512, -1.13173], force_field_type = "C_3" },
+  { serial = 8, atom_name = "HCG1", partial_charge = 0.0236, position = [1.26516, 1.72857, -2.02546], force_field_type = "H_" },
+  { serial = 9, atom_name = "HCG1", partial_charge = 0.0236, position = [1.60168, 2.19407, -0.3528], force_field_type = "H_" },
+  { serial = 10, atom_name = "CG2", partial_charge = -0.3204, position = [1.50013, -0.98967, -1.79465], force_field_type = "C_3" },
+  { serial = 11, atom_name = "HCG2", partial_charge = 0.0882, position = [1.25603, -1.98345, -1.4159], force_field_type = "H_" },
+  { serial = 12, atom_name = "HCG2", partial_charge = 0.0882, position = [0.80147, -0.73119, -2.59176], force_field_type = "H_" },
+  { serial = 13, atom_name = "HCG2", partial_charge = 0.0882, position = [2.50956, -1.01998, -2.20323], force_field_type = "H_" },
+  { serial = 14, atom_name = "CD1", partial_charge = -0.0660, position = [3.33779, 1.5947, -1.44557], force_field_type = "C_3" },
+  { serial = 15, atom_name = "HCD1", partial_charge = 0.0186, position = [3.92842, 1.36208, -0.55819], force_field_type = "H_" },
+  { serial = 16, atom_name = "HCD1", partial_charge = 0.0186, position = [3.61944, 0.91953, -2.25335], force_field_type = "H_" },
+  { serial = 17, atom_name = "HCD1", partial_charge = 0.0186, position = [3.55853, 2.61757, -1.75619], force_field_type = "H_" }
+]
+
+[[LEU]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.0518, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.0922, position = [-0.43793, -0.85693, 0.51185], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5973, position = [0.43781, 1.01041, 1.00699], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = -0.1102, position = [1.24395, -0.48296, -0.7801], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0457, position = [1.70719, 0.38787, -1.25055], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = 0.0457, position = [1.95832, -0.90653, -0.06868], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = 0.3531, position = [0.95858, -1.53815, -1.88222], force_field_type = "C_3" },
+  { serial = 9, atom_name = "HCG", partial_charge = -0.0361, position = [0.21057, -1.13597, -2.56837], force_field_type = "H_" },
+  { serial = 10, atom_name = "CD1", partial_charge = -0.4121, position = [2.24682, -1.79283, -2.695], force_field_type = "C_3" },
+  { serial = 11, atom_name = "HCD1", partial_charge = 0.1000, position = [2.58696, -0.86281, -3.1525], force_field_type = "H_" },
+  { serial = 12, atom_name = "HCD1", partial_charge = 0.1000, position = [3.03623, -2.17831, -2.0462], force_field_type = "H_" },
+  { serial = 13, atom_name = "HCD1", partial_charge = 0.1000, position = [2.05042, -2.51741, -3.4864], force_field_type = "H_" },
+  { serial = 14, atom_name = "CD2", partial_charge = -0.4121, position = [0.41737, -2.86665, -1.30732], force_field_type = "C_3" },
+  { serial = 15, atom_name = "HCD2", partial_charge = 0.1000, position = [-0.53106, -2.69775, -0.79748], force_field_type = "H_" },
+  { serial = 16, atom_name = "HCD2", partial_charge = 0.1000, position = [0.24731, -3.57914, -2.11592], force_field_type = "H_" },
+  { serial = 17, atom_name = "HCD2", partial_charge = 0.1000, position = [1.13165, -3.29398, -0.60022], force_field_type = "H_" }
+]
+
+[[LYS]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.3933, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.2854, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.0972, position = [0.89142, 0.62604, -0.03943], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.6886, position = [0.35841, -1.39979, -0.37248], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = -0.0549, position = [-0.54546, 0.01491, 1.44763], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = -0.0092, position = [-1.45946, -0.58223, 1.49054], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = -0.0092, position = [0.19807, -0.43895, 2.10723], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = -0.0267, position = [-0.84982, 1.43859, 1.96821], force_field_type = "C_3" },
+  { serial = 9, atom_name = "HCG", partial_charge = -0.0352, position = [0.0746, 2.01958, 1.977], force_field_type = "H_" },
+  { serial = 10, atom_name = "HCG", partial_charge = -0.0352, position = [-1.56674, 1.92128, 1.30134], force_field_type = "H_" },
+  { serial = 11, atom_name = "CD", partial_charge = -0.0934, position = [-1.44286, 1.41219, 3.39443], force_field_type = "C_3" },
+  { serial = 12, atom_name = "HCD", partial_charge = 0.0167, position = [-2.36776, 0.83187, 3.38464], force_field_type = "H_" },
+  { serial = 13, atom_name = "HCD", partial_charge = 0.0167, position = [-0.73204, 0.93362, 4.07086], force_field_type = "H_" },
+  { serial = 14, atom_name = "CE", partial_charge = -0.0597, position = [-1.75007, 2.83331, 3.90572], force_field_type = "C_3" },
+  { serial = 15, atom_name = "HCE", partial_charge = 0.0680, position = [-0.83345, 3.42468, 3.92918], force_field_type = "H_" },
+  { serial = 16, atom_name = "HCE", partial_charge = 0.0680, position = [-2.46527, 3.31683, 3.23862], force_field_type = "H_" },
+  { serial = 17, atom_name = "NZ", partial_charge = -0.4309, position = [-2.32107, 2.79607, 5.25711], force_field_type = "N_3" },
+  { serial = 18, atom_name = "HNZ", partial_charge = 0.2945, position = [-2.58514, 3.74332, 5.53634], force_field_type = "H___A" },
+  { serial = 19, atom_name = "HNZ", partial_charge = 0.2945, position = [-3.15041, 2.19825, 5.26831], force_field_type = "H___A" },
+  { serial = 20, atom_name = "HNZ", partial_charge = 0.2945, position = [-1.63033, 2.43072, 5.91635], force_field_type = "H___A" }
+]
+
+[[LYS]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.3933, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.2854, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.0972, position = [0.89142, 0.62605, -0.03943], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.6886, position = [0.35841, -1.3998, -0.37248], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = -0.0549, position = [-0.44976, 0.06491, 1.47554], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = -0.0092, position = [-0.41989, 1.11143, 1.79122], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = -0.0092, position = [-1.48334, -0.27973, 1.54211], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = -0.0267, position = [0.39226, -0.77409, 2.47437], force_field_type = "C_3" },
+  { serial = 9, atom_name = "HCG", partial_charge = -0.0352, position = [0.21782, -0.3726, 3.47348], force_field_type = "H_" },
+  { serial = 10, atom_name = "HCG", partial_charge = -0.0352, position = [0.02254, -1.7997, 2.44252], force_field_type = "H_" },
+  { serial = 11, atom_name = "CD", partial_charge = -0.0934, position = [1.92368, -0.80353, 2.23247], force_field_type = "C_3" },
+  { serial = 12, atom_name = "HCD", partial_charge = 0.0167, position = [2.13887, -1.18559, 1.23698], force_field_type = "H_" },
+  { serial = 13, atom_name = "HCD", partial_charge = 0.0167, position = [2.32521, 0.20525, 2.32006], force_field_type = "H_" },
+  { serial = 14, atom_name = "CE", partial_charge = -0.0597, position = [2.63408, -1.72966, 3.23437], force_field_type = "C_3" },
+  { serial = 15, atom_name = "HCE", partial_charge = 0.0680, position = [2.3391, -1.46593, 4.24949], force_field_type = "H_" },
+  { serial = 16, atom_name = "HCE", partial_charge = 0.0680, position = [2.34752, -2.76503, 3.03945], force_field_type = "H_" },
+  { serial = 17, atom_name = "NZ", partial_charge = -0.4309, position = [4.09434, -1.59829, 3.09738], force_field_type = "N_3" },
+  { serial = 18, atom_name = "HNZ", partial_charge = 0.2945, position = [4.38809, -1.92944, 2.17548], force_field_type = "H___A" },
+  { serial = 19, atom_name = "HNZ", partial_charge = 0.2945, position = [4.36711, -0.6185, 3.20358], force_field_type = "H___A" },
+  { serial = 20, atom_name = "HNZ", partial_charge = 0.2945, position = [4.55885, -2.15607, 3.81834], force_field_type = "H___A" }
+]
+
+[[LYS]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.3933, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.2854, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.0972, position = [0.89141, 0.62605, -0.03943], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.6886, position = [0.35841, -1.39979, -0.37248], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = -0.0549, position = [0.77981, 0.96674, 1.02793], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = -0.0092, position = [0.24577, 1.08141, 1.97188], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = -0.0092, position = [1.7816, 0.49832, 1.23449], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = -0.0267, position = [1.06091, 2.40122, 0.30923], force_field_type = "C_3" },
+  { serial = 9, atom_name = "HCG", partial_charge = -0.0352, position = [1.32322, 2.1865, -0.73639], force_field_type = "H_" },
+  { serial = 10, atom_name = "HCG", partial_charge = -0.0352, position = [0.10691, 2.90315, 0.28757], force_field_type = "H_" },
+  { serial = 11, atom_name = "CD", partial_charge = -0.0934, position = [2.19862, 3.40342, 0.63186], force_field_type = "C_3" },
+  { serial = 12, atom_name = "HCD", partial_charge = 0.0167, position = [2.02213, 3.89966, 1.56939], force_field_type = "H_" },
+  { serial = 13, atom_name = "HCD", partial_charge = 0.0167, position = [3.16189, 2.89384, 0.65372], force_field_type = "H_" },
+  { serial = 14, atom_name = "CE", partial_charge = -0.0597, position = [2.2109, 4.47763, -0.51434], force_field_type = "C_3" },
+  { serial = 15, atom_name = "HCE", partial_charge = 0.0680, position = [2.69303, 5.38336, -0.1634], force_field_type = "H_" },
+  { serial = 16, atom_name = "HCE", partial_charge = 0.0680, position = [2.76401, 4.09746, -1.36642], force_field_type = "H_" },
+  { serial = 17, atom_name = "NZ", partial_charge = -0.4309, position = [0.86156, 4.8383, -0.99307], force_field_type = "N_3" },
+  { serial = 18, atom_name = "HNZ", partial_charge = 0.2945, position = [0.20449, 4.70288, -0.22982], force_field_type = "H___A" },
+  { serial = 19, atom_name = "HNZ", partial_charge = 0.2945, position = [0.80122, 5.82443, -1.30757], force_field_type = "H___A" },
+  { serial = 20, atom_name = "HNZ", partial_charge = 0.2945, position = [0.58385, 4.19455, -1.74935], force_field_type = "H___A" }
+]
+
+[[MET]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.0237, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.0880, position = [-0.43028, -0.87045, 0.49527], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5973, position = [0.41552, 1.00101, 1.02564], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = 0.0342, position = [1.25152, -0.46353, -0.78148], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0241, position = [1.65959, 0.37666, -1.34889], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = 0.0241, position = [2.00548, -0.79848, -0.06465], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = 0.0018, position = [0.97053, -1.63203, -1.74565], force_field_type = "C_3" },
+  { serial = 9, atom_name = "HCG", partial_charge = 0.0440, position = [0.56081, -2.47215, -1.18248], force_field_type = "H_" },
+  { serial = 10, atom_name = "HCG", partial_charge = 0.0440, position = [0.25552, -1.32247, -2.50992], force_field_type = "H_" },
+  { serial = 11, atom_name = "SD", partial_charge = -0.2737, position = [2.51206, -2.13903, -2.54293], force_field_type = "S_3" },
+  { serial = 12, atom_name = "CE", partial_charge = -0.0536, position = [1.84707, -3.60005, -3.36688], force_field_type = "C_3" },
+  { serial = 13, atom_name = "HCE", partial_charge = 0.0684, position = [1.47531, -4.3081, -2.62612], force_field_type = "H_" },
+  { serial = 14, atom_name = "HCE", partial_charge = 0.0684, position = [1.0384, -3.31634, -4.04015], force_field_type = "H_" },
+  { serial = 15, atom_name = "HCE", partial_charge = 0.0684, position = [2.64172, -4.07354, -3.94269], force_field_type = "H_" }
+]
+
+[[PHE]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.0024, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.0978, position = [0.49218, -0.83799, -0.49359], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5973, position = [-0.62643, -0.46927, 1.27043], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = -0.0343, position = [1.05444, 1.07733, 0.34956], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0295, position = [0.5446, 1.92167, 0.82059], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = 0.0295, position = [1.75916, 0.66949, 1.07857], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = 0.0118, position = [1.82793, 1.55638, -0.81801], force_field_type = "C_R" },
+  { serial = 9, atom_name = "CD1", partial_charge = -0.1256, position = [2.7085, 0.69682, -1.49833], force_field_type = "C_R" },
+  { serial = 10, atom_name = "HCD1", partial_charge = 0.1330, position = [2.80754, -0.27623, -1.2047], force_field_type = "H_" },
+  { serial = 11, atom_name = "CD2", partial_charge = -0.1256, position = [1.71425, 2.8902, -1.24736], force_field_type = "C_R" },
+  { serial = 12, atom_name = "HCD2", partial_charge = 0.1330, position = [1.078, 3.5322, -0.77131], force_field_type = "H_" },
+  { serial = 13, atom_name = "CE1", partial_charge = -0.1704, position = [3.46595, 1.16374, -2.57979], force_field_type = "C_R" },
+  { serial = 14, atom_name = "HCE1", partial_charge = 0.1430, position = [4.10406, 0.53276, -3.06608], force_field_type = "H_" },
+  { serial = 15, atom_name = "CE2", partial_charge = -0.1704, position = [2.47267, 3.3577, -2.32755], force_field_type = "C_R" },
+  { serial = 16, atom_name = "HCE2", partial_charge = 0.1430, position = [2.38583, 4.32899, -2.62961], force_field_type = "H_" },
+  { serial = 17, atom_name = "CZ", partial_charge = -0.1072, position = [3.35187, 2.49591, -2.99321], force_field_type = "C_R" },
+  { serial = 18, atom_name = "HCZ", partial_charge = 0.1297, position = [3.90753, 2.8376, -3.77879], force_field_type = "H_" }
+]
+
+[[PHE]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.0024, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.0978, position = [0.49219, -0.83799, -0.49359], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5973, position = [-0.62643, -0.46927, 1.27043], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = -0.0343, position = [1.0233, 1.10578, 0.38183], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0295, position = [1.90521, 0.61955, 0.80153], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = 0.0295, position = [1.34321, 1.6369, -0.51494], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = 0.0118, position = [0.47939, 2.07272, 1.37486], force_field_type = "C_R" },
+  { serial = 9, atom_name = "CD1", partial_charge = -0.1256, position = [-0.4204, 3.07906, 0.98646], force_field_type = "C_R" },
+  { serial = 10, atom_name = "HCD1", partial_charge = 0.1330, position = [-0.64161, 3.21046, -0.00005], force_field_type = "H_" },
+  { serial = 11, atom_name = "CD2", partial_charge = -0.1256, position = [0.7824, 1.92851, 2.74038], force_field_type = "C_R" },
+  { serial = 12, atom_name = "HCD2", partial_charge = 0.1330, position = [1.44009, 1.20911, 3.04441], force_field_type = "H_" },
+  { serial = 13, atom_name = "CE1", partial_charge = -0.1704, position = [-1.04695, 3.88567, 1.94394], force_field_type = "C_R" },
+  { serial = 14, atom_name = "HCE1", partial_charge = 0.1430, position = [-1.71434, 4.60058, 1.65111], force_field_type = "H_" },
+  { serial = 15, atom_name = "CE2", partial_charge = -0.1704, position = [0.15178, 2.72749, 3.70115], force_field_type = "C_R" },
+  { serial = 16, atom_name = "HCE2", partial_charge = 0.1430, position = [0.35631, 2.59106, 4.6921], force_field_type = "H_" },
+  { serial = 17, atom_name = "CZ", partial_charge = -0.1072, position = [-0.77229, 3.70252, 3.30483], force_field_type = "C_R" },
+  { serial = 18, atom_name = "HCZ", partial_charge = 0.1297, position = [-1.24605, 4.2751, 4.00544], force_field_type = "H_" }
+]
+
+[[PRO]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.2548, position = [0.59, -1.251, -0.113], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.0266, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.0641, position = [-0.17218, 0.14898, 1.06596], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5896, position = [-1.237, 0.207, -0.722], force_field_type = "C_2" },
+  { serial = 5, atom_name = "CB", partial_charge = -0.0070, position = [1.109, 1.016, -0.309], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0253, position = [1.00965, 1.93715, 0.27347], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = 0.0253, position = [1.11508, 1.27555, -1.37391], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = 0.0189, position = [2.40062, 0.27166, 0.03599], force_field_type = "C_3" },
+  { serial = 9, atom_name = "HCG", partial_charge = 0.0213, position = [2.58972, 0.2778, 1.11364], force_field_type = "H_" },
+  { serial = 10, atom_name = "HCG", partial_charge = 0.0213, position = [3.26686, 0.65842, -0.50574], force_field_type = "H_" },
+  { serial = 11, atom_name = "CD", partial_charge = 0.0192, position = [1.97478, -1.18134, -0.46441], force_field_type = "C_3" },
+  { serial = 12, atom_name = "HCD", partial_charge = 0.0391, position = [2.54529, -1.95466, 0.05287], force_field_type = "H_" },
+  { serial = 13, atom_name = "HCD", partial_charge = 0.0391, position = [2.09938, -1.28919, -1.54546], force_field_type = "H_" }
+]
+
+[[PRO]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.2548, position = [0.59, -1.251, -0.113], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.0266, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.0641, position = [-0.17218, 0.14898, 1.06596], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5896, position = [-1.237, 0.207, -0.722], force_field_type = "C_2" },
+  { serial = 5, atom_name = "CB", partial_charge = -0.0070, position = [1.109, 1.016, -0.309], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0253, position = [1.64371, 1.3191, 0.60006], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = 0.0253, position = [0.7449, 1.92188, -0.80225], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = 0.0189, position = [2.0677, 0.25171, -1.22448], force_field_type = "C_3" },
+  { serial = 9, atom_name = "HCG", partial_charge = 0.0213, position = [3.08019, 0.66139, -1.21467], force_field_type = "H_" },
+  { serial = 10, atom_name = "HCG", partial_charge = 0.0213, position = [1.68573, 0.18527, -2.24752], force_field_type = "H_" },
+  { serial = 11, atom_name = "CD", partial_charge = 0.0192, position = [1.97478, -1.18134, -0.46441], force_field_type = "C_3" },
+  { serial = 12, atom_name = "HCD", partial_charge = 0.0391, position = [2.60258, -1.20777, 0.43062], force_field_type = "H_" },
+  { serial = 13, atom_name = "HCD", partial_charge = 0.0391, position = [2.24734, -1.99804, -1.13473], force_field_type = "H_" }
+]
+
+[[SER]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.0249, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.0843, position = [-0.36471, -0.95814, 0.37023], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5973, position = [0.25235, 0.91477, 1.15158], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = 0.2117, position = [1.32443, -0.24623, -0.74729], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0352, position = [1.70955, 0.69428, -1.14549], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = 0.0352, position = [2.05839, -0.66851, -0.0572], force_field_type = "H_" },
+  { serial = 8, atom_name = "OG", partial_charge = -0.6546, position = [1.144, -1.16104, -1.82182], force_field_type = "O_3" },
+  { serial = 9, atom_name = "HOG", partial_charge = 0.4275, position = [0.51672, -0.71481, -2.42829], force_field_type = "H___A" }
+]
+
+[[SER]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.0249, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.0843, position = [-0.36471, -0.95814, 0.37023], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5973, position = [0.25235, 0.91477, 1.15158], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = 0.2117, position = [1.32443, -0.24623, -0.74729], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0352, position = [1.70955, 0.69428, -1.14549], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = 0.0352, position = [2.05839, -0.66851, -0.0572], force_field_type = "H_" },
+  { serial = 8, atom_name = "OG", partial_charge = -0.6546, position = [1.144, -1.16104, -1.82182], force_field_type = "O_3" },
+  { serial = 9, atom_name = "HOG", partial_charge = 0.4275, position = [2.03955, -1.28225, -2.2009], force_field_type = "H___A" }
+]
+
+[[SER]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.0249, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.0843, position = [-0.36471, -0.95814, 0.37023], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5973, position = [0.25235, 0.91477, 1.15158], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = 0.2117, position = [1.32443, -0.24623, -0.74729], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0352, position = [1.70955, 0.69428, -1.14549], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = 0.0352, position = [2.05839, -0.66851, -0.0572], force_field_type = "H_" },
+  { serial = 8, atom_name = "OG", partial_charge = -0.6546, position = [1.144, -1.16104, -1.82182], force_field_type = "O_3" },
+  { serial = 9, atom_name = "HOG", partial_charge = 0.4275, position = [0.78035, -1.96963, -1.40426], force_field_type = "H___A" }
+]
+
+[[THR]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.0389, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.1007, position = [-0.51575, -0.57934, 0.76582], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5973, position = [0.80331, 1.07756, 0.64822], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = 0.3654, position = [0.95922, -0.96371, -0.7394], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0043, position = [1.68888, -1.34278, -0.02121], force_field_type = "H_" },
+  { serial = 7, atom_name = "OG1", partial_charge = -0.6761, position = [1.67416, -0.28533, -1.77203], force_field_type = "O_3" },
+  { serial = 8, atom_name = "HOG1", partial_charge = 0.4102, position = [0.98488, 0.0404, -2.38599], force_field_type = "H___A" },
+  { serial = 9, atom_name = "CG2", partial_charge = -0.2438, position = [0.2253, -2.18099, -1.33214], force_field_type = "C_3" },
+  { serial = 10, atom_name = "HCG2", partial_charge = 0.0642, position = [-0.27897, -2.73473, -0.53651], force_field_type = "H_" },
+  { serial = 11, atom_name = "HCG2", partial_charge = 0.0642, position = [-0.51095, -1.85697, -2.06855], force_field_type = "H_" },
+  { serial = 12, atom_name = "HCG2", partial_charge = 0.0642, position = [0.94731, -2.84176, -1.81507], force_field_type = "H_" }
+]
+
+[[THR]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.0389, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.1007, position = [-0.51575, -0.57934, 0.76582], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5973, position = [0.80331, 1.07756, 0.64822], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = 0.3654, position = [0.95922, -0.96371, -0.7394], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0043, position = [1.68888, -1.34278, -0.02121], force_field_type = "H_" },
+  { serial = 7, atom_name = "OG1", partial_charge = -0.6761, position = [1.67416, -0.28533, -1.77203], force_field_type = "O_3" },
+  { serial = 8, atom_name = "HOG1", partial_charge = 0.4102, position = [2.16079, 0.43079, -1.31539], force_field_type = "H___A" },
+  { serial = 9, atom_name = "CG2", partial_charge = -0.2438, position = [0.2253, -2.18099, -1.33214], force_field_type = "C_3" },
+  { serial = 10, atom_name = "HCG2", partial_charge = 0.0642, position = [-0.27897, -2.73473, -0.53651], force_field_type = "H_" },
+  { serial = 11, atom_name = "HCG2", partial_charge = 0.0642, position = [-0.51095, -1.85697, -2.06855], force_field_type = "H_" },
+  { serial = 12, atom_name = "HCG2", partial_charge = 0.0642, position = [0.94731, -2.84176, -1.81507], force_field_type = "H_" }
+]
+
+[[THR]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.0389, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.1007, position = [-0.51575, -0.57934, 0.76582], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5973, position = [0.80331, 1.07756, 0.64822], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = 0.3654, position = [0.95922, -0.96371, -0.7394], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0043, position = [1.68888, -1.34278, -0.02121], force_field_type = "H_" },
+  { serial = 7, atom_name = "OG1", partial_charge = -0.6761, position = [1.67416, -0.28533, -1.77203], force_field_type = "O_3" },
+  { serial = 8, atom_name = "HOG1", partial_charge = 0.4102, position = [2.25803, -0.96546, -2.16532], force_field_type = "H___A" },
+  { serial = 9, atom_name = "CG2", partial_charge = -0.2438, position = [0.2253, -2.18099, -1.33214], force_field_type = "C_3" },
+  { serial = 10, atom_name = "HCG2", partial_charge = 0.0642, position = [-0.27897, -2.73473, -0.53651], force_field_type = "H_" },
+  { serial = 11, atom_name = "HCG2", partial_charge = 0.0642, position = [-0.51095, -1.85697, -2.06855], force_field_type = "H_" },
+  { serial = 12, atom_name = "HCG2", partial_charge = 0.0642, position = [0.94731, -2.84176, -1.81507], force_field_type = "H_" }
+]
+
+[[TRP]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.0275, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.1123, position = [0.37134, -0.93466, -0.42027], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5973, position = [-0.58144, -0.25791, 1.34983], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = -0.0050, position = [1.19481, 0.97005, 0.17155], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0339, position = [0.82302, 1.9197, 0.56211], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = 0.0339, position = [1.89649, 0.56445, 0.90304], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = -0.1415, position = [1.92601, 1.22065, -1.08548], force_field_type = "C_R" },
+  { serial = 9, atom_name = "CD1", partial_charge = -0.1638, position = [1.90408, 2.40985, -1.81441], force_field_type = "C_R" },
+  { serial = 10, atom_name = "HCD1", partial_charge = 0.2062, position = [1.3912, 3.25388, -1.55545], force_field_type = "H_" },
+  { serial = 11, atom_name = "CD2", partial_charge = 0.1243, position = [2.76072, 0.35812, -1.7936], force_field_type = "C_R" },
+  { serial = 12, atom_name = "NE1", partial_charge = -0.3418, position = [2.6527, 2.26924, -2.92135], force_field_type = "N_R" },
+  { serial = 13, atom_name = "HNE1", partial_charge = 0.3412, position = [2.7912, 2.94774, -3.60001], force_field_type = "H___A" },
+  { serial = 14, atom_name = "CE2", partial_charge = 0.1380, position = [3.17591, 1.03496, -2.93397], force_field_type = "C_R" },
+  { serial = 15, atom_name = "CE3", partial_charge = -0.2387, position = [3.1907, -0.95112, -1.53883], force_field_type = "C_R" },
+  { serial = 16, atom_name = "HCE3", partial_charge = 0.1700, position = [2.90789, -1.44769, -0.69407], force_field_type = "H_" },
+  { serial = 17, atom_name = "CZ2", partial_charge = -0.2601, position = [4.00721, 0.43037, -3.88053], force_field_type = "C_R" },
+  { serial = 18, atom_name = "HCZ2", partial_charge = 0.1572, position = [4.30178, 0.93068, -4.71947], force_field_type = "H_" },
+  { serial = 19, atom_name = "CZ3", partial_charge = -0.1972, position = [4.02953, -1.56793, -2.48033], force_field_type = "C_R" },
+  { serial = 20, atom_name = "HCZ3", partial_charge = 0.1447, position = [4.35418, -2.52217, -2.32006], force_field_type = "H_" },
+  { serial = 21, atom_name = "CH2", partial_charge = -0.1134, position = [4.4287, -0.88751, -3.64422], force_field_type = "C_R" },
+  { serial = 22, atom_name = "HCH2", partial_charge = 0.1417, position = [5.03329, -1.35328, -4.32231], force_field_type = "H_" }
+]
+
+[[TRP]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.0275, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.1123, position = [0.37134, -0.93466, -0.42027], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5973, position = [-0.58144, -0.25791, 1.34982], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = -0.0050, position = [1.20637, 0.96762, 0.11052], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0339, position = [1.6235, 1.12172, -0.88659], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = 0.0339, position = [0.85261, 1.93443, 0.46774], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = -0.1415, position = [2.29879, 0.48396, 0.98867], force_field_type = "C_R" },
+  { serial = 9, atom_name = "CD1", partial_charge = -0.1638, position = [3.09416, -0.6435, 0.77268], force_field_type = "C_R" },
+  { serial = 10, atom_name = "HCD1", partial_charge = 0.2062, position = [3.00983, -1.28517, -0.01646], force_field_type = "H_" },
+  { serial = 11, atom_name = "CD2", partial_charge = 0.1243, position = [2.77226, 1.04941, 2.17335], force_field_type = "C_R" },
+  { serial = 12, atom_name = "NE1", partial_charge = -0.3418, position = [3.99709, -0.75667, 1.7626], force_field_type = "N_R" },
+  { serial = 13, atom_name = "HNE1", partial_charge = 0.3412, position = [4.66581, -1.45474, 1.84231], force_field_type = "H___A" },
+  { serial = 14, atom_name = "CE2", partial_charge = 0.1380, position = [3.82285, 0.25643, 2.6223], force_field_type = "C_R" },
+  { serial = 15, atom_name = "CE3", partial_charge = -0.2387, position = [2.37661, 2.18352, 2.89405], force_field_type = "C_R" },
+  { serial = 16, atom_name = "HCE3", partial_charge = 0.1700, position = [1.60713, 2.77249, 2.57557], force_field_type = "H_" },
+  { serial = 17, atom_name = "CZ2", partial_charge = -0.2601, position = [4.52087, 0.55683, 3.7954], force_field_type = "C_R" },
+  { serial = 18, atom_name = "HCZ2", partial_charge = 0.1572, position = [5.29322, -0.02918, 4.11576], force_field_type = "H_" },
+  { serial = 19, atom_name = "CZ3", partial_charge = -0.1972, position = [3.06708, 2.49551, 4.07571], force_field_type = "C_R" },
+  { serial = 20, atom_name = "HCZ3", partial_charge = 0.1447, position = [2.7957, 3.31637, 4.61809], force_field_type = "H_" },
+  { serial = 21, atom_name = "CH2", partial_charge = -0.1134, position = [4.13058, 1.69128, 4.52368], force_field_type = "C_R" },
+  { serial = 22, atom_name = "HCH2", partial_charge = 0.1417, position = [4.62356, 1.93354, 5.3846], force_field_type = "H_" }
+]
+
+[[TRP]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-0.97886, 0.54464, -0.89524], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.0275, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.1123, position = [0.37134, -0.93466, -0.42028], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5973, position = [-0.58144, -0.25791, 1.34983], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = -0.0050, position = [1.22069, 0.94303, 0.10722], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0339, position = [1.93548, 0.50563, 0.80823], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = 0.0339, position = [1.71518, 1.00371, -0.8645], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = -0.1415, position = [0.88976, 2.30813, 0.56172], force_field_type = "C_R" },
+  { serial = 9, atom_name = "CD1", partial_charge = -0.1638, position = [0.98923, 2.77897, 1.87081], force_field_type = "C_R" },
+  { serial = 10, atom_name = "HCD1", partial_charge = 0.2062, position = [1.28839, 2.22864, 2.67709], force_field_type = "H_" },
+  { serial = 11, atom_name = "CD2", partial_charge = 0.1243, position = [0.44366, 3.38874, -0.19746], force_field_type = "C_R" },
+  { serial = 12, atom_name = "NE1", partial_charge = -0.3418, position = [0.62658, 4.07246, 1.90889], force_field_type = "N_R" },
+  { serial = 13, atom_name = "HNE1", partial_charge = 0.3412, position = [0.60741, 4.63066, 2.70201], force_field_type = "H___A" },
+  { serial = 14, atom_name = "CE2", partial_charge = 0.1380, position = [0.29565, 4.46366, 0.67063], force_field_type = "C_R" },
+  { serial = 15, atom_name = "CE3", partial_charge = -0.2387, position = [0.1633, 3.5238, -1.56386], force_field_type = "C_R" },
+  { serial = 16, atom_name = "HCE3", partial_charge = 0.1700, position = [0.26936, 2.73967, -2.20783], force_field_type = "H_" },
+  { serial = 17, atom_name = "CZ2", partial_charge = -0.2601, position = [-0.13306, 5.71399, 0.21564], force_field_type = "C_R" },
+  { serial = 18, atom_name = "HCZ2", partial_charge = 0.1572, position = [-0.23265, 6.50017, 0.85808], force_field_type = "H_" },
+  { serial = 19, atom_name = "CZ3", partial_charge = -0.1972, position = [-0.27139, 4.77434, -2.03272], force_field_type = "C_R" },
+  { serial = 20, atom_name = "HCZ3", partial_charge = 0.1447, position = [-0.4828, 4.89774, -3.02469], force_field_type = "H_" },
+  { serial = 21, atom_name = "CH2", partial_charge = -0.1134, position = [-0.41623, 5.86004, -1.1515], force_field_type = "C_R" },
+  { serial = 22, atom_name = "HCH2", partial_charge = 0.1417, position = [-0.72636, 6.76498, -1.50916], force_field_type = "H_" }
+]
+
+[[TYR]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.0014, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.0876, position = [-0.17382, -1.0721, 0.09219], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5973, position = [-0.08276, 0.635, 1.34779], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = -0.0152, position = [1.4166, 0.20393, -0.58972], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0295, position = [1.58986, 1.28164, -0.70296], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = 0.0295, position = [2.1579, -0.1952, 0.11208], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = -0.0011, position = [1.62023, -0.46542, -1.89944], force_field_type = "C_R" },
+  { serial = 9, atom_name = "CD1", partial_charge = -0.1906, position = [1.5267, -1.86407, -2.04298], force_field_type = "C_R" },
+  { serial = 10, atom_name = "HCD1", partial_charge = 0.1699, position = [1.28162, -2.44887, -1.24282], force_field_type = "H_" },
+  { serial = 11, atom_name = "CD2", partial_charge = -0.1906, position = [1.94192, 0.30755, -3.02844], force_field_type = "C_R" },
+  { serial = 12, atom_name = "HCD2", partial_charge = 0.1699, position = [1.99168, 1.32596, -2.96004], force_field_type = "H_" },
+  { serial = 13, atom_name = "CE1", partial_charge = -0.2341, position = [1.7616, -2.47426, -3.28367], force_field_type = "C_R" },
+  { serial = 14, atom_name = "HCE1", partial_charge = 0.1656, position = [1.7006, -3.49189, -3.37422], force_field_type = "H_" },
+  { serial = 15, atom_name = "CE2", partial_charge = -0.2341, position = [2.202, -0.29839, -4.26167], force_field_type = "C_R" },
+  { serial = 16, atom_name = "HCE2", partial_charge = 0.1656, position = [2.46571, 0.27436, -5.06836], force_field_type = "H_" },
+  { serial = 17, atom_name = "CZ", partial_charge = 0.3226, position = [2.09411, -1.68822, -4.40098], force_field_type = "C_R" },
+  { serial = 18, atom_name = "OH", partial_charge = -0.5579, position = [2.28974, -2.2291, -5.62381], force_field_type = "O_R" },
+  { serial = 19, atom_name = "HOH", partial_charge = 0.3992, position = [2.10547, -3.17556, -5.80231], force_field_type = "H___A" }
+]
+
+[[TYR]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.0014, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.0876, position = [-0.17382, -1.0721, 0.09219], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5973, position = [-0.08276, 0.635, 1.34779], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = -0.0152, position = [1.4166, 0.20393, -0.58972], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0295, position = [1.58986, 1.28164, -0.70296], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = 0.0295, position = [2.1579, -0.1952, 0.11208], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = -0.0011, position = [1.62023, -0.46542, -1.89944], force_field_type = "C_R" },
+  { serial = 9, atom_name = "CD1", partial_charge = -0.1906, position = [1.5267, -1.86407, -2.04298], force_field_type = "C_R" },
+  { serial = 10, atom_name = "HCD1", partial_charge = 0.1699, position = [1.28162, -2.44887, -1.24282], force_field_type = "H_" },
+  { serial = 11, atom_name = "CD2", partial_charge = -0.1906, position = [1.94192, 0.30755, -3.02844], force_field_type = "C_R" },
+  { serial = 12, atom_name = "HCD2", partial_charge = 0.1699, position = [1.99168, 1.32596, -2.96004], force_field_type = "H_" },
+  { serial = 13, atom_name = "CE1", partial_charge = -0.2341, position = [1.7616, -2.47426, -3.28367], force_field_type = "C_R" },
+  { serial = 14, atom_name = "HCE1", partial_charge = 0.1656, position = [1.7006, -3.49189, -3.37422], force_field_type = "H_" },
+  { serial = 15, atom_name = "CE2", partial_charge = -0.2341, position = [2.202, -0.29839, -4.26167], force_field_type = "C_R" },
+  { serial = 16, atom_name = "HCE2", partial_charge = 0.1656, position = [2.46571, 0.27436, -5.06836], force_field_type = "H_" },
+  { serial = 17, atom_name = "CZ", partial_charge = 0.3226, position = [2.09411, -1.68822, -4.40098], force_field_type = "C_R" },
+  { serial = 18, atom_name = "OH", partial_charge = -0.5579, position = [2.28974, -2.2291, -5.62381], force_field_type = "O_R" },
+  { serial = 19, atom_name = "HOH", partial_charge = 0.3992, position = [2.62274, -1.69384, -6.37495], force_field_type = "H___A" }
+]
+
+[[TYR]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.0014, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.0876, position = [-0.17382, -1.0721, 0.09219], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5973, position = [-0.08276, 0.635, 1.34779], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = -0.0152, position = [1.4166, 0.20393, -0.58972], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0295, position = [1.58986, 1.28164, -0.70296], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = 0.0295, position = [2.1579, -0.1952, 0.11208], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = -0.0011, position = [1.62023, -0.46542, -1.89944], force_field_type = "C_R" },
+  { serial = 9, atom_name = "CD1", partial_charge = -0.1906, position = [1.5267, -1.86407, -2.04298], force_field_type = "C_R" },
+  { serial = 10, atom_name = "HCD1", partial_charge = 0.1699, position = [1.28162, -2.44887, -1.24282], force_field_type = "H_" },
+  { serial = 11, atom_name = "CD2", partial_charge = -0.1906, position = [1.94192, 0.30755, -3.02844], force_field_type = "C_R" },
+  { serial = 12, atom_name = "HCD2", partial_charge = 0.1699, position = [1.99168, 1.32596, -2.96004], force_field_type = "H_" },
+  { serial = 13, atom_name = "CE1", partial_charge = -0.2341, position = [1.7616, -2.47426, -3.28367], force_field_type = "C_R" },
+  { serial = 14, atom_name = "HCE1", partial_charge = 0.1656, position = [1.7006, -3.49189, -3.37422], force_field_type = "H_" },
+  { serial = 15, atom_name = "CE2", partial_charge = -0.2341, position = [2.202, -0.29839, -4.26167], force_field_type = "C_R" },
+  { serial = 16, atom_name = "HCE2", partial_charge = 0.1656, position = [2.46571, 0.27436, -5.06836], force_field_type = "H_" },
+  { serial = 17, atom_name = "CZ", partial_charge = 0.3226, position = [2.09411, -1.68822, -4.40098], force_field_type = "C_R" },
+  { serial = 18, atom_name = "OH", partial_charge = -0.5579, position = [2.28974, -2.2291, -5.62381], force_field_type = "O_R" },
+  { serial = 19, atom_name = "HOH", partial_charge = 0.3992, position = [1.5791, -2.24211, -6.2994], force_field_type = "H___A" }
+]
+
+[[TYR]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.0014, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.0876, position = [-0.17382, -1.0721, 0.09219], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5973, position = [-0.08276, 0.635, 1.34779], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = -0.0152, position = [1.4166, 0.20393, -0.58972], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0295, position = [1.58986, 1.28164, -0.70296], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = 0.0295, position = [2.1579, -0.1952, 0.11208], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = -0.0011, position = [1.62023, -0.46542, -1.89944], force_field_type = "C_R" },
+  { serial = 9, atom_name = "CD1", partial_charge = -0.1906, position = [1.5267, -1.86407, -2.04298], force_field_type = "C_R" },
+  { serial = 10, atom_name = "HCD1", partial_charge = 0.1699, position = [1.28162, -2.44887, -1.24282], force_field_type = "H_" },
+  { serial = 11, atom_name = "CD2", partial_charge = -0.1906, position = [1.94192, 0.30755, -3.02844], force_field_type = "C_R" },
+  { serial = 12, atom_name = "HCD2", partial_charge = 0.1699, position = [1.99168, 1.32596, -2.96004], force_field_type = "H_" },
+  { serial = 13, atom_name = "CE1", partial_charge = -0.2341, position = [1.7616, -2.47426, -3.28367], force_field_type = "C_R" },
+  { serial = 14, atom_name = "HCE1", partial_charge = 0.1656, position = [1.7006, -3.49189, -3.37422], force_field_type = "H_" },
+  { serial = 15, atom_name = "CE2", partial_charge = -0.2341, position = [2.202, -0.29839, -4.26167], force_field_type = "C_R" },
+  { serial = 16, atom_name = "HCE2", partial_charge = 0.1656, position = [2.46571, 0.27436, -5.06836], force_field_type = "H_" },
+  { serial = 17, atom_name = "CZ", partial_charge = 0.3226, position = [2.09411, -1.68822, -4.40098], force_field_type = "C_R" },
+  { serial = 18, atom_name = "OH", partial_charge = -0.5579, position = [2.28974, -2.2291, -5.62381], force_field_type = "O_R" },
+  { serial = 19, atom_name = "HOH", partial_charge = 0.3992, position = [3.14911, -2.62728, -5.87786], force_field_type = "H___A" }
+]
+
+[[TYR]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.0014, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.0876, position = [-0.17382, -1.0721, 0.09218], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5973, position = [-0.08276, 0.635, 1.34779], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = -0.0152, position = [1.40311, 0.23572, -0.61365], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0295, position = [1.4385, -0.18338, -1.62654], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = 0.0295, position = [1.58381, 1.31505, -0.68252], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = -0.0011, position = [2.46108, -0.39789, 0.20464], force_field_type = "C_R" },
+  { serial = 9, atom_name = "CD1", partial_charge = -0.1906, position = [2.63576, -1.79136, 0.18681], force_field_type = "C_R" },
+  { serial = 10, atom_name = "HCD1", partial_charge = 0.1699, position = [2.05759, -2.37666, -0.4201], force_field_type = "H_" },
+  { serial = 11, atom_name = "CD2", partial_charge = -0.1906, position = [3.28762, 0.38894, 1.02858], force_field_type = "C_R" },
+  { serial = 12, atom_name = "HCD2", partial_charge = 0.1699, position = [3.19369, 1.40653, 1.03597], force_field_type = "H_" },
+  { serial = 13, atom_name = "CE1", partial_charge = -0.2341, position = [3.60834, -2.39616, 0.9991], force_field_type = "C_R" },
+  { serial = 14, atom_name = "HCE1", partial_charge = 0.1656, position = [3.71629, -3.41319, 0.98938], force_field_type = "H_" },
+  { serial = 15, atom_name = "CE2", partial_charge = -0.2341, position = [4.23732, -0.21407, 1.85931], force_field_type = "C_R" },
+  { serial = 16, atom_name = "HCE2", partial_charge = 0.1656, position = [4.80664, 0.35974, 2.48666], force_field_type = "H_" },
+  { serial = 17, atom_name = "CZ", partial_charge = 0.3226, position = [4.41888, -1.60306, 1.82527], force_field_type = "C_R" },
+  { serial = 18, atom_name = "OH", partial_charge = -0.5579, position = [5.39683, -2.14865, 2.58621], force_field_type = "O_R" },
+  { serial = 19, atom_name = "HOH", partial_charge = 0.3992, position = [5.65069, -3.09012, 2.48517], force_field_type = "H___A" }
+]
+
+[[TYR]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.0014, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.0876, position = [-0.17382, -1.0721, 0.09218], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5973, position = [-0.08276, 0.635, 1.34779], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = -0.0152, position = [1.40311, 0.23572, -0.61365], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0295, position = [1.4385, -0.18338, -1.62654], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = 0.0295, position = [1.58381, 1.31505, -0.68252], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = -0.0011, position = [2.46108, -0.39789, 0.20464], force_field_type = "C_R" },
+  { serial = 9, atom_name = "CD1", partial_charge = -0.1906, position = [2.63576, -1.79136, 0.18681], force_field_type = "C_R" },
+  { serial = 10, atom_name = "HCD1", partial_charge = 0.1699, position = [2.05759, -2.37666, -0.4201], force_field_type = "H_" },
+  { serial = 11, atom_name = "CD2", partial_charge = -0.1906, position = [3.28762, 0.38894, 1.02858], force_field_type = "C_R" },
+  { serial = 12, atom_name = "HCD2", partial_charge = 0.1699, position = [3.19369, 1.40653, 1.03597], force_field_type = "H_" },
+  { serial = 13, atom_name = "CE1", partial_charge = -0.2341, position = [3.60834, -2.39616, 0.9991], force_field_type = "C_R" },
+  { serial = 14, atom_name = "HCE1", partial_charge = 0.1656, position = [3.71629, -3.41319, 0.98938], force_field_type = "H_" },
+  { serial = 15, atom_name = "CE2", partial_charge = -0.2341, position = [4.23732, -0.21407, 1.85931], force_field_type = "C_R" },
+  { serial = 16, atom_name = "HCE2", partial_charge = 0.1656, position = [4.80664, 0.35974, 2.48666], force_field_type = "H_" },
+  { serial = 17, atom_name = "CZ", partial_charge = 0.3226, position = [4.41888, -1.60306, 1.82527], force_field_type = "C_R" },
+  { serial = 18, atom_name = "OH", partial_charge = -0.5579, position = [5.39683, -2.14865, 2.58621], force_field_type = "O_R" },
+  { serial = 19, atom_name = "HOH", partial_charge = 0.3992, position = [5.8739, -1.61496, 3.25598], force_field_type = "H___A" }
+]
+
+[[TYR]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.0014, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.0876, position = [-0.17382, -1.0721, 0.09218], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5973, position = [-0.08276, 0.635, 1.34779], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = -0.0152, position = [1.40311, 0.23572, -0.61365], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0295, position = [1.4385, -0.18338, -1.62654], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = 0.0295, position = [1.58381, 1.31505, -0.68252], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = -0.0011, position = [2.46108, -0.39789, 0.20464], force_field_type = "C_R" },
+  { serial = 9, atom_name = "CD1", partial_charge = -0.1906, position = [2.63576, -1.79136, 0.18681], force_field_type = "C_R" },
+  { serial = 10, atom_name = "HCD1", partial_charge = 0.1699, position = [2.05759, -2.37666, -0.4201], force_field_type = "H_" },
+  { serial = 11, atom_name = "CD2", partial_charge = -0.1906, position = [3.28762, 0.38894, 1.02858], force_field_type = "C_R" },
+  { serial = 12, atom_name = "HCD2", partial_charge = 0.1699, position = [3.19369, 1.40653, 1.03597], force_field_type = "H_" },
+  { serial = 13, atom_name = "CE1", partial_charge = -0.2341, position = [3.60834, -2.39616, 0.9991], force_field_type = "C_R" },
+  { serial = 14, atom_name = "HCE1", partial_charge = 0.1656, position = [3.71629, -3.41319, 0.98938], force_field_type = "H_" },
+  { serial = 15, atom_name = "CE2", partial_charge = -0.2341, position = [4.23732, -0.21407, 1.85931], force_field_type = "C_R" },
+  { serial = 16, atom_name = "HCE2", partial_charge = 0.1656, position = [4.80664, 0.35974, 2.48666], force_field_type = "H_" },
+  { serial = 17, atom_name = "CZ", partial_charge = 0.3226, position = [4.41888, -1.60306, 1.82527], force_field_type = "C_R" },
+  { serial = 18, atom_name = "OH", partial_charge = -0.5579, position = [5.39683, -2.14865, 2.58621], force_field_type = "O_R" },
+  { serial = 19, atom_name = "HOH", partial_charge = 0.3992, position = [6.33215, -2.13688, 2.29284], force_field_type = "H___A" }
+]
+
+[[TYR]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.0014, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.0876, position = [-0.17382, -1.0721, 0.09218], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5973, position = [-0.08276, 0.635, 1.34779], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = -0.0152, position = [1.40311, 0.23572, -0.61365], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0295, position = [1.4385, -0.18338, -1.62654], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = 0.0295, position = [1.58381, 1.31505, -0.68252], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = -0.0011, position = [2.46108, -0.39789, 0.20464], force_field_type = "C_R" },
+  { serial = 9, atom_name = "CD1", partial_charge = -0.1906, position = [2.63576, -1.79136, 0.18681], force_field_type = "C_R" },
+  { serial = 10, atom_name = "HCD1", partial_charge = 0.1699, position = [2.05759, -2.37666, -0.4201], force_field_type = "H_" },
+  { serial = 11, atom_name = "CD2", partial_charge = -0.1906, position = [3.28762, 0.38894, 1.02858], force_field_type = "C_R" },
+  { serial = 12, atom_name = "HCD2", partial_charge = 0.1699, position = [3.19369, 1.40653, 1.03597], force_field_type = "H_" },
+  { serial = 13, atom_name = "CE1", partial_charge = -0.2341, position = [3.60834, -2.39616, 0.9991], force_field_type = "C_R" },
+  { serial = 14, atom_name = "HCE1", partial_charge = 0.1656, position = [3.71629, -3.41319, 0.98938], force_field_type = "H_" },
+  { serial = 15, atom_name = "CE2", partial_charge = -0.2341, position = [4.23732, -0.21407, 1.85931], force_field_type = "C_R" },
+  { serial = 16, atom_name = "HCE2", partial_charge = 0.1656, position = [4.80664, 0.35974, 2.48666], force_field_type = "H_" },
+  { serial = 17, atom_name = "CZ", partial_charge = 0.3226, position = [4.41888, -1.60306, 1.82527], force_field_type = "C_R" },
+  { serial = 18, atom_name = "OH", partial_charge = -0.5579, position = [5.39683, -2.14865, 2.58621], force_field_type = "O_R" },
+  { serial = 19, atom_name = "HOH", partial_charge = 0.3992, position = [5.19244, -2.5682, 3.44831], force_field_type = "H___A" }
+]
+
+[[TYR]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.0014, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.0876, position = [-0.17382, -1.0721, 0.09218], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5973, position = [-0.08276, 0.635, 1.3478], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = -0.0152, position = [1.42623, 0.15324, -0.59801], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0295, position = [2.11831, -0.37417, 0.06972], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = 0.0295, position = [1.4552, -0.35263, -1.5705], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = -0.0011, position = [1.91846, 1.54466, -0.78642], force_field_type = "C_R" },
+  { serial = 9, atom_name = "CD1", partial_charge = -0.1906, position = [1.44608, 2.35787, -1.83365], force_field_type = "C_R" },
+  { serial = 10, atom_name = "HCD1", partial_charge = 0.1699, position = [0.73022, 2.01269, -2.47552], force_field_type = "H_" },
+  { serial = 11, atom_name = "CD2", partial_charge = -0.1906, position = [2.91523, 2.0506, 0.06817], force_field_type = "C_R" },
+  { serial = 12, atom_name = "HCD2", partial_charge = 0.1699, position = [3.26938, 1.48556, 0.84237], force_field_type = "H_" },
+  { serial = 13, atom_name = "CE1", partial_charge = -0.2341, position = [1.955, 3.65569, -2.01723], force_field_type = "C_R" },
+  { serial = 14, atom_name = "HCE1", partial_charge = 0.1656, position = [1.61453, 4.23291, -2.79095], force_field_type = "H_" },
+  { serial = 15, atom_name = "CE2", partial_charge = -0.2341, position = [3.43697, 3.33718, -0.12335], force_field_type = "C_R" },
+  { serial = 16, atom_name = "HCE2", partial_charge = 0.1656, position = [4.17842, 3.68433, 0.49079], force_field_type = "H_" },
+  { serial = 17, atom_name = "CZ", partial_charge = 0.3226, position = [2.93549, 4.1523, -1.1447], force_field_type = "C_R" },
+  { serial = 18, atom_name = "OH", partial_charge = -0.5579, position = [3.3975, 5.42254, -1.24214], force_field_type = "O_R" },
+  { serial = 19, atom_name = "HOH", partial_charge = 0.3992, position = [2.97744, 6.07314, -1.84249], force_field_type = "H___A" }
+]
+
+[[TYR]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.0014, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.0876, position = [-0.17382, -1.0721, 0.09218], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5973, position = [-0.08276, 0.635, 1.3478], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = -0.0152, position = [1.42623, 0.15324, -0.59801], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0295, position = [2.11831, -0.37417, 0.06972], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = 0.0295, position = [1.4552, -0.35263, -1.5705], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = -0.0011, position = [1.91846, 1.54466, -0.78642], force_field_type = "C_R" },
+  { serial = 9, atom_name = "CD1", partial_charge = -0.1906, position = [1.44608, 2.35787, -1.83365], force_field_type = "C_R" },
+  { serial = 10, atom_name = "HCD1", partial_charge = 0.1699, position = [0.73022, 2.01269, -2.47552], force_field_type = "H_" },
+  { serial = 11, atom_name = "CD2", partial_charge = -0.1906, position = [2.91523, 2.0506, 0.06817], force_field_type = "C_R" },
+  { serial = 12, atom_name = "HCD2", partial_charge = 0.1699, position = [3.26938, 1.48556, 0.84237], force_field_type = "H_" },
+  { serial = 13, atom_name = "CE1", partial_charge = -0.2341, position = [1.955, 3.65569, -2.01723], force_field_type = "C_R" },
+  { serial = 14, atom_name = "HCE1", partial_charge = 0.1656, position = [1.61453, 4.23291, -2.79095], force_field_type = "H_" },
+  { serial = 15, atom_name = "CE2", partial_charge = -0.2341, position = [3.43697, 3.33718, -0.12335], force_field_type = "C_R" },
+  { serial = 16, atom_name = "HCE2", partial_charge = 0.1656, position = [4.17842, 3.68433, 0.49079], force_field_type = "H_" },
+  { serial = 17, atom_name = "CZ", partial_charge = 0.3226, position = [2.93549, 4.1523, -1.1447], force_field_type = "C_R" },
+  { serial = 18, atom_name = "OH", partial_charge = -0.5579, position = [3.3975, 5.42254, -1.24214], force_field_type = "O_R" },
+  { serial = 19, atom_name = "HOH", partial_charge = 0.3992, position = [4.16516, 5.72763, -0.7151], force_field_type = "H___A" }
+]
+
+[[TYR]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.0014, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.0876, position = [-0.17382, -1.0721, 0.09218], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5973, position = [-0.08276, 0.635, 1.3478], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = -0.0152, position = [1.42623, 0.15324, -0.59801], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0295, position = [2.11831, -0.37417, 0.06972], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = 0.0295, position = [1.4552, -0.35263, -1.5705], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = -0.0011, position = [1.91846, 1.54466, -0.78642], force_field_type = "C_R" },
+  { serial = 9, atom_name = "CD1", partial_charge = -0.1906, position = [1.44608, 2.35787, -1.83365], force_field_type = "C_R" },
+  { serial = 10, atom_name = "HCD1", partial_charge = 0.1699, position = [0.73022, 2.01269, -2.47552], force_field_type = "H_" },
+  { serial = 11, atom_name = "CD2", partial_charge = -0.1906, position = [2.91523, 2.0506, 0.06817], force_field_type = "C_R" },
+  { serial = 12, atom_name = "HCD2", partial_charge = 0.1699, position = [3.26938, 1.48556, 0.84237], force_field_type = "H_" },
+  { serial = 13, atom_name = "CE1", partial_charge = -0.2341, position = [1.955, 3.65569, -2.01723], force_field_type = "C_R" },
+  { serial = 14, atom_name = "HCE1", partial_charge = 0.1656, position = [1.61453, 4.23291, -2.79095], force_field_type = "H_" },
+  { serial = 15, atom_name = "CE2", partial_charge = -0.2341, position = [3.43697, 3.33718, -0.12335], force_field_type = "C_R" },
+  { serial = 16, atom_name = "HCE2", partial_charge = 0.1656, position = [4.17842, 3.68433, 0.49079], force_field_type = "H_" },
+  { serial = 17, atom_name = "CZ", partial_charge = 0.3226, position = [2.93549, 4.1523, -1.1447], force_field_type = "C_R" },
+  { serial = 18, atom_name = "OH", partial_charge = -0.5579, position = [3.3975, 5.42254, -1.24214], force_field_type = "O_R" },
+  { serial = 19, atom_name = "HOH", partial_charge = 0.3992, position = [3.05535, 6.13526, -0.66325], force_field_type = "H___A" }
+]
+
+[[TYR]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.0014, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.0876, position = [-0.17382, -1.0721, 0.09218], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5973, position = [-0.08276, 0.635, 1.3478], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = -0.0152, position = [1.42623, 0.15324, -0.59801], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = 0.0295, position = [2.11831, -0.37417, 0.06972], force_field_type = "H_" },
+  { serial = 7, atom_name = "HCB", partial_charge = 0.0295, position = [1.4552, -0.35263, -1.5705], force_field_type = "H_" },
+  { serial = 8, atom_name = "CG", partial_charge = -0.0011, position = [1.91846, 1.54466, -0.78642], force_field_type = "C_R" },
+  { serial = 9, atom_name = "CD1", partial_charge = -0.1906, position = [1.44608, 2.35787, -1.83365], force_field_type = "C_R" },
+  { serial = 10, atom_name = "HCD1", partial_charge = 0.1699, position = [0.73022, 2.01269, -2.47552], force_field_type = "H_" },
+  { serial = 11, atom_name = "CD2", partial_charge = -0.1906, position = [2.91523, 2.0506, 0.06817], force_field_type = "C_R" },
+  { serial = 12, atom_name = "HCD2", partial_charge = 0.1699, position = [3.26938, 1.48556, 0.84237], force_field_type = "H_" },
+  { serial = 13, atom_name = "CE1", partial_charge = -0.2341, position = [1.955, 3.65569, -2.01723], force_field_type = "C_R" },
+  { serial = 14, atom_name = "HCE1", partial_charge = 0.1656, position = [1.61453, 4.23291, -2.79095], force_field_type = "H_" },
+  { serial = 15, atom_name = "CE2", partial_charge = -0.2341, position = [3.43697, 3.33718, -0.12335], force_field_type = "C_R" },
+  { serial = 16, atom_name = "HCE2", partial_charge = 0.1656, position = [4.17842, 3.68433, 0.49079], force_field_type = "H_" },
+  { serial = 17, atom_name = "CZ", partial_charge = 0.3226, position = [2.93549, 4.1523, -1.1447], force_field_type = "C_R" },
+  { serial = 18, atom_name = "OH", partial_charge = -0.5579, position = [3.3975, 5.42254, -1.24214], force_field_type = "O_R" },
+  { serial = 19, atom_name = "HOH", partial_charge = 0.3992, position = [4.08725, 5.6655, -1.89434], force_field_type = "H___A" }
+]
+
+[[VAL]]
+atoms = [
+  { serial = 1, atom_name = "N", partial_charge = -0.4157, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
+  { serial = 2, atom_name = "CA", partial_charge = -0.0875, position = [0, 0, 0], force_field_type = "C_3" },
+  { serial = 3, atom_name = "HCA", partial_charge = 0.0969, position = [-0.35971, 0.12172, 1.02171], force_field_type = "H_" },
+  { serial = 4, atom_name = "C", partial_charge = 0.5973, position = [1.31581, 0.68773, -0.1493], force_field_type = "C_R" },
+  { serial = 5, atom_name = "CB", partial_charge = 0.2985, position = [0.17746, -1.52394, -0.24249], force_field_type = "C_3" },
+  { serial = 6, atom_name = "HCB", partial_charge = -0.0297, position = [0.95516, -1.88318, 0.43637], force_field_type = "H_" },
+  { serial = 7, atom_name = "CG1", partial_charge = -0.3192, position = [-1.11214, -2.29789, 0.11042], force_field_type = "C_3" },
+  { serial = 8, atom_name = "HCG1", partial_charge = 0.0791, position = [-1.36568, -2.12814, 1.15802], force_field_type = "H_" },
+  { serial = 9, atom_name = "HCG1", partial_charge = 0.0791, position = [-1.94276, -1.96861, -0.51633], force_field_type = "H_" },
+  { serial = 10, atom_name = "HCG1", partial_charge = 0.0791, position = [-0.95705, -3.36893, -0.03866], force_field_type = "H_" },
+  { serial = 11, atom_name = "CG2", partial_charge = -0.3192, position = [0.64463, -1.85352, -1.68035], force_field_type = "C_3" },
+  { serial = 12, atom_name = "HCG2", partial_charge = 0.0791, position = [-0.08213, -1.49451, -2.41036], force_field_type = "H_" },
+  { serial = 13, atom_name = "HCG2", partial_charge = 0.0791, position = [1.60871, -1.38143, -1.87179], force_field_type = "H_" },
+  { serial = 14, atom_name = "HCG2", partial_charge = 0.0791, position = [0.76219, -2.93318, -1.79265], force_field_type = "H_" }
+]
