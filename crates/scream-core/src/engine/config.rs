@@ -12,3 +12,10 @@ pub struct InputFiles {
     pub delta_params: PathBuf,
     pub rotamer_library: PathBuf,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TargetResidues {
+    All,
+    AllExcept(Vec<(char, isize)>),
+    Explicit(Vec<(char, isize)>),
+}
