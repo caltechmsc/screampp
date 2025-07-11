@@ -37,3 +37,20 @@ pub enum ScreamTask {
     Design(DesignTask),
     Analyze(InteractionAnalysisTask),
 }
+
+#[derive(Debug, Clone, Copy)]
+pub struct AlgorithmConfig {
+    pub s_factor: f64,
+    pub max_iterations: usize,
+    pub convergence_tolerance: f64,
+}
+
+impl Default for AlgorithmConfig {
+    fn default() -> Self {
+        Self {
+            s_factor: 1.0,
+            max_iterations: 10,
+            convergence_tolerance: 0.01,
+        }
+    }
+}
