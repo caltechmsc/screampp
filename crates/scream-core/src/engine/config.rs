@@ -19,3 +19,21 @@ pub enum TargetResidues {
     AllExcept(Vec<(char, isize)>),
     Explicit(Vec<(char, isize)>),
 }
+
+#[derive(Debug, Clone)]
+pub struct DesignTask {
+    pub positions: HashMap<(char, isize), Vec<ResidueType>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct InteractionAnalysisTask {
+    pub group1_selector: String,
+    pub group2_selector: String,
+}
+
+#[derive(Debug, Clone)]
+pub enum ScreamTask {
+    Place(TargetResidues),
+    Design(DesignTask),
+    Analyze(InteractionAnalysisTask),
+}
