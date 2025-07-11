@@ -27,6 +27,9 @@ pub enum ScreamError {
         source: toml::de::Error,
     },
 
+    #[error("Data Loading Error: {0}")]
+    Load(String),
+
     #[error("Rotamer Library Error: {0}")]
     RotamerLibrary(#[from] LibraryLoadError),
 
