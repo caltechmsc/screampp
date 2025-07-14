@@ -44,31 +44,10 @@ pub struct DeltaParam {
     pub sigma: f64,
 }
 
-#[derive(Debug, Deserialize, Clone)]
-pub struct ChargeParam {
-    pub res_type: String,
-    pub atom_name: String,
-    pub partial_charge: f64,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-pub struct TopologyAtomParam {
-    pub name: String,
-    pub ff_type: String,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-pub struct TopologyResidueParams {
-    pub atoms: Vec<TopologyAtomParam>,
-    pub bonds: Vec<[String; 2]>,
-}
-
 #[derive(Debug, Clone)]
 pub struct Forcefield {
     pub non_bonded: NonBondedParams,
     pub deltas: HashMap<(String, String), DeltaParam>,
-    pub charges: HashMap<(String, String), ChargeParam>,
-    pub topology: HashMap<String, TopologyResidueParams>,
 }
 
 #[derive(Debug, Error)]
@@ -88,23 +67,11 @@ pub enum ParamLoadError {
 }
 
 impl Forcefield {
-    pub fn load(
-        non_bonded_path: &Path,
-        delta_path: &Path,
-        charge_path: &Path,
-        topology_path: &Path,
-    ) -> Result<Self, ParamLoadError> {
+    pub fn load(non_bonded_path: &Path, delta_path: &Path) -> Result<Self, ParamLoadError> {
         let non_bonded = Self::load_non_bonded(non_bonded_path)?;
         let deltas = Self::load_delta_csv(delta_path)?;
-        let charges = Self::load_charge_csv(charge_path)?;
-        let topology = Self::load_topology(topology_path)?;
 
-        Ok(Self {
-            non_bonded,
-            deltas,
-            charges,
-            topology,
-        })
+        Ok(Self { non_bonded, deltas })
     }
 
     fn load_non_bonded(path: &Path) -> Result<NonBondedParams, ParamLoadError> {
@@ -135,38 +102,6 @@ impl Forcefield {
             lib_deltas.insert((record.res_type.clone(), record.atom_name.clone()), record);
         }
         Ok(lib_deltas)
-    }
-
-    fn load_charge_csv(
-        path: &Path,
-    ) -> Result<HashMap<(String, String), ChargeParam>, ParamLoadError> {
-        let mut reader = csv::Reader::from_path(path).map_err(|e| ParamLoadError::Csv {
-            path: path.to_string_lossy().to_string(),
-            source: e,
-        })?;
-
-        let mut scheme_charges = HashMap::new();
-        for result in reader.deserialize::<ChargeParam>() {
-            let record = result.map_err(|e| ParamLoadError::Csv {
-                path: path.to_string_lossy().to_string(),
-                source: e,
-            })?;
-            scheme_charges.insert((record.res_type.clone(), record.atom_name.clone()), record);
-        }
-        Ok(scheme_charges)
-    }
-
-    fn load_topology(
-        path: &Path,
-    ) -> Result<HashMap<String, TopologyResidueParams>, ParamLoadError> {
-        let content = std::fs::read_to_string(path).map_err(|e| ParamLoadError::Io {
-            path: path.to_string_lossy().to_string(),
-            source: e,
-        })?;
-        toml::from_str(&content).map_err(|e| ParamLoadError::Toml {
-            path: path.to_string_lossy().to_string(),
-            source: e,
-        })
     }
 }
 
@@ -270,48 +205,6 @@ mod tests {
     }
 
     #[test]
-    fn load_charge_csv_succeeds_with_valid_csv() {
-        let dir = tempdir().unwrap();
-        let file_path = dir.path().join("test_scheme.csv");
-        fs::write(&file_path, "res_type,atom_name,partial_charge\nGLY,N,-0.5").unwrap();
-
-        let charges = Forcefield::load_charge_csv(&file_path).unwrap();
-        let param = charges.get(&("GLY".to_string(), "N".to_string())).unwrap();
-        assert_eq!(param.partial_charge, -0.5);
-    }
-
-    #[test]
-    fn load_charge_csv_fails_for_malformed_csv() {
-        let dir = tempdir().unwrap();
-        let file_path = dir.path().join("malformed.csv");
-        fs::write(&file_path, "header1,header2\nval1").unwrap();
-        let result = Forcefield::load_charge_csv(&file_path);
-        assert!(matches!(result, Err(ParamLoadError::Csv { .. })));
-    }
-
-    #[test]
-    fn load_topology_succeeds_with_valid_toml() {
-        let dir = tempdir().unwrap();
-        let file_path = dir.path().join("topology.toml");
-        fs::write(
-            &file_path,
-            r#"
-            [ALA]
-            atoms = [ { name = "N", ff_type = "N" }, { name = "CA", ff_type = "C" } ]
-            bonds = [ ["N", "CA"] ]
-            "#,
-        )
-        .unwrap();
-
-        let topology = Forcefield::load_topology(&file_path).unwrap();
-        assert!(topology.contains_key("ALA"));
-        let ala_topo = topology.get("ALA").unwrap();
-        assert_eq!(ala_topo.atoms.len(), 2);
-        assert_eq!(ala_topo.bonds.len(), 1);
-        assert_eq!(ala_topo.bonds[0], ["N", "CA"]);
-    }
-
-    #[test]
     fn load_forcefield_succeeds_with_valid_files() {
         let dir = tempdir().unwrap();
 
@@ -333,30 +226,10 @@ mod tests {
         let delta_path = dir.path().join("delta.csv");
         fs::write(&delta_path, "res_type,atom_name,mu,sigma\nALA,CA,1.0,0.5").unwrap();
 
-        let charge_path = dir.path().join("charge.csv");
-        fs::write(
-            &charge_path,
-            "res_type,atom_name,partial_charge\nALA,N,-0.5",
-        )
-        .unwrap();
-
-        let topology_path = dir.path().join("topology.toml");
-        fs::write(
-            &topology_path,
-            r#"[ALA]
-            atoms = [ { name = "N", ff_type = "N" } ]
-            bonds = [ ]"#,
-        )
-        .unwrap();
-
-        let ff =
-            Forcefield::load(&non_bonded_path, &delta_path, &charge_path, &topology_path).unwrap();
+        let ff = Forcefield::load(&non_bonded_path, &delta_path).unwrap();
 
         assert!(!ff.non_bonded.vdw.is_empty());
         assert!(!ff.deltas.is_empty());
-        assert!(!ff.charges.is_empty());
-        assert!(!ff.topology.is_empty());
-        assert!(ff.topology.contains_key("ALA"));
     }
 
     #[test]
@@ -368,9 +241,7 @@ mod tests {
 
         let result = Forcefield::load(
             &non_bonded_path,
-            &delta_path, // This one is missing
-            &dir.path().join("c.csv"),
-            &dir.path().join("t.toml"),
+            &delta_path, // delta.csv does not exist
         );
         assert!(matches!(result, Err(ParamLoadError::Toml { .. })));
     }
