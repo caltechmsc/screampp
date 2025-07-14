@@ -215,8 +215,6 @@ mod tests {
         Forcefield {
             non_bonded,
             deltas: HashMap::new(),
-            charges: HashMap::new(),
-            topology: HashMap::new(),
         }
     }
 
