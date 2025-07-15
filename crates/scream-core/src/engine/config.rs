@@ -323,3 +323,201 @@ impl AnalyzeConfigBuilder {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::models::residue::ResidueType;
+    use std::path::PathBuf;
+
+    fn common_builder_setup(
+        builder: PlacementConfigBuilder,
+    ) -> (PlacementConfigBuilder, PlacementConfig) {
+        let forcefield_path = PathBuf::from("ff.dat");
+        let rotamer_library_path = PathBuf::from("rot.lib");
+        let delta_params_path = PathBuf::from("delta.params");
+        let residues_to_optimize = ResidueSelection::All;
+
+        let configured_builder = builder
+            .forcefield_path(forcefield_path.clone())
+            .rotamer_library_path(rotamer_library_path.clone())
+            .delta_params_path(delta_params_path.clone())
+            .s_factor(0.5)
+            .max_iterations(100)
+            .convergence_threshold(0.01)
+            .num_solutions(10)
+            .residues_to_optimize(residues_to_optimize.clone());
+
+        let expected_config = PlacementConfig {
+            scoring: ScoringConfig {
+                forcefield_path,
+                rotamer_library_path,
+                delta_params_path,
+                s_factor: 0.5,
+            },
+            optimization: OptimizationConfig {
+                max_iterations: 100,
+                convergence_threshold: 0.01,
+                num_solutions: 10,
+            },
+            residues_to_optimize,
+        };
+
+        (configured_builder, expected_config)
+    }
+
+    #[test]
+    fn placement_config_builder_succeeds_with_all_parameters() {
+        let (builder, expected_config) = common_builder_setup(PlacementConfigBuilder::new());
+        let config = builder.build().unwrap();
+        assert_eq!(config, expected_config);
+    }
+
+    #[test]
+    fn placement_config_builder_fails_on_missing_forcefield_path() {
+        let (builder, _) = common_builder_setup(PlacementConfigBuilder::new());
+        let incomplete_builder = PlacementConfigBuilder {
+            forcefield_path: None,
+            ..builder
+        };
+        let result = incomplete_builder.build();
+        assert_eq!(
+            result,
+            Err(ConfigError::MissingParameter("forcefield_path"))
+        );
+    }
+
+    #[test]
+    fn placement_config_builder_fails_on_missing_residues_to_optimize() {
+        let (builder, _) = common_builder_setup(PlacementConfigBuilder::new());
+        let incomplete_builder = PlacementConfigBuilder {
+            residues_to_optimize: None,
+            ..builder
+        };
+        let result = incomplete_builder.build();
+        assert_eq!(
+            result,
+            Err(ConfigError::MissingParameter("residues_to_optimize"))
+        );
+    }
+
+    #[test]
+    fn design_config_builder_succeeds_with_all_parameters() {
+        let forcefield_path = PathBuf::from("ff.dat");
+        let rotamer_library_path = PathBuf::from("rot.lib");
+        let delta_params_path = PathBuf::from("delta.params");
+        let neighbors_to_repack = ResidueSelection::All;
+        let mut design_spec = DesignSpec::new();
+        design_spec.insert(
+            ResidueSpecifier {
+                chain_id: 'A',
+                residue_number: 10,
+            },
+            vec![ResidueType::Alanine, ResidueType::Glycine],
+        );
+
+        let builder = DesignConfigBuilder::new()
+            .forcefield_path(forcefield_path.clone())
+            .rotamer_library_path(rotamer_library_path.clone())
+            .delta_params_path(delta_params_path.clone())
+            .s_factor(0.5)
+            .max_iterations(100)
+            .convergence_threshold(0.01)
+            .num_solutions(10)
+            .design_spec(design_spec.clone())
+            .neighbors_to_repack(neighbors_to_repack.clone());
+
+        let config = builder.build().unwrap();
+
+        let expected_config = DesignConfig {
+            scoring: ScoringConfig {
+                forcefield_path,
+                rotamer_library_path,
+                delta_params_path,
+                s_factor: 0.5,
+            },
+            optimization: OptimizationConfig {
+                max_iterations: 100,
+                convergence_threshold: 0.01,
+                num_solutions: 10,
+            },
+            design_spec,
+            neighbors_to_repack,
+        };
+
+        assert_eq!(config, expected_config);
+    }
+
+    #[test]
+    fn design_config_builder_fails_on_missing_design_spec() {
+        let builder = DesignConfigBuilder::new()
+            .forcefield_path(PathBuf::from("ff.dat"))
+            .rotamer_library_path(PathBuf::from("rot.lib"))
+            .delta_params_path(PathBuf::from("delta.params"))
+            .s_factor(0.5)
+            .max_iterations(100)
+            .convergence_threshold(0.01)
+            .num_solutions(10)
+            .neighbors_to_repack(ResidueSelection::All);
+
+        let result = builder.build();
+        assert_eq!(result, Err(ConfigError::MissingParameter("design_spec")));
+    }
+
+    #[test]
+    fn analyze_config_builder_succeeds_with_all_parameters() {
+        let forcefield_path = PathBuf::from("ff.dat");
+        let rotamer_library_path = PathBuf::from("rot.lib");
+        let delta_params_path = PathBuf::from("delta.params");
+        let analysis_type = AnalysisType::ClashDetection {
+            threshold_kcal_mol: 2.5,
+        };
+
+        let builder = AnalyzeConfigBuilder::new()
+            .forcefield_path(forcefield_path.clone())
+            .rotamer_library_path(rotamer_library_path.clone())
+            .delta_params_path(delta_params_path.clone())
+            .s_factor(1.0)
+            .analysis_type(analysis_type.clone());
+
+        let config = builder.build().unwrap();
+
+        let expected_config = AnalyzeConfig {
+            scoring: ScoringConfig {
+                forcefield_path,
+                rotamer_library_path,
+                delta_params_path,
+                s_factor: 1.0,
+            },
+            analysis_type,
+        };
+
+        assert_eq!(config, expected_config);
+    }
+
+    #[test]
+    fn analyze_config_builder_fails_on_missing_analysis_type() {
+        let builder = AnalyzeConfigBuilder::new()
+            .forcefield_path(PathBuf::from("ff.dat"))
+            .rotamer_library_path(PathBuf::from("rot.lib"))
+            .delta_params_path(PathBuf::from("delta.params"))
+            .s_factor(1.0);
+
+        let result = builder.build();
+        assert_eq!(result, Err(ConfigError::MissingParameter("analysis_type")));
+    }
+
+    #[test]
+    fn analyze_config_builder_fails_on_missing_s_factor() {
+        let builder = AnalyzeConfigBuilder::new()
+            .forcefield_path(PathBuf::from("ff.dat"))
+            .rotamer_library_path(PathBuf::from("rot.lib"))
+            .delta_params_path(PathBuf::from("delta.params"))
+            .analysis_type(AnalysisType::ClashDetection {
+                threshold_kcal_mol: 2.5,
+            });
+
+        let result = builder.build();
+        assert_eq!(result, Err(ConfigError::MissingParameter("s_factor")));
+    }
+}
