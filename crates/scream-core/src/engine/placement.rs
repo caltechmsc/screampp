@@ -121,3 +121,53 @@ fn gather_anchor_points<'a>(
 
     Ok((system_points, rotamer_points))
 }
+
+fn calculate_transformation(
+    from_points: &[Point3<f64>],
+    to_points: &[Point3<f64>],
+) -> Result<(Rotation3<f64>, Vector3<f64>), PlacementError> {
+    // 1. Calculate centroids using fold for robust summation
+    let from_centroid_sum: Vector3<f64> = from_points
+        .iter()
+        .fold(Vector3::zeros(), |acc, p| acc + p.coords);
+    let from_centroid = Point3::from(from_centroid_sum / from_points.len() as f64);
+
+    let to_centroid_sum: Vector3<f64> = to_points
+        .iter()
+        .fold(Vector3::zeros(), |acc, p| acc + p.coords);
+    let to_centroid = Point3::from(to_centroid_sum / to_points.len() as f64);
+
+    // 2. Center the points
+    let centered_from: Vec<_> = from_points.iter().map(|p| p - from_centroid).collect();
+    let centered_to: Vec<_> = to_points.iter().map(|p| p - to_centroid).collect();
+
+    // 3. Build the covariance matrix H
+    let h = centered_from
+        .iter()
+        .zip(centered_to.iter())
+        .fold(Matrix3::zeros(), |acc, (f, t)| acc + t * f.transpose());
+
+    // 4. Perform SVD
+    let svd = h.svd(true, true);
+    let u = svd.u.unwrap();
+    let v_t = svd.v_t.unwrap();
+
+    // 5. Calculate the rotation matrix, handling reflections
+    let mut d = (u * v_t).determinant();
+    if d < 0.0 {
+        d = -1.0;
+    } else {
+        d = 1.0;
+    }
+
+    let mut correction = Matrix3::identity();
+    correction[(2, 2)] = d;
+
+    let rotation_matrix = u * correction * v_t;
+    let rotation = Rotation3::from_matrix(&rotation_matrix);
+
+    // 6. Calculate the translation vector
+    let translation = to_centroid.coords - rotation * from_centroid.coords;
+
+    Ok((rotation, translation))
+}
