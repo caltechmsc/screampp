@@ -171,3 +171,32 @@ fn calculate_transformation(
 
     Ok((rotation, translation))
 }
+
+fn prepare_new_sidechain_atoms(
+    rotamer: &Rotamer,
+    placement_info: &PlacementInfo,
+    target_residue_id: ResidueId,
+    rotation: Rotation3<f64>,
+    translation: Vector3<f64>,
+) -> Result<Vec<Atom>, PlacementError> {
+    let mut new_atoms = Vec::with_capacity(placement_info.sidechain_atoms.len());
+
+    for atom_name in &placement_info.sidechain_atoms {
+        let rotamer_atom = rotamer
+            .atoms
+            .iter()
+            .find(|a| &a.name == atom_name)
+            .ok_or_else(|| PlacementError::SideChainAtomNotFoundInRotamer {
+                atom_name: atom_name.clone(),
+            })?;
+
+        let mut new_atom = rotamer_atom.clone();
+
+        new_atom.residue_id = target_residue_id;
+
+        new_atom.position = rotation * rotamer_atom.position + translation;
+
+        new_atoms.push(new_atom);
+    }
+    Ok(new_atoms)
+}
