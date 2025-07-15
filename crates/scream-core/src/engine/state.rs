@@ -16,7 +16,7 @@ impl Eq for Solution {}
 
 impl PartialOrd for Solution {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        other.energy.partial_cmp(&self.energy)
+        self.energy.partial_cmp(&other.energy)
     }
 }
 
@@ -36,7 +36,9 @@ pub struct OptimizationState {
 
 impl OptimizationState {
     pub fn new(initial_system: MolecularSystem, initial_energy: f64, max_solutions: usize) -> Self {
-        let mut top_solutions = BinaryHeap::with_capacity(max_solutions + 1);
+        let max_s = if max_solutions == 0 { 1 } else { max_solutions };
+
+        let mut top_solutions = BinaryHeap::with_capacity(max_s);
 
         top_solutions.push(Solution {
             energy: initial_energy,
@@ -47,7 +49,7 @@ impl OptimizationState {
             working_system: initial_system,
             current_energy: initial_energy,
             top_solutions,
-            max_solutions,
+            max_solutions: max_s,
         }
     }
 
@@ -58,25 +60,31 @@ impl OptimizationState {
                 system: self.working_system.clone(),
             };
             self.top_solutions.push(new_solution);
-        } else if let Some(worst_of_the_best) = self.top_solutions.peek() {
+        } else {
+            let worst_of_the_best = self.top_solutions.peek().unwrap();
+
             if self.current_energy < worst_of_the_best.energy {
-                self.top_solutions.pop();
-                let new_solution = Solution {
+                let mut new_solution = Solution {
                     energy: self.current_energy,
                     system: self.working_system.clone(),
                 };
-                self.top_solutions.push(new_solution);
+
+                if let Some(mut placeholder) = self.top_solutions.pop() {
+                    std::mem::swap(&mut placeholder.system, &mut new_solution.system);
+                    placeholder.energy = new_solution.energy;
+                    self.top_solutions.push(placeholder);
+                }
             }
         }
     }
 
     pub fn into_sorted_solutions(self) -> Vec<Solution> {
-        self.top_solutions.into_sorted_vec()
+        let mut solutions = self.top_solutions.into_vec();
+        solutions.sort_unstable();
+        solutions
     }
 
     pub fn best_solution(&self) -> Option<&Solution> {
-        self.top_solutions
-            .iter()
-            .min_by(|a, b| a.energy.partial_cmp(&b.energy).unwrap())
+        self.top_solutions.iter().min()
     }
 }
