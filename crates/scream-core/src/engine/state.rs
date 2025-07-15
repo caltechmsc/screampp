@@ -25,3 +25,58 @@ impl Ord for Solution {
         self.partial_cmp(other).unwrap_or(std::cmp::Ordering::Equal)
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct OptimizationState {
+    pub working_system: MolecularSystem,
+    pub current_energy: f64,
+    top_solutions: BinaryHeap<Solution>,
+    max_solutions: usize,
+}
+
+impl OptimizationState {
+    pub fn new(initial_system: MolecularSystem, initial_energy: f64, max_solutions: usize) -> Self {
+        let mut top_solutions = BinaryHeap::with_capacity(max_solutions + 1);
+
+        top_solutions.push(Solution {
+            energy: initial_energy,
+            system: initial_system.clone(),
+        });
+
+        Self {
+            working_system: initial_system,
+            current_energy: initial_energy,
+            top_solutions,
+            max_solutions,
+        }
+    }
+
+    pub fn submit_current_solution(&mut self) {
+        if self.top_solutions.len() < self.max_solutions {
+            let new_solution = Solution {
+                energy: self.current_energy,
+                system: self.working_system.clone(),
+            };
+            self.top_solutions.push(new_solution);
+        } else if let Some(worst_of_the_best) = self.top_solutions.peek() {
+            if self.current_energy < worst_of_the_best.energy {
+                self.top_solutions.pop();
+                let new_solution = Solution {
+                    energy: self.current_energy,
+                    system: self.working_system.clone(),
+                };
+                self.top_solutions.push(new_solution);
+            }
+        }
+    }
+
+    pub fn into_sorted_solutions(self) -> Vec<Solution> {
+        self.top_solutions.into_sorted_vec()
+    }
+
+    pub fn best_solution(&self) -> Option<&Solution> {
+        self.top_solutions
+            .iter()
+            .min_by(|a, b| a.energy.partial_cmp(&b.energy).unwrap())
+    }
+}
