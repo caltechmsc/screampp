@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use thiserror::Error;
 
-#[derive(Debug, Error, PartialEq, Eq)]
+#[derive(Debug, Error, PartialEq, Eq, Clone)]
 pub enum ConfigError {
     #[error("Missing required parameter: {0}")]
     MissingParameter(&'static str),
@@ -37,7 +37,7 @@ pub enum AtomSelection {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct GlobalConfig {
+pub struct ScoringConfig {
     pub forcefield_path: PathBuf,
     pub rotamer_library_path: PathBuf,
     pub delta_params_path: PathBuf,
@@ -46,9 +46,7 @@ pub struct GlobalConfig {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PlacementConfig {
-    pub global: GlobalConfig,
-    pub input_structure_path: PathBuf,
-    pub output_path: PathBuf,
+    pub scoring: ScoringConfig,
     pub residues_to_optimize: ResidueSelection,
     pub max_iterations: usize,
     pub convergence_threshold: f64,
@@ -61,8 +59,6 @@ pub struct PlacementConfigBuilder {
     rotamer_library_path: Option<PathBuf>,
     delta_params_path: Option<PathBuf>,
     s_factor: Option<f64>,
-    input_structure_path: Option<PathBuf>,
-    output_path: Option<PathBuf>,
     residues_to_optimize: Option<ResidueSelection>,
     max_iterations: Option<usize>,
     convergence_threshold: Option<f64>,
@@ -90,14 +86,6 @@ impl PlacementConfigBuilder {
         self.s_factor = Some(factor);
         self
     }
-    pub fn input_structure_path(mut self, path: PathBuf) -> Self {
-        self.input_structure_path = Some(path);
-        self
-    }
-    pub fn output_path(mut self, path: PathBuf) -> Self {
-        self.output_path = Some(path);
-        self
-    }
     pub fn residues_to_optimize(mut self, selection: ResidueSelection) -> Self {
         self.residues_to_optimize = Some(selection);
         self
@@ -116,7 +104,7 @@ impl PlacementConfigBuilder {
     }
 
     pub fn build(self) -> Result<PlacementConfig, ConfigError> {
-        let global = GlobalConfig {
+        let scoring = ScoringConfig {
             forcefield_path: self
                 .forcefield_path
                 .ok_or(ConfigError::MissingParameter("forcefield_path"))?,
@@ -132,13 +120,7 @@ impl PlacementConfigBuilder {
         };
 
         Ok(PlacementConfig {
-            global,
-            input_structure_path: self
-                .input_structure_path
-                .ok_or(ConfigError::MissingParameter("input_structure_path"))?,
-            output_path: self
-                .output_path
-                .ok_or(ConfigError::MissingParameter("output_path"))?,
+            scoring,
             residues_to_optimize: self
                 .residues_to_optimize
                 .ok_or(ConfigError::MissingParameter("residues_to_optimize"))?,
@@ -159,9 +141,7 @@ pub type DesignSpec = HashMap<ResidueSpecifier, Vec<ResidueType>>;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DesignConfig {
-    pub global: GlobalConfig,
-    pub template_structure_path: PathBuf,
-    pub output_prefix: PathBuf,
+    pub scoring: ScoringConfig,
     pub design_spec: DesignSpec,
     pub neighbors_to_repack: ResidueSelection,
     pub num_solutions: usize,
@@ -175,15 +155,12 @@ pub enum AnalysisType {
         group1: AtomSelection,
         group2: AtomSelection,
     },
-    ClashDetection {
-        threshold_kcal_mol: f64,
-    },
+    ClashDetection { threshold_kcal_mol: f64 },
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct AnalyzeConfig {
-    pub global: GlobalConfig,
-    pub input_structure_path: PathBuf,
+    pub scoring: ScoringConfig,
     pub analysis_type: AnalysisType,
 }
 
