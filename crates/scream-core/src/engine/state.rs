@@ -88,3 +88,142 @@ impl OptimizationState {
         self.top_solutions.iter().min()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn state_initializes_correctly_with_one_solution() {
+        let system = MolecularSystem::new();
+        let state = OptimizationState::new(system, -50.0, 5);
+
+        assert_eq!(state.current_energy, -50.0);
+        assert_eq!(state.max_solutions, 5);
+        assert_eq!(state.top_solutions.len(), 1);
+        assert_eq!(state.best_solution().unwrap().energy, -50.0);
+    }
+
+    #[test]
+    fn state_handles_zero_max_solutions_by_setting_it_to_one() {
+        let system = MolecularSystem::new();
+        let state = OptimizationState::new(system, -50.0, 0);
+        assert_eq!(state.max_solutions, 1);
+        assert_eq!(state.top_solutions.len(), 1);
+    }
+
+    #[test]
+    fn submit_better_solution_replaces_worst_when_heap_is_full() {
+        let system = MolecularSystem::new();
+        let mut state = OptimizationState::new(system, -50.0, 1);
+
+        state.current_energy = -100.0;
+        state.submit_current_solution();
+
+        assert_eq!(state.top_solutions.len(), 1);
+        assert_eq!(state.best_solution().unwrap().energy, -100.0);
+    }
+
+    #[test]
+    fn submit_worse_solution_is_ignored_when_heap_is_full() {
+        let system = MolecularSystem::new();
+        let mut state = OptimizationState::new(system, -100.0, 1);
+
+        state.current_energy = -50.0;
+        state.submit_current_solution();
+
+        assert_eq!(state.top_solutions.len(), 1);
+        assert_eq!(state.best_solution().unwrap().energy, -100.0);
+    }
+
+    #[test]
+    fn submit_solution_fills_heap_until_capacity() {
+        let system = MolecularSystem::new();
+        let mut state = OptimizationState::new(system.clone(), -10.0, 3);
+
+        state.current_energy = -20.0;
+        state.working_system = system.clone();
+        state.submit_current_solution();
+
+        state.current_energy = -5.0;
+        state.working_system = system.clone();
+        state.submit_current_solution();
+
+        assert_eq!(state.top_solutions.len(), 3);
+        let solutions = state.clone().into_sorted_solutions();
+        assert_eq!(solutions[0].energy, -20.0);
+        assert_eq!(solutions[1].energy, -10.0);
+        assert_eq!(solutions[2].energy, -5.0);
+    }
+
+    #[test]
+    fn submit_solutions_maintains_correct_top_n() {
+        let system = MolecularSystem::new();
+        let mut state = OptimizationState::new(system.clone(), -10.0, 2);
+
+        state.current_energy = -20.0;
+        state.working_system = system.clone();
+        state.submit_current_solution(); // Heap: [-20, -10]
+
+        state.current_energy = -5.0;
+        state.working_system = system.clone();
+        state.submit_current_solution(); // Heap: [-20, -10], -5 is worse than -10, ignored
+
+        state.current_energy = -30.0;
+        state.working_system = system.clone();
+        state.submit_current_solution(); // Heap: [-30, -20], -10 is popped
+
+        let solutions = state.into_sorted_solutions();
+        assert_eq!(solutions.len(), 2);
+        assert_eq!(solutions[0].energy, -30.0);
+        assert_eq!(solutions[1].energy, -20.0);
+    }
+
+    #[test]
+    fn into_sorted_solutions_returns_correctly_ordered_list() {
+        let system = MolecularSystem::new();
+        let mut state = OptimizationState::new(system.clone(), -10.0, 5);
+
+        state.current_energy = -30.0;
+        state.submit_current_solution();
+        state.current_energy = -20.0;
+        state.submit_current_solution();
+
+        let solutions = state.into_sorted_solutions();
+        assert_eq!(solutions.len(), 3);
+        assert_eq!(solutions[0].energy, -30.0);
+        assert_eq!(solutions[1].energy, -20.0);
+        assert_eq!(solutions[2].energy, -10.0);
+    }
+
+    #[test]
+    fn best_solution_returns_minimum_energy_solution() {
+        let system = MolecularSystem::new();
+        let mut state = OptimizationState::new(system.clone(), -10.0, 5);
+
+        state.current_energy = -30.0;
+        state.submit_current_solution();
+        state.current_energy = -5.0;
+        state.submit_current_solution();
+
+        let best = state.best_solution().unwrap();
+        assert_eq!(best.energy, -30.0);
+    }
+
+    #[test]
+    fn submit_solution_with_equal_energy_is_ignored_when_full() {
+        let system = MolecularSystem::new();
+        let mut state = OptimizationState::new(system.clone(), -10.0, 2);
+        state.current_energy = -20.0;
+        state.submit_current_solution(); // Heap: [-20, -10]
+
+        // Submit with energy equal to the worst in the heap
+        state.current_energy = -10.0;
+        state.submit_current_solution();
+
+        let solutions = state.into_sorted_solutions();
+        assert_eq!(solutions.len(), 2);
+        assert_eq!(solutions[0].energy, -20.0);
+        assert_eq!(solutions[1].energy, -10.0);
+    }
+}
