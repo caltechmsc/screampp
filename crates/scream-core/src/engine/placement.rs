@@ -82,3 +82,42 @@ pub fn place_rotamer_on_system(
 
     Ok(())
 }
+
+fn gather_anchor_points<'a>(
+    system: &'a MolecularSystem,
+    target_residue_id: ResidueId,
+    rotamer: &'a Rotamer,
+    placement_info: &PlacementInfo,
+) -> Result<(Vec<Point3<f64>>, Vec<Point3<f64>>), PlacementError> {
+    let mut system_points = Vec::with_capacity(placement_info.anchor_atoms.len());
+    let mut rotamer_points = Vec::with_capacity(placement_info.anchor_atoms.len());
+    let target_residue = system.residue(target_residue_id).unwrap();
+
+    for atom_name in &placement_info.anchor_atoms {
+        let system_atom_id = target_residue
+            .get_atom_id_by_name(atom_name)
+            .ok_or_else(|| PlacementError::AnchorAtomNotFoundInSystem {
+                atom_name: atom_name.clone(),
+                residue_id: target_residue_id,
+            })?;
+        let system_atom = system.atom(system_atom_id).unwrap();
+        system_points.push(system_atom.position);
+
+        let rotamer_atom = rotamer
+            .atoms
+            .iter()
+            .find(|a| &a.name == atom_name)
+            .ok_or_else(|| PlacementError::AnchorAtomNotFoundInRotamer {
+                atom_name: atom_name.clone(),
+            })?;
+        rotamer_points.push(rotamer_atom.position);
+    }
+
+    if system_points.len() < 3 {
+        return Err(PlacementError::InsufficientAnchors {
+            found: system_points.len(),
+        });
+    }
+
+    Ok((system_points, rotamer_points))
+}
