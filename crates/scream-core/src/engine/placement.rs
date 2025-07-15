@@ -13,15 +13,15 @@ use crate::core::{
 
 #[derive(Debug, Error)]
 pub enum PlacementError {
-    #[error("Anchor atom '{atom_name}' not found in the target residue {residue_id:?}")]
-    AnchorAtomNotFoundInSystem {
-        atom_name: String,
-        residue_id: ResidueId,
-    },
+    #[error("Anchor atom '{atom_name}' not found in the target residue")]
+    AnchorAtomNotFoundInSystem { atom_name: String },
+
     #[error("Anchor atom '{atom_name}' not found in the rotamer template")]
     AnchorAtomNotFoundInRotamer { atom_name: String },
 
-    #[error("Insufficient anchor atoms: requires at least 3, but found {found}")]
+    #[error(
+        "Insufficient anchor atoms for stable alignment: requires at least 3, but found {found}"
+    )]
     InsufficientAnchors { found: usize },
 
     #[error(
@@ -30,27 +30,27 @@ pub enum PlacementError {
     SideChainAtomNotFoundInRotamer { atom_name: String },
 }
 
-impl From<PlacementError> for EngineError {
-    fn from(e: PlacementError) -> Self {
-        EngineError::Placement {
-            residue_id: ResidueId::default(), // Placeholder
-            message: e.to_string(),
-        }
-    }
-}
-
 pub fn place_rotamer_on_system(
     system: &mut MolecularSystem,
     target_residue_id: ResidueId,
     rotamer: &Rotamer,
     placement_info: &PlacementInfo,
-) -> Result<(), PlacementError> {
+) -> Result<(), EngineError> {
     // --- 1. Gather and validate anchor points ---
     let (system_anchors, rotamer_anchors) =
-        gather_anchor_points(system, target_residue_id, rotamer, placement_info)?;
+        gather_anchor_points(system, target_residue_id, rotamer, placement_info).map_err(|e| {
+            EngineError::Placement {
+                residue_id: target_residue_id,
+                message: e.to_string(),
+            }
+        })?;
 
     // --- 2. Calculate the rigid body transformation ---
-    let (rotation, translation) = calculate_transformation(&rotamer_anchors, &system_anchors)?;
+    let (rotation, translation) = calculate_transformation(&rotamer_anchors, &system_anchors)
+        .map_err(|e| EngineError::Placement {
+            residue_id: target_residue_id,
+            message: e.to_string(),
+        })?;
 
     // --- 3. Prepare new side-chain atoms ---
     let new_atoms_to_add = prepare_new_sidechain_atoms(
@@ -59,11 +59,15 @@ pub fn place_rotamer_on_system(
         target_residue_id,
         rotation,
         translation,
-    )?;
+    )
+    .map_err(|e| EngineError::Placement {
+        residue_id: target_residue_id,
+        message: e.to_string(),
+    })?;
 
     // --- 4. Remove old side-chain atoms ---
     let old_atom_ids_to_remove: Vec<AtomId> = {
-        let target_residue = system.residue(target_residue_id).unwrap();
+        let target_residue = system.residue(target_residue_id).unwrap(); // Should exist if we've come this far.
         placement_info
             .sidechain_atoms
             .iter()
@@ -83,10 +87,10 @@ pub fn place_rotamer_on_system(
     Ok(())
 }
 
-fn gather_anchor_points<'a>(
-    system: &'a MolecularSystem,
+fn gather_anchor_points(
+    system: &MolecularSystem,
     target_residue_id: ResidueId,
-    rotamer: &'a Rotamer,
+    rotamer: &Rotamer,
     placement_info: &PlacementInfo,
 ) -> Result<(Vec<Point3<f64>>, Vec<Point3<f64>>), PlacementError> {
     let mut system_points = Vec::with_capacity(placement_info.anchor_atoms.len());
@@ -98,7 +102,6 @@ fn gather_anchor_points<'a>(
             .get_atom_id_by_name(atom_name)
             .ok_or_else(|| PlacementError::AnchorAtomNotFoundInSystem {
                 atom_name: atom_name.clone(),
-                residue_id: target_residue_id,
             })?;
         let system_atom = system.atom(system_atom_id).unwrap();
         system_points.push(system_atom.position);
@@ -153,15 +156,11 @@ fn calculate_transformation(
     let v_t = svd.v_t.unwrap();
 
     // 5. Calculate the rotation matrix, handling reflections
-    let mut d = (u * v_t).determinant();
-    if d < 0.0 {
-        d = -1.0;
-    } else {
-        d = 1.0;
-    }
-
+    let d = (u * v_t.transpose()).determinant();
     let mut correction = Matrix3::identity();
-    correction[(2, 2)] = d;
+    if d < 0.0 {
+        correction[(2, 2)] = -1.0;
+    }
 
     let rotation_matrix = u * correction * v_t;
     let rotation = Rotation3::from_matrix(&rotation_matrix);
@@ -191,11 +190,8 @@ fn prepare_new_sidechain_atoms(
             })?;
 
         let mut new_atom = rotamer_atom.clone();
-
         new_atom.residue_id = target_residue_id;
-
         new_atom.position = rotation * rotamer_atom.position + translation;
-
         new_atoms.push(new_atom);
     }
     Ok(new_atoms)
@@ -392,10 +388,7 @@ mod tests {
         let result =
             place_rotamer_on_system(&mut system, residue_id, &rotamer, &bad_placement_info);
 
-        assert!(matches!(
-            result,
-            Err(PlacementError::AnchorAtomNotFoundInSystem { .. })
-        ));
+        assert!(matches!(result, Err(EngineError::Placement { .. })));
     }
 
     #[test]
@@ -408,9 +401,6 @@ mod tests {
         let result =
             place_rotamer_on_system(&mut system, residue_id, &bad_rotamer, &placement_info);
 
-        assert!(matches!(
-            result,
-            Err(PlacementError::AnchorAtomNotFoundInRotamer { .. })
-        ));
+        assert!(matches!(result, Err(EngineError::Placement { .. })));
     }
 }
