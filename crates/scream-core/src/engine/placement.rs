@@ -200,3 +200,217 @@ fn prepare_new_sidechain_atoms(
     }
     Ok(new_atoms)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::models::chain::ChainType;
+    use nalgebra::{Point3, Vector3};
+
+    fn create_test_system_with_residue() -> (MolecularSystem, ResidueId) {
+        let mut system = MolecularSystem::new();
+        let chain_id = system.add_chain('A', ChainType::Protein);
+        let residue_id = system.add_residue(chain_id, 1, "ALA", None).unwrap();
+
+        let n = Atom::new(1, "N", residue_id, Point3::new(0.0, 1.0, 0.0));
+        let ca = Atom::new(2, "CA", residue_id, Point3::new(0.0, 0.0, 0.0));
+        let c = Atom::new(3, "C", residue_id, Point3::new(1.0, 0.0, 0.0));
+        system.add_atom_to_residue(residue_id, n);
+        system.add_atom_to_residue(residue_id, ca);
+        system.add_atom_to_residue(residue_id, c);
+
+        let old_cb = Atom::new(4, "CB", residue_id, Point3::new(-1.0, -1.0, -1.0));
+        system.add_atom_to_residue(residue_id, old_cb);
+
+        (system, residue_id)
+    }
+
+    fn create_test_rotamer() -> Rotamer {
+        Rotamer {
+            atoms: vec![
+                Atom::new(101, "N", ResidueId::default(), Point3::new(5.0, 5.0, 6.0)),
+                Atom::new(102, "CA", ResidueId::default(), Point3::new(5.0, 5.0, 5.0)),
+                Atom::new(103, "C", ResidueId::default(), Point3::new(6.0, 5.0, 5.0)),
+                Atom::new(104, "CB", ResidueId::default(), Point3::new(4.0, 4.0, 4.0)),
+            ],
+        }
+    }
+
+    fn create_test_placement_info() -> PlacementInfo {
+        PlacementInfo {
+            anchor_atoms: vec!["N".to_string(), "CA".to_string(), "C".to_string()],
+            sidechain_atoms: vec!["CB".to_string()],
+            exact_match_atoms: vec![],
+            connection_points: vec![],
+        }
+    }
+
+    #[test]
+    fn test_calculate_transformation_identity() {
+        let points = vec![
+            Point3::new(0.0, 0.0, 0.0),
+            Point3::new(1.0, 0.0, 0.0),
+            Point3::new(0.0, 1.0, 0.0),
+        ];
+        let (rot, trans) = calculate_transformation(&points, &points).unwrap();
+
+        assert!(
+            rot.angle().abs() < 1e-9,
+            "Rotation angle should be zero for identity"
+        );
+        assert!(trans.norm() < 1e-9, "Translation should be zero");
+    }
+
+    #[test]
+    fn test_calculate_transformation_pure_translation() {
+        let from_points = vec![
+            Point3::new(0.0, 0.0, 0.0),
+            Point3::new(1.0, 0.0, 0.0),
+            Point3::new(0.0, 1.0, 0.0),
+        ];
+        let translation_vec = Vector3::new(10.0, 20.0, 30.0);
+        let to_points: Vec<Point3<f64>> = from_points.iter().map(|p| p + translation_vec).collect();
+
+        let (rot, trans) = calculate_transformation(&from_points, &to_points).unwrap();
+
+        assert!(
+            rot.angle().abs() < 1e-9,
+            "Rotation angle should be zero for pure translation"
+        );
+        assert!(
+            (trans - translation_vec).norm() < 1e-9,
+            "Translation should match the applied vector"
+        );
+    }
+
+    #[test]
+    fn test_calculate_transformation_pure_rotation() {
+        let from_points = vec![
+            Point3::new(1.0, 0.0, 0.0),
+            Point3::new(-1.0, 0.0, 0.0),
+            Point3::new(0.0, 1.0, 0.0),
+            Point3::new(0.0, -1.0, 0.0),
+        ];
+
+        let rotation = Rotation3::from_axis_angle(&Vector3::z_axis(), std::f64::consts::FRAC_PI_2); // 90 deg around Z
+        let to_points: Vec<Point3<f64>> = from_points.iter().map(|p| rotation * p).collect();
+
+        let (rot, trans) = calculate_transformation(&from_points, &to_points).unwrap();
+
+        assert!(
+            (rot.matrix() - rotation.matrix()).norm() < 1e-9,
+            "Rotation should match the applied rotation"
+        );
+        assert!(trans.norm() < 1e-9, "Translation should be zero");
+    }
+
+    #[test]
+    fn test_calculate_transformation_with_reflection_handling() {
+        let from_points = vec![
+            Point3::new(1.0, 1.0, 1.0),
+            Point3::new(-1.0, 1.0, -1.0),
+            Point3::new(1.0, -1.0, -1.0),
+        ];
+        let to_points = vec![
+            Point3::new(1.0, 1.0, -1.0),
+            Point3::new(-1.0, 1.0, 1.0),
+            Point3::new(1.0, -1.0, 1.0),
+        ];
+
+        let (rot, _) = calculate_transformation(&from_points, &to_points).unwrap();
+
+        assert!(
+            (rot.matrix().determinant() - 1.0).abs() < 1e-9,
+            "Determinant should be +1, indicating a proper rotation"
+        );
+    }
+
+    #[test]
+    fn test_place_rotamer_on_system_full_flow() {
+        let (mut system, residue_id) = create_test_system_with_residue();
+        let rotamer = create_test_rotamer();
+        let placement_info = create_test_placement_info();
+
+        let old_cb_id = system
+            .residue(residue_id)
+            .unwrap()
+            .get_atom_id_by_name("CB")
+            .unwrap();
+        let old_cb_pos = system.atom(old_cb_id).unwrap().position;
+        assert!((old_cb_pos - Point3::new(-1.0, -1.0, -1.0)).norm() < 1e-9);
+        assert_eq!(system.residue(residue_id).unwrap().atoms().len(), 4);
+
+        let result = place_rotamer_on_system(&mut system, residue_id, &rotamer, &placement_info);
+        assert!(result.is_ok());
+
+        let residue = system.residue(residue_id).unwrap();
+
+        assert_eq!(
+            residue.atoms().len(),
+            4,
+            "Atom count should remain 4 (N, CA, C, new CB)"
+        );
+
+        let new_cb_id = residue
+            .get_atom_id_by_name("CB")
+            .expect("New CB atom should exist");
+        let new_cb_atom = system.atom(new_cb_id).unwrap();
+
+        let (system_anchors, rotamer_anchors) =
+            gather_anchor_points(&system, residue_id, &rotamer, &placement_info).unwrap();
+        let (rotation, translation) =
+            calculate_transformation(&rotamer_anchors, &system_anchors).unwrap();
+        let rotamer_cb_pos = rotamer
+            .atoms
+            .iter()
+            .find(|a| a.name == "CB")
+            .unwrap()
+            .position;
+        let expected_pos = rotation * rotamer_cb_pos + translation;
+
+        let distance = (new_cb_atom.position - expected_pos).norm();
+        assert!(
+            distance < 1e-9,
+            "New CB position is incorrect. Expected: {:?}, Found: {:?}",
+            expected_pos,
+            new_cb_atom.position
+        );
+
+        let rotamer_cb = rotamer.atoms.iter().find(|a| a.name == "CB").unwrap();
+        assert_eq!(new_cb_atom.partial_charge, rotamer_cb.partial_charge);
+        assert_eq!(new_cb_atom.force_field_type, rotamer_cb.force_field_type);
+    }
+
+    #[test]
+    fn test_placement_fails_if_system_anchor_missing() {
+        let (mut system, residue_id) = create_test_system_with_residue();
+        let rotamer = create_test_rotamer();
+
+        let mut bad_placement_info = create_test_placement_info();
+        bad_placement_info.anchor_atoms.push("OXT".to_string());
+
+        let result =
+            place_rotamer_on_system(&mut system, residue_id, &rotamer, &bad_placement_info);
+
+        assert!(matches!(
+            result,
+            Err(PlacementError::AnchorAtomNotFoundInSystem { .. })
+        ));
+    }
+
+    #[test]
+    fn test_placement_fails_if_rotamer_anchor_missing() {
+        let (mut system, residue_id) = create_test_system_with_residue();
+        let mut bad_rotamer = create_test_rotamer();
+        bad_rotamer.atoms.retain(|a| a.name != "C");
+        let placement_info = create_test_placement_info();
+
+        let result =
+            place_rotamer_on_system(&mut system, residue_id, &bad_rotamer, &placement_info);
+
+        assert!(matches!(
+            result,
+            Err(PlacementError::AnchorAtomNotFoundInRotamer { .. })
+        ));
+    }
+}
