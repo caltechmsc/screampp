@@ -29,3 +29,12 @@ pub enum PlacementError {
     )]
     SideChainAtomNotFoundInRotamer { atom_name: String },
 }
+
+impl From<PlacementError> for EngineError {
+    fn from(e: PlacementError) -> Self {
+        EngineError::Placement {
+            residue_id: ResidueId::default(), // Placeholder
+            message: e.to_string(),
+        }
+    }
+}
