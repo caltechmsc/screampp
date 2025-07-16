@@ -49,6 +49,7 @@ pub struct OptimizationConfig {
     pub max_iterations: usize,
     pub convergence_threshold: f64,
     pub num_solutions: usize,
+    pub include_input_conformation: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -68,6 +69,7 @@ pub struct PlacementConfigBuilder {
     convergence_threshold: Option<f64>,
     num_solutions: Option<usize>,
     residues_to_optimize: Option<ResidueSelection>,
+    include_input_conformation: Option<bool>,
 }
 
 impl PlacementConfigBuilder {
@@ -107,6 +109,10 @@ impl PlacementConfigBuilder {
         self.residues_to_optimize = Some(selection);
         self
     }
+    pub fn include_input_conformation(mut self, include: bool) -> Self {
+        self.include_input_conformation = Some(include);
+        self
+    }
 
     pub fn build(self) -> Result<PlacementConfig, ConfigError> {
         let scoring = ScoringConfig {
@@ -133,6 +139,7 @@ impl PlacementConfigBuilder {
             num_solutions: self
                 .num_solutions
                 .ok_or(ConfigError::MissingParameter("num_solutions"))?,
+            include_input_conformation: self.include_input_conformation.unwrap_or(false),
         };
         Ok(PlacementConfig {
             scoring,
@@ -163,6 +170,7 @@ pub struct DesignConfigBuilder {
     max_iterations: Option<usize>,
     convergence_threshold: Option<f64>,
     num_solutions: Option<usize>,
+    include_input_conformation: Option<bool>,
     design_spec: Option<DesignSpec>,
     neighbors_to_repack: Option<ResidueSelection>,
 }
@@ -200,6 +208,10 @@ impl DesignConfigBuilder {
         self.num_solutions = Some(n);
         self
     }
+    pub fn include_input_conformation(mut self, include: bool) -> Self {
+        self.include_input_conformation = Some(include);
+        self
+    }
     pub fn design_spec(mut self, spec: DesignSpec) -> Self {
         self.design_spec = Some(spec);
         self
@@ -234,6 +246,7 @@ impl DesignConfigBuilder {
             num_solutions: self
                 .num_solutions
                 .ok_or(ConfigError::MissingParameter("num_solutions"))?,
+            include_input_conformation: self.include_input_conformation.unwrap_or(false),
         };
         Ok(DesignConfig {
             scoring,
@@ -346,6 +359,7 @@ mod tests {
             .max_iterations(100)
             .convergence_threshold(0.01)
             .num_solutions(10)
+            .include_input_conformation(true)
             .residues_to_optimize(residues_to_optimize.clone());
 
         let expected_config = PlacementConfig {
@@ -359,6 +373,7 @@ mod tests {
                 max_iterations: 100,
                 convergence_threshold: 0.01,
                 num_solutions: 10,
+                include_input_conformation: true,
             },
             residues_to_optimize,
         };
@@ -368,8 +383,22 @@ mod tests {
 
     #[test]
     fn placement_config_builder_succeeds_with_all_parameters() {
-        let (builder, expected_config) = common_builder_setup(PlacementConfigBuilder::new());
+        let (builder, mut expected_config) = common_builder_setup(PlacementConfigBuilder::new());
         let config = builder.build().unwrap();
+        assert_eq!(config, expected_config);
+
+        let (builder, mut expected_config) = common_builder_setup(PlacementConfigBuilder::new());
+        let config = builder.include_input_conformation(false).build().unwrap();
+        expected_config.optimization.include_input_conformation = false;
+        assert_eq!(config, expected_config);
+
+        let (builder, mut expected_config) = common_builder_setup(PlacementConfigBuilder::new());
+        let incomplete_builder = PlacementConfigBuilder {
+            include_input_conformation: None,
+            ..builder
+        };
+        let config = incomplete_builder.build().unwrap();
+        expected_config.optimization.include_input_conformation = false;
         assert_eq!(config, expected_config);
     }
 
@@ -424,6 +453,7 @@ mod tests {
             .max_iterations(100)
             .convergence_threshold(0.01)
             .num_solutions(10)
+            .include_input_conformation(true)
             .design_spec(design_spec.clone())
             .neighbors_to_repack(neighbors_to_repack.clone());
 
@@ -440,6 +470,7 @@ mod tests {
                 max_iterations: 100,
                 convergence_threshold: 0.01,
                 num_solutions: 10,
+                include_input_conformation: true,
             },
             design_spec,
             neighbors_to_repack,
