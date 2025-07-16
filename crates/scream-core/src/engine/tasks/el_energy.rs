@@ -73,3 +73,38 @@ pub fn run<C: ProvidesResidueSelections + Sync>(
     );
     Ok(cache)
 }
+
+fn build_work_list<C: ProvidesResidueSelections>(
+    context: &Context<C>,
+) -> Result<Vec<WorkUnit>, EngineError> {
+    let mut work_list = Vec::new();
+    let active_residues = context.resolve_all_active_residues()?;
+
+    for &residue_id in &active_residues {
+        let residue = context.system.residue(residue_id).unwrap();
+
+        let mut is_design_site = false;
+        if let Some(design_spec) = context.config.design_spec() {
+            let chain = context.system.chain(residue.chain_id).unwrap();
+            if let Some(allowed_types) = design_spec.get_by_specifier(chain.id, residue.id) {
+                for &residue_type in allowed_types {
+                    work_list.push(WorkUnit {
+                        residue_id,
+                        residue_type,
+                    });
+                }
+                is_design_site = true;
+            }
+        }
+
+        if !is_design_site {
+            if let Some(native_type) = residue.res_type {
+                work_list.push(WorkUnit {
+                    residue_id,
+                    residue_type: native_type,
+                });
+            }
+        }
+    }
+    Ok(work_list)
+}
