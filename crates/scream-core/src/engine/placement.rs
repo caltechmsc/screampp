@@ -228,7 +228,6 @@ mod tests {
                 Atom::new(103, "C", ResidueId::default(), Point3::new(6.0, 5.0, 5.0)),
                 Atom::new(104, "CB", ResidueId::default(), Point3::new(4.0, 4.0, 4.0)),
             ],
-            empty_lattice_energy: None,
         }
     }
 
