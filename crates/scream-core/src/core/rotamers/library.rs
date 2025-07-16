@@ -109,7 +109,6 @@ impl RotamerLibrary {
                 }
                 parameterized_rotamers.push(Rotamer {
                     atoms,
-                    empty_lattice_energy: None,
                 });
             }
 
@@ -172,7 +171,6 @@ impl RotamerLibrary {
 
             let extracted_rotamer = Rotamer {
                 atoms: extracted_atoms,
-                empty_lattice_energy: None,
             };
 
             let is_duplicate = existing_rotamers.iter().any(|existing| {
