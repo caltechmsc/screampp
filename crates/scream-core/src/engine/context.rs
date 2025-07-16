@@ -143,7 +143,7 @@ mod tests {
     use crate::core::forcefield::params::Forcefield;
     use crate::core::models::chain::ChainType;
     use crate::core::models::residue::ResidueType;
-    use crate::engine::config::ResidueSpecifier;
+    use crate::engine::config::{DesignSpec, OptimizationConfig, ResidueSpecifier, ScoringConfig};
 
     fn create_test_system() -> MolecularSystem {
         let mut system = MolecularSystem::new();
@@ -165,6 +165,23 @@ mod tests {
             .add_residue(chain_b, 11, "XXX", None) // Non-standard residue
             .unwrap();
         system
+    }
+
+    fn create_test_scoring_config() -> ScoringConfig {
+        ScoringConfig {
+            forcefield_path: "".into(),
+            rotamer_library_path: "".into(),
+            delta_params_path: "".into(),
+            s_factor: 1.0,
+        }
+    }
+
+    fn create_test_optimization_config() -> OptimizationConfig {
+        OptimizationConfig {
+            max_iterations: 100,
+            convergence_threshold: 0.01,
+            num_solutions: 1,
+        }
     }
 
     fn create_test_forcefield() -> Forcefield {
@@ -215,7 +232,7 @@ mod tests {
         let system = create_test_system();
         let library = create_test_rotamer_library();
         let selection = ResidueSelection::All;
-        let resolved = resolve_residue_selection(&system, &selection, &library).unwrap();
+        let resolved = resolve_selection_to_ids(&system, &selection, &library).unwrap();
 
         assert_eq!(resolved.len(), 2);
 
@@ -251,7 +268,7 @@ mod tests {
             ],
             exclude: vec![],
         };
-        let resolved = resolve_residue_selection(&system, &selection, &library).unwrap();
+        let resolved = resolve_selection_to_ids(&system, &selection, &library).unwrap();
 
         assert_eq!(resolved.len(), 1);
         let chain_a = system.find_chain_by_id('A').unwrap();
@@ -270,7 +287,7 @@ mod tests {
                 residue_number: 1,
             }],
         };
-        let resolved = resolve_residue_selection(&system, &selection, &library).unwrap();
+        let resolved = resolve_selection_to_ids(&system, &selection, &library).unwrap();
 
         assert_eq!(resolved.len(), 1);
         let chain_a = system.find_chain_by_id('A').unwrap();
@@ -301,7 +318,7 @@ mod tests {
                 residue_number: 1,
             }],
         };
-        let resolved = resolve_residue_selection(&system, &selection, &library).unwrap();
+        let resolved = resolve_selection_to_ids(&system, &selection, &library).unwrap();
 
         assert_eq!(resolved.len(), 1);
         let chain_a = system.find_chain_by_id('A').unwrap();
@@ -321,7 +338,7 @@ mod tests {
             include: vec![spec.clone()],
             exclude: vec![],
         };
-        let result = resolve_residue_selection(&system, &selection, &library);
+        let result = resolve_selection_to_ids(&system, &selection, &library);
 
         assert!(matches!(
             result,
@@ -340,7 +357,7 @@ mod tests {
                 residue_number: 99,
             }],
         };
-        let resolved = resolve_residue_selection(&system, &selection, &library).unwrap();
+        let resolved = resolve_selection_to_ids(&system, &selection, &library).unwrap();
         assert_eq!(resolved.len(), 2);
     }
 
@@ -352,7 +369,7 @@ mod tests {
             include: vec![],
             exclude: vec![],
         };
-        let resolved = resolve_residue_selection(&system, &selection, &library).unwrap();
+        let resolved = resolve_selection_to_ids(&system, &selection, &library).unwrap();
         assert!(resolved.is_empty());
     }
 
@@ -366,6 +383,96 @@ mod tests {
             ligand_residue_name: "LIG".to_string(),
             radius_angstroms: 5.0,
         };
-        let _ = resolve_residue_selection(&system, &selection, &library);
+        let _ = resolve_selection_to_ids(&system, &selection, &library);
+    }
+
+    #[test]
+    fn resolve_design_residues_works_for_design_config() {
+        let system = create_test_system();
+        let library = create_test_rotamer_library();
+        let ff = create_test_forcefield();
+
+        let spec = ResidueSpecifier {
+            chain_id: 'A',
+            residue_number: 1,
+        };
+        let mut design_spec = DesignSpec::new();
+        design_spec.insert(spec.clone(), vec![ResidueType::Leucine]);
+
+        let config = DesignConfig {
+            design_spec,
+            neighbors_to_repack: ResidueSelection::List {
+                include: vec![],
+                exclude: vec![],
+            },
+            scoring: create_test_scoring_config(),
+            optimization: create_test_optimization_config(),
+        };
+
+        let context = Context::new(&system, &config, &ff, &library);
+        let design_residues = context.resolve_design_residues().unwrap();
+
+        assert_eq!(design_residues.len(), 1);
+        let chain_a = system.find_chain_by_id('A').unwrap();
+        let ala_id = system.find_residue_by_id(chain_a, 1).unwrap();
+        assert!(design_residues.contains(&ala_id));
+    }
+
+    #[test]
+    fn resolve_design_residues_returns_empty_for_placement_config() {
+        let system = create_test_system();
+        let library = create_test_rotamer_library();
+        let ff = create_test_forcefield();
+
+        let config = PlacementConfig {
+            residues_to_optimize: ResidueSelection::All,
+            scoring: create_test_scoring_config(),
+            optimization: create_test_optimization_config(),
+        };
+
+        let context = Context::new(&system, &config, &ff, &library);
+        let design_residues = context.resolve_design_residues().unwrap();
+
+        assert!(design_residues.is_empty());
+    }
+
+    #[test]
+    fn resolve_all_active_residues_combines_repack_and_design() {
+        let system = create_test_system();
+        let library = create_test_rotamer_library();
+        let ff = create_test_forcefield();
+
+        let design_specifier = ResidueSpecifier {
+            chain_id: 'A',
+            residue_number: 1,
+        };
+        let mut design_spec = DesignSpec::new();
+        design_spec.insert(design_specifier, vec![ResidueType::Leucine]);
+
+        let repack_specifier = ResidueSpecifier {
+            chain_id: 'A',
+            residue_number: 3,
+        };
+        let repack_selection = ResidueSelection::List {
+            include: vec![repack_specifier],
+            exclude: vec![],
+        };
+
+        let config = DesignConfig {
+            design_spec,
+            neighbors_to_repack: repack_selection,
+            scoring: create_test_scoring_config(),
+            optimization: create_test_optimization_config(),
+        };
+
+        let context = Context::new(&system, &config, &ff, &library);
+        let all_active = context.resolve_all_active_residues().unwrap();
+
+        assert_eq!(all_active.len(), 2);
+        let chain_a = system.find_chain_by_id('A').unwrap();
+        let ala_id = system.find_residue_by_id(chain_a, 1).unwrap();
+        let leu_id = system.find_residue_by_id(chain_a, 3).unwrap();
+        assert!(all_active.contains(&ala_id));
+        assert!(all_active.contains(&leu_id));
     }
 }
