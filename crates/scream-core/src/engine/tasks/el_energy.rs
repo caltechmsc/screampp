@@ -108,3 +108,67 @@ fn build_work_list<C: ProvidesResidueSelections>(
     }
     Ok(work_list)
 }
+
+#[instrument(skip_all, fields(residue_id = ?unit.residue_id, residue_type = %unit.residue_type))]
+fn compute_energies_for_unit<C: ProvidesResidueSelections + Sync>(
+    unit: &WorkUnit,
+    context: &Context<C>,
+) -> WorkResult {
+    let rotamers = context
+        .rotamer_library
+        .get_rotamers_for(unit.residue_type)
+        .ok_or_else(|| EngineError::RotamerLibrary {
+            residue_type: unit.residue_type.to_string(),
+            message: "No rotamers found for this residue type.".to_string(),
+        })?;
+
+    let placement_info = context
+        .rotamer_library
+        .get_placement_info_for(unit.residue_type)
+        .ok_or_else(|| EngineError::RotamerLibrary {
+            residue_type: unit.residue_type.to_string(),
+            message: "No placement info found for this residue type.".to_string(),
+        })?;
+
+    let active_residue_ids = context.resolve_all_active_residues()?;
+
+    let environment_atoms: Vec<_> = context
+        .system
+        .atoms_iter()
+        .filter_map(|(atom_id, atom)| {
+            if !active_residue_ids.contains(&atom.residue_id) {
+                Some(atom_id)
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    let mut energy_map = std::collections::HashMap::with_capacity(rotamers.len());
+
+    for (rotamer_idx, rotamer) in rotamers.iter().enumerate() {
+        let mut working_system = context.system.clone();
+
+        place_rotamer_on_system(
+            &mut working_system,
+            unit.residue_id,
+            rotamer,
+            placement_info,
+        )?;
+
+        let query_atoms: Vec<_> = working_system
+            .residue(unit.residue_id)
+            .unwrap()
+            .atoms()
+            .to_vec();
+
+        let scorer = Scorer::new(&working_system, context.forcefield);
+        let energy = scorer.score_interaction(&query_atoms, &environment_atoms)?;
+
+        energy_map.insert(rotamer_idx, energy);
+    }
+
+    context.reporter.report(Progress::TaskIncrement);
+
+    Ok(((unit.residue_id, unit.residue_type), energy_map))
+}
