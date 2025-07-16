@@ -1,8 +1,7 @@
-use thiserror::Error;
-
 use super::config::ResidueSpecifier;
 use crate::core::forcefield::scoring::ScoringError;
 use crate::core::models::ids::ResidueId;
+use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum EngineError {

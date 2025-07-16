@@ -1,6 +1,3 @@
-use nalgebra::{Matrix3, Point3, Rotation3, Vector3};
-use thiserror::Error;
-
 use super::error::EngineError;
 use crate::core::{
     models::{
@@ -10,6 +7,8 @@ use crate::core::{
     },
     rotamers::{placement::PlacementInfo, rotamer::Rotamer},
 };
+use nalgebra::{Matrix3, Point3, Rotation3, Vector3};
+use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum PlacementError {

@@ -132,6 +132,9 @@ mod tests {
             .add_residue(chain_b, 10, "TRP", Some(ResidueType::Tryptophan))
             .unwrap();
         system
+            .add_residue(chain_b, 11, "XXX", None) // Non-standard residue
+            .unwrap();
+        system
     }
 
     fn create_test_forcefield() -> Forcefield {
@@ -155,60 +158,36 @@ mod tests {
         }
     }
 
+    fn create_test_rotamer_library() -> RotamerLibrary {
+        let mut lib = RotamerLibrary::default();
+        lib.rotamers
+            .insert(ResidueType::Alanine, Default::default());
+        lib.rotamers
+            .insert(ResidueType::Leucine, Default::default());
+        lib
+    }
+
     #[test]
     fn context_creation_is_correct() {
         let system = MolecularSystem::new();
         let ff = create_test_forcefield();
+        let rot_lib = create_test_rotamer_library();
         let config = ();
-        let context = Context::new(&system, &ff, &config);
+        let context = Context::new(&system, &config, &ff, &rot_lib);
         assert!(std::ptr::eq(context.system, &system));
         assert!(std::ptr::eq(context.forcefield, &ff));
         assert!(std::ptr::eq(context.config, &config));
+        assert!(std::ptr::eq(context.rotamer_library, &rot_lib));
     }
 
     #[test]
-    fn optimization_context_creation_is_correct() {
-        let system = MolecularSystem::new();
-        let ff = create_test_forcefield();
-        let config = ();
-        let rot_lib = RotamerLibrary::default();
-        let active_res = HashSet::new();
-        let context = Context::new(&system, &ff, &config);
-        let opt_context = OptimizationContext::new(context.clone(), &rot_lib, &active_res);
-
-        assert!(std::ptr::eq(opt_context.universal.system, &system));
-        assert!(std::ptr::eq(opt_context.rotamer_library, &rot_lib));
-        assert!(std::ptr::eq(opt_context.active_residues, &active_res));
-    }
-
-    #[test]
-    fn optimization_context_with_rotamer_library_updates_library() {
-        let system = MolecularSystem::new();
-        let ff = create_test_forcefield();
-        let config = ();
-        let rot_lib1 = RotamerLibrary::default();
-        let rot_lib2 = RotamerLibrary::default();
-        let active_res = HashSet::new();
-        let context = Context::new(&system, &ff, &config);
-        let opt_context1 = OptimizationContext::new(context.clone(), &rot_lib1, &active_res);
-
-        let opt_context2 = opt_context1.with_rotamer_library(&rot_lib2);
-
-        assert!(std::ptr::eq(opt_context1.rotamer_library, &rot_lib1));
-        assert!(std::ptr::eq(opt_context2.rotamer_library, &rot_lib2));
-        assert!(std::ptr::eq(
-            opt_context1.universal.system,
-            opt_context2.universal.system
-        ));
-    }
-
-    #[test]
-    fn resolve_all_residues_selects_all_except_glycine() {
+    fn resolve_all_residues_selects_all_supported_except_glycine() {
         let system = create_test_system();
+        let library = create_test_rotamer_library();
         let selection = ResidueSelection::All;
-        let resolved = resolve_residue_selection(&system, &selection).unwrap();
+        let resolved = resolve_residue_selection(&system, &selection, &library).unwrap();
 
-        assert_eq!(resolved.len(), 3);
+        assert_eq!(resolved.len(), 2);
 
         let chain_a = system.find_chain_by_id('A').unwrap();
         let ala_id = system.find_residue_by_id(chain_a, 1).unwrap();
@@ -216,16 +195,19 @@ mod tests {
         let leu_id = system.find_residue_by_id(chain_a, 3).unwrap();
         let chain_b = system.find_chain_by_id('B').unwrap();
         let trp_id = system.find_residue_by_id(chain_b, 10).unwrap();
+        let xxx_id = system.find_residue_by_id(chain_b, 11).unwrap();
 
         assert!(resolved.contains(&ala_id));
         assert!(resolved.contains(&leu_id));
-        assert!(resolved.contains(&trp_id));
         assert!(!resolved.contains(&gly_id));
+        assert!(!resolved.contains(&trp_id));
+        assert!(!resolved.contains(&xxx_id));
     }
 
     #[test]
-    fn resolve_list_with_include_only_selects_specified_residues() {
+    fn resolve_list_with_include_only_selects_specified_and_supported_residues() {
         let system = create_test_system();
+        let library = create_test_rotamer_library();
         let selection = ResidueSelection::List {
             include: vec![
                 ResidueSpecifier {
@@ -239,20 +221,18 @@ mod tests {
             ],
             exclude: vec![],
         };
-        let resolved = resolve_residue_selection(&system, &selection).unwrap();
+        let resolved = resolve_residue_selection(&system, &selection, &library).unwrap();
 
-        assert_eq!(resolved.len(), 2);
+        assert_eq!(resolved.len(), 1);
         let chain_a = system.find_chain_by_id('A').unwrap();
         let ala_id = system.find_residue_by_id(chain_a, 1).unwrap();
-        let chain_b = system.find_chain_by_id('B').unwrap();
-        let trp_id = system.find_residue_by_id(chain_b, 10).unwrap();
         assert!(resolved.contains(&ala_id));
-        assert!(resolved.contains(&trp_id));
     }
 
     #[test]
-    fn resolve_list_with_exclude_only_selects_all_except_excluded() {
+    fn resolve_list_with_exclude_only_selects_all_supported_except_excluded() {
         let system = create_test_system();
+        let library = create_test_rotamer_library();
         let selection = ResidueSelection::List {
             include: vec![],
             exclude: vec![ResidueSpecifier {
@@ -260,23 +240,21 @@ mod tests {
                 residue_number: 1,
             }],
         };
-        let resolved = resolve_residue_selection(&system, &selection).unwrap();
+        let resolved = resolve_residue_selection(&system, &selection, &library).unwrap();
 
-        assert_eq!(resolved.len(), 2);
+        assert_eq!(resolved.len(), 1);
         let chain_a = system.find_chain_by_id('A').unwrap();
         let ala_id = system.find_residue_by_id(chain_a, 1).unwrap();
         let leu_id = system.find_residue_by_id(chain_a, 3).unwrap();
-        let chain_b = system.find_chain_by_id('B').unwrap();
-        let trp_id = system.find_residue_by_id(chain_b, 10).unwrap();
 
         assert!(!resolved.contains(&ala_id));
         assert!(resolved.contains(&leu_id));
-        assert!(resolved.contains(&trp_id));
     }
 
     #[test]
     fn resolve_list_with_include_and_exclude_works_correctly() {
         let system = create_test_system();
+        let library = create_test_rotamer_library();
         let selection = ResidueSelection::List {
             include: vec![
                 ResidueSpecifier {
@@ -293,7 +271,7 @@ mod tests {
                 residue_number: 1,
             }],
         };
-        let resolved = resolve_residue_selection(&system, &selection).unwrap();
+        let resolved = resolve_residue_selection(&system, &selection, &library).unwrap();
 
         assert_eq!(resolved.len(), 1);
         let chain_a = system.find_chain_by_id('A').unwrap();
@@ -304,6 +282,7 @@ mod tests {
     #[test]
     fn resolve_list_with_nonexistent_include_residue_returns_error() {
         let system = create_test_system();
+        let library = create_test_rotamer_library();
         let spec = ResidueSpecifier {
             chain_id: 'Z',
             residue_number: 99,
@@ -312,7 +291,7 @@ mod tests {
             include: vec![spec.clone()],
             exclude: vec![],
         };
-        let result = resolve_residue_selection(&system, &selection);
+        let result = resolve_residue_selection(&system, &selection, &library);
 
         assert!(matches!(
             result,
@@ -323,6 +302,7 @@ mod tests {
     #[test]
     fn resolve_list_with_nonexistent_exclude_residue_is_ignored() {
         let system = create_test_system();
+        let library = create_test_rotamer_library();
         let selection = ResidueSelection::List {
             include: vec![],
             exclude: vec![ResidueSpecifier {
@@ -330,18 +310,19 @@ mod tests {
                 residue_number: 99,
             }],
         };
-        let resolved = resolve_residue_selection(&system, &selection).unwrap();
-        assert_eq!(resolved.len(), 3);
+        let resolved = resolve_residue_selection(&system, &selection, &library).unwrap();
+        assert_eq!(resolved.len(), 2);
     }
 
     #[test]
     fn resolve_list_with_empty_include_and_exclude_returns_empty_set() {
         let system = create_test_system();
+        let library = create_test_rotamer_library();
         let selection = ResidueSelection::List {
             include: vec![],
             exclude: vec![],
         };
-        let resolved = resolve_residue_selection(&system, &selection).unwrap();
+        let resolved = resolve_residue_selection(&system, &selection, &library).unwrap();
         assert!(resolved.is_empty());
     }
 
@@ -350,10 +331,11 @@ mod tests {
     #[should_panic(expected = "Ligand binding site selection is not yet implemented.")]
     fn resolve_ligand_binding_site_panics() {
         let system = create_test_system();
+        let library = create_test_rotamer_library();
         let selection = ResidueSelection::LigandBindingSite {
             ligand_residue_name: "LIG".to_string(),
             radius_angstroms: 5.0,
         };
-        let _ = resolve_residue_selection(&system, &selection);
+        let _ = resolve_residue_selection(&system, &selection, &library);
     }
 }
