@@ -1,5 +1,6 @@
 use super::energy::EnergyCalculator;
 use super::params::Forcefield;
+use super::term::EnergyTerm;
 use crate::core::models::ids::AtomId;
 use crate::core::models::system::MolecularSystem;
 use thiserror::Error;
@@ -19,19 +20,6 @@ pub struct Scorer<'a> {
     forcefield: &'a Forcefield,
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq)]
-pub struct InteractionEnergy {
-    pub vdw: f64,
-    pub coulomb: f64,
-    pub hbond: f64,
-}
-
-impl InteractionEnergy {
-    pub fn total(&self) -> f64 {
-        self.vdw + self.coulomb + self.hbond
-    }
-}
-
 impl<'a> Scorer<'a> {
     pub fn new(system: &'a MolecularSystem, forcefield: &'a Forcefield) -> Self {
         Self { system, forcefield }
@@ -41,8 +29,8 @@ impl<'a> Scorer<'a> {
         &self,
         query_atom_ids: &[AtomId],
         environment_atom_ids: &[AtomId],
-    ) -> Result<InteractionEnergy, ScoringError> {
-        let mut energy = InteractionEnergy::default();
+    ) -> Result<EnergyTerm, ScoringError> {
+        let mut energy = EnergyTerm::default();
 
         for &query_id in query_atom_ids {
             let query_atom = self
