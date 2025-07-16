@@ -444,6 +444,20 @@ mod tests {
     }
 
     #[test]
+    fn design_spec_ext_works() {
+        let mut spec = DesignSpec::new();
+        let key = ResidueSpecifier {
+            chain_id: 'A',
+            residue_number: 1,
+        };
+        let value = vec![ResidueType::Alanine];
+        spec.insert(key, value.clone());
+
+        assert_eq!(spec.get_by_specifier('A', 1), Some(&value));
+        assert_eq!(spec.get_by_specifier('A', 2), None);
+    }
+
+    #[test]
     fn design_config_builder_succeeds_with_all_parameters() {
         let forcefield_path = PathBuf::from("ff.dat");
         let rotamer_library_path = PathBuf::from("rot.lib");
