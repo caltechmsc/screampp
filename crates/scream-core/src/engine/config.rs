@@ -153,6 +153,19 @@ impl PlacementConfigBuilder {
 
 pub type DesignSpec = HashMap<ResidueSpecifier, Vec<ResidueType>>;
 
+pub trait DesignSpecExt {
+    fn get_by_specifier(&self, chain_id: char, residue_number: isize) -> Option<&Vec<ResidueType>>;
+}
+
+impl DesignSpecExt for DesignSpec {
+    fn get_by_specifier(&self, chain_id: char, residue_number: isize) -> Option<&Vec<ResidueType>> {
+        self.get(&ResidueSpecifier {
+            chain_id,
+            residue_number,
+        })
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct DesignConfig {
     pub scoring: ScoringConfig,
