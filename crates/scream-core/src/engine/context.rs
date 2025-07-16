@@ -181,6 +181,7 @@ mod tests {
             max_iterations: 100,
             convergence_threshold: 0.01,
             num_solutions: 1,
+            include_input_conformation: false,
         }
     }
 
