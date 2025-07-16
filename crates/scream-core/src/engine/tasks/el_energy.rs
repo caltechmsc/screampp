@@ -12,3 +12,17 @@ use tracing::{info, instrument, warn};
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
+
+#[derive(Debug)]
+struct WorkUnit {
+    residue_id: ResidueId,
+    residue_type: ResidueType,
+}
+
+type WorkResult = Result<
+    (
+        (ResidueId, ResidueType),
+        std::collections::HashMap<usize, EnergyTerm>,
+    ),
+    EngineError,
+>;
