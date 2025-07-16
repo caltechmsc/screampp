@@ -64,3 +64,97 @@ impl ELCache {
             })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::forcefield::term::EnergyTerm;
+    use crate::core::models::ids::ResidueId;
+    use crate::core::models::residue::ResidueType;
+    use slotmap::KeyData;
+
+    fn dummy_residue_id(n: u64) -> ResidueId {
+        ResidueId::from(KeyData::from_ffi(n))
+    }
+
+    #[test]
+    fn insert_and_get_returns_correct_energy_term() {
+        let mut cache = ELCache::new();
+        let rid = dummy_residue_id(1);
+        let rtype = ResidueType::Alanine;
+        let energy = EnergyTerm::new(1.0, 2.0, 3.0);
+
+        cache.insert(rid, rtype, 0, energy);
+        let retrieved = cache.get(rid, rtype, 0).unwrap();
+        assert_eq!(*retrieved, energy);
+    }
+
+    #[test]
+    fn get_returns_none_for_nonexistent_entry() {
+        let cache = ELCache::new();
+        let rid = dummy_residue_id(2);
+        let rtype = ResidueType::Glycine;
+        assert!(cache.get(rid, rtype, 0).is_none());
+    }
+
+    #[test]
+    fn get_energies_for_returns_all_rotamers_for_residue() {
+        let mut cache = ELCache::new();
+        let rid = dummy_residue_id(3);
+        let rtype = ResidueType::Leucine;
+        cache.insert(rid, rtype, 0, EnergyTerm::new(1.0, 0.0, 0.0));
+        cache.insert(rid, rtype, 1, EnergyTerm::new(2.0, 0.0, 0.0));
+
+        let energies = cache.get_energies_for(rid, rtype).unwrap();
+        assert_eq!(energies.len(), 2);
+        assert!(energies.contains_key(&0));
+        assert!(energies.contains_key(&1));
+    }
+
+    #[test]
+    fn get_energies_for_returns_none_for_unknown_residue() {
+        let cache = ELCache::new();
+        let rid = dummy_residue_id(4);
+        let rtype = ResidueType::Proline;
+        assert!(cache.get_energies_for(rid, rtype).is_none());
+    }
+
+    #[test]
+    fn find_ground_state_for_returns_rotamer_with_lowest_total_energy() {
+        let mut cache = ELCache::new();
+        let rid = dummy_residue_id(5);
+        let rtype = ResidueType::Valine;
+        cache.insert(rid, rtype, 0, EnergyTerm::new(1.0, 2.0, 3.0));
+        cache.insert(rid, rtype, 1, EnergyTerm::new(-1.0, 0.0, 0.0));
+        cache.insert(rid, rtype, 2, EnergyTerm::new(0.0, 0.0, 0.0));
+
+        let (idx, energy) = cache.find_ground_state_for(rid, rtype).unwrap();
+        assert_eq!(idx, 1);
+        assert_eq!(*energy, EnergyTerm::new(-1.0, 0.0, 0.0));
+    }
+
+    #[test]
+    fn find_ground_state_for_returns_none_when_no_rotamers() {
+        let cache = ELCache::new();
+        let rid = dummy_residue_id(6);
+        let rtype = ResidueType::Phenylalanine;
+        assert!(cache.find_ground_state_for(rid, rtype).is_none());
+    }
+
+    #[test]
+    fn insert_overwrites_existing_rotamer_energy() {
+        let mut cache = ELCache::new();
+        let rid = dummy_residue_id(7);
+        let rtype = ResidueType::Serine;
+        cache.insert(rid, rtype, 0, EnergyTerm::new(1.0, 1.0, 1.0));
+        cache.insert(rid, rtype, 0, EnergyTerm::new(2.0, 2.0, 2.0));
+        let retrieved = cache.get(rid, rtype, 0).unwrap();
+        assert_eq!(*retrieved, EnergyTerm::new(2.0, 2.0, 2.0));
+    }
+
+    #[test]
+    fn cache_is_empty_on_creation() {
+        let cache = ELCache::new();
+        assert!(cache.data.is_empty());
+    }
+}

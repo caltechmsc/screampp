@@ -107,9 +107,7 @@ impl RotamerLibrary {
 
                     atoms.push(atom);
                 }
-                parameterized_rotamers.push(Rotamer {
-                    atoms,
-                });
+                parameterized_rotamers.push(Rotamer { atoms });
             }
 
             final_rotamers_map.insert(res_type, parameterized_rotamers);
@@ -502,7 +500,6 @@ atoms = [
             .len();
         assert_eq!(original_count, 1);
 
-        // Create a system where the ALA side-chain is identical to the one in the library
         let (system, res_id) = create_test_system_with_ala(Point3::new(1.5, 0.0, 0.0));
 
         let mut active_residues = HashSet::new();
