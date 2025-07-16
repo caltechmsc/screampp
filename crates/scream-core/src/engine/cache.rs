@@ -165,4 +165,34 @@ mod tests {
         let cache = ELCache::new();
         assert!(cache.data.is_empty());
     }
+
+    #[test]
+    fn len_returns_zero_for_empty_cache() {
+        let cache = ELCache::new();
+        assert_eq!(cache.len(), 0);
+    }
+
+    #[test]
+    fn len_returns_number_of_residue_entries() {
+        let mut cache = ELCache::new();
+        let rid1 = dummy_residue_id(10);
+        let rid2 = dummy_residue_id(20);
+        cache.insert(rid1, ResidueType::Alanine, 0, EnergyTerm::default());
+        cache.insert(rid2, ResidueType::Glycine, 0, EnergyTerm::default());
+        assert_eq!(cache.len(), 2);
+    }
+
+    #[test]
+    fn is_empty_returns_true_for_empty_cache() {
+        let cache = ELCache::new();
+        assert!(cache.is_empty());
+    }
+
+    #[test]
+    fn is_empty_returns_false_when_cache_has_entries() {
+        let mut cache = ELCache::new();
+        let rid = dummy_residue_id(30);
+        cache.insert(rid, ResidueType::Leucine, 0, EnergyTerm::default());
+        assert!(!cache.is_empty());
+    }
 }
