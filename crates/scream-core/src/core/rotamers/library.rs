@@ -104,7 +104,10 @@ impl RotamerLibrary {
 
                     atoms.push(atom);
                 }
-                parameterized_rotamers.push(Rotamer { atoms });
+                parameterized_rotamers.push(Rotamer {
+                    atoms,
+                    empty_lattice_energy: None,
+                });
             }
 
             final_rotamers_map.insert(res_type, parameterized_rotamers);
