@@ -205,7 +205,12 @@ impl RotamerLibrary {
 mod tests {
     use super::*;
     use crate::core::forcefield::params::{Forcefield, GlobalParams, NonBondedParams, VdwParam};
+    use crate::core::models::atom::Atom;
+    use crate::core::models::chain::ChainType;
+    use crate::core::models::system::MolecularSystem;
     use crate::core::rotamers::placement::PlacementInfo;
+    use nalgebra::Point3;
+    use std::collections::HashSet;
     use std::io::Write;
     use tempfile::NamedTempFile;
 
@@ -269,6 +274,26 @@ mod tests {
         registry
     }
 
+    fn create_temp_rotamer_file(content: &str) -> NamedTempFile {
+        let mut file = NamedTempFile::new().unwrap();
+        write!(file, "{}", content).unwrap();
+        file
+    }
+
+    fn create_test_system_with_ala(cb_pos: Point3<f64>) -> (MolecularSystem, ResidueId) {
+        let mut system = MolecularSystem::new();
+        let chain_id = system.add_chain('A', ChainType::Protein);
+        let res_id = system
+            .add_residue(chain_id, 1, "ALA", Some(ResidueType::Alanine))
+            .unwrap();
+
+        let mut cb_atom = Atom::new(10, "CB", res_id, cb_pos);
+        cb_atom.force_field_type = "CB".to_string();
+        system.add_atom_to_residue(res_id, cb_atom).unwrap();
+
+        (system, res_id)
+    }
+
     #[test]
     fn loads_rotamers_and_placement_info_successfully() {
         let rotamer_content = r#"
@@ -278,8 +303,7 @@ atoms = [
     { serial = 2, atom_name = "CB", partial_charge = -0.1, position = [1.5, 0.0, 0.0], force_field_type = "CB" },
 ]
 "#;
-        let mut rotamer_file = NamedTempFile::new().unwrap();
-        write!(rotamer_file, "{}", rotamer_content).unwrap();
+        let rotamer_file = create_temp_rotamer_file(rotamer_content);
 
         let ff = create_test_forcefield();
         let placement_registry = create_test_placement_registry();
@@ -322,8 +346,7 @@ atoms = [
     #[test]
     fn load_returns_toml_error_for_malformed_file() {
         let content = "this is not valid toml";
-        let mut file = NamedTempFile::new().unwrap();
-        write!(file, "{}", content).unwrap();
+        let file = create_temp_rotamer_file(content);
         let ff = create_test_forcefield();
         let placement_registry = create_test_placement_registry();
 
@@ -338,8 +361,7 @@ atoms = [
 [[UNK]]
 atoms = []
 "#;
-        let mut rotamer_file = NamedTempFile::new().unwrap();
-        write!(rotamer_file, "{}", rotamer_content).unwrap();
+        let rotamer_file = create_temp_rotamer_file(rotamer_content);
         let ff = create_test_forcefield();
         let placement_registry = create_test_placement_registry();
 
@@ -357,8 +379,7 @@ atoms = []
 [[ALA]]
 atoms = []
 "#;
-        let mut rotamer_file = NamedTempFile::new().unwrap();
-        write!(rotamer_file, "{}", rotamer_content).unwrap();
+        let rotamer_file = create_temp_rotamer_file(rotamer_content);
         let ff = create_test_forcefield();
         let empty_placement_registry = HashMap::new();
 
@@ -378,8 +399,7 @@ atoms = [
     { serial = 1, atom_name = "CA", partial_charge = 0.1, position = [0.0, 0.0, 0.0], force_field_type = "UnknownType" }
 ]
 "#;
-        let mut rotamer_file = NamedTempFile::new().unwrap();
-        write!(rotamer_file, "{}", rotamer_content).unwrap();
+        let rotamer_file = create_temp_rotamer_file(rotamer_content);
         let ff = create_test_forcefield();
         let placement_registry = create_test_placement_registry();
 
@@ -393,8 +413,7 @@ atoms = [
 
     #[test]
     fn loads_empty_library_from_empty_file() {
-        let mut rotamer_file = NamedTempFile::new().unwrap();
-        write!(rotamer_file, "").unwrap();
+        let rotamer_file = create_temp_rotamer_file("");
         let ff = create_test_forcefield();
         let placement_registry = create_test_placement_registry();
 
@@ -411,8 +430,7 @@ atoms = [
 [[ALA]]
 atoms = []
 "#;
-        let mut rotamer_file = NamedTempFile::new().unwrap();
-        write!(rotamer_file, "{}", rotamer_content).unwrap();
+        let rotamer_file = create_temp_rotamer_file(rotamer_content);
         let ff = create_test_forcefield();
         let placement_registry = create_test_placement_registry();
 
@@ -424,5 +442,83 @@ atoms = []
         let ala_rotamers = library.get_rotamers_for(ResidueType::Alanine).unwrap();
         assert_eq!(ala_rotamers.len(), 1);
         assert!(ala_rotamers[0].atoms.is_empty());
+    }
+
+    #[test]
+    fn include_system_conformations_adds_unique_original_rotamer() {
+        let rotamer_content = r#"
+[[ALA]]
+atoms = [
+    { serial = 2, atom_name = "CB", partial_charge = -0.1, position = [1.5, 0.0, 0.0], force_field_type = "CB" }
+]
+"#;
+        let rotamer_file = create_temp_rotamer_file(rotamer_content);
+        let ff = create_test_forcefield();
+        let placement_registry = create_test_placement_registry();
+
+        let mut library =
+            RotamerLibrary::load(rotamer_file.path(), &placement_registry, &ff, 0.0).unwrap();
+
+        let original_count = library
+            .get_rotamers_for(ResidueType::Alanine)
+            .unwrap()
+            .len();
+        assert_eq!(original_count, 1);
+
+        let (system, res_id) = create_test_system_with_ala(Point3::new(5.0, 5.0, 5.0));
+
+        let mut active_residues = HashSet::new();
+        active_residues.insert(res_id);
+
+        library.include_system_conformations(&system, &active_residues, 0.1);
+
+        let new_count = library
+            .get_rotamers_for(ResidueType::Alanine)
+            .unwrap()
+            .len();
+        assert_eq!(
+            new_count,
+            original_count + 1,
+            "A new unique rotamer should have been added"
+        );
+    }
+
+    #[test]
+    fn include_system_conformations_skips_duplicate_rotamer() {
+        let rotamer_content = r#"
+[[ALA]]
+atoms = [
+    { serial = 2, atom_name = "CB", partial_charge = -0.1, position = [1.5, 0.0, 0.0], force_field_type = "CB" }
+]
+"#;
+        let rotamer_file = create_temp_rotamer_file(rotamer_content);
+        let ff = create_test_forcefield();
+        let placement_registry = create_test_placement_registry();
+
+        let mut library =
+            RotamerLibrary::load(rotamer_file.path(), &placement_registry, &ff, 0.0).unwrap();
+
+        let original_count = library
+            .get_rotamers_for(ResidueType::Alanine)
+            .unwrap()
+            .len();
+        assert_eq!(original_count, 1);
+
+        // Create a system where the ALA side-chain is identical to the one in the library
+        let (system, res_id) = create_test_system_with_ala(Point3::new(1.5, 0.0, 0.0));
+
+        let mut active_residues = HashSet::new();
+        active_residues.insert(res_id);
+
+        library.include_system_conformations(&system, &active_residues, 0.1);
+
+        let new_count = library
+            .get_rotamers_for(ResidueType::Alanine)
+            .unwrap()
+            .len();
+        assert_eq!(
+            new_count, original_count,
+            "Duplicate rotamer should not be added"
+        );
     }
 }
