@@ -1,3 +1,4 @@
+use crate::core::forcefield::term::EnergyTerm;
 use crate::core::models::atom::Atom;
 use serde::Deserialize;
 
@@ -18,4 +19,5 @@ pub struct RotamerData {
 #[derive(Debug, Clone)]
 pub struct Rotamer {
     pub atoms: Vec<Atom>,
+    pub empty_lattice_energy: Option<EnergyTerm>,
 }
