@@ -1,4 +1,4 @@
-use super::config::{PlacementConfig, ResidueSelection, ResidueSpecifier};
+use super::config::{DesignConfig, DesignSpec, PlacementConfig, ResidueSelection};
 use super::error::EngineError;
 use crate::core::forcefield::params::Forcefield;
 use crate::core::models::ids::ResidueId;
@@ -30,32 +30,62 @@ impl<'a, C> Context<'a, C> {
     }
 }
 
-pub trait HasOptimizableResidues {
-    fn optimizable_residues_selection(&self) -> &ResidueSelection;
+pub trait ProvidesResidueSelections {
+    fn repack_selection(&self) -> &ResidueSelection;
+
+    fn design_spec(&self) -> Option<&DesignSpec> {
+        None
+    }
 }
 
-impl HasOptimizableResidues for PlacementConfig {
-    fn optimizable_residues_selection(&self) -> &ResidueSelection {
+impl ProvidesResidueSelections for PlacementConfig {
+    fn repack_selection(&self) -> &ResidueSelection {
         &self.residues_to_optimize
     }
 }
 
-impl<'a, C: HasOptimizableResidues> Context<'a, C> {
-    pub fn resolve_active_residues(&self) -> Result<HashSet<ResidueId>, EngineError> {
-        resolve_residue_selection(
-            self.system,
-            self.config.optimizable_residues_selection(),
-            self.rotamer_library,
-        )
+impl ProvidesResidueSelections for DesignConfig {
+    fn repack_selection(&self) -> &ResidueSelection {
+        &self.neighbors_to_repack
+    }
+
+    fn design_spec(&self) -> Option<&DesignSpec> {
+        Some(&self.design_spec)
     }
 }
 
-pub fn resolve_residue_selection(
+impl<'a, C: ProvidesResidueSelections> Context<'a, C> {
+    pub fn resolve_repack_residues(&self) -> Result<HashSet<ResidueId>, EngineError> {
+        let selection = self.config.repack_selection();
+        resolve_selection_to_ids(self.system, selection, self.rotamer_library)
+    }
+
+    pub fn resolve_design_residues(&self) -> Result<HashSet<ResidueId>, EngineError> {
+        match self.config.design_spec() {
+            Some(spec) => {
+                let specifiers: Vec<_> = spec.keys().cloned().collect();
+                let selection = ResidueSelection::List {
+                    include: specifiers,
+                    exclude: vec![],
+                };
+                resolve_selection_to_ids(self.system, &selection, self.rotamer_library)
+            }
+            None => Ok(HashSet::new()),
+        }
+    }
+
+    pub fn resolve_all_active_residues(&self) -> Result<HashSet<ResidueId>, EngineError> {
+        let repack_ids = self.resolve_repack_residues()?;
+        let design_ids = self.resolve_design_residues()?;
+        Ok(repack_ids.union(&design_ids).cloned().collect())
+    }
+}
+
+fn resolve_selection_to_ids(
     system: &MolecularSystem,
     selection: &ResidueSelection,
     library: &RotamerLibrary,
 ) -> Result<HashSet<ResidueId>, EngineError> {
-    // --- Step 1 & 2: Get initial candidate set based on user intent ---
     let candidate_ids: HashSet<ResidueId> = match selection {
         ResidueSelection::All => system.residues_iter().map(|(id, _)| id).collect(),
         ResidueSelection::List { include, exclude } => {
@@ -63,7 +93,7 @@ pub fn resolve_residue_selection(
 
             if include.is_empty() && !exclude.is_empty() {
                 initial_set = system.residues_iter().map(|(id, _)| id).collect();
-            } else if !include.is_empty() {
+            } else {
                 for spec in include {
                     let chain_id = system
                         .find_chain_by_id(spec.chain_id)
@@ -87,20 +117,20 @@ pub fn resolve_residue_selection(
             initial_set
         }
         ResidueSelection::LigandBindingSite { .. } => {
+            // TODO: Implement ligand binding site selection
             unimplemented!("Ligand binding site selection is not yet implemented.");
         }
     };
 
-    // --- Step 3: Final filtering based on placeability and library support ---
     let final_active_residues = candidate_ids
         .into_iter()
         .filter(|&residue_id| {
-            let residue = system.residue(residue_id).unwrap();
-
-            match residue.res_type {
-                Some(res_type) => library.get_rotamers_for(res_type).is_some(),
-                None => false,
-            }
+            system
+                .residue(residue_id)
+                .and_then(|res| res.res_type)
+                .map_or(false, |res_type| {
+                    library.get_rotamers_for(res_type).is_some()
+                })
         })
         .collect();
 
