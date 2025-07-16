@@ -1,5 +1,6 @@
 use super::config::{DesignConfig, DesignSpec, PlacementConfig, ResidueSelection};
 use super::error::EngineError;
+use super::progress::ProgressReporter;
 use crate::core::forcefield::params::Forcefield;
 use crate::core::models::ids::ResidueId;
 use crate::core::models::system::MolecularSystem;
@@ -12,6 +13,7 @@ pub struct Context<'a, C> {
     pub config: &'a C,
     pub forcefield: &'a Forcefield,
     pub rotamer_library: &'a RotamerLibrary,
+    pub reporter: &'a ProgressReporter<'a>,
 }
 
 impl<'a, C> Context<'a, C> {
@@ -20,12 +22,14 @@ impl<'a, C> Context<'a, C> {
         config: &'a C,
         forcefield: &'a Forcefield,
         rotamer_library: &'a RotamerLibrary,
+        reporter: &'a ProgressReporter<'a>,
     ) -> Self {
         Self {
             system,
             config,
             forcefield,
             rotamer_library,
+            reporter,
         }
     }
 }
@@ -221,7 +225,8 @@ mod tests {
         let ff = create_test_forcefield();
         let rot_lib = create_test_rotamer_library();
         let config = ();
-        let context = Context::new(&system, &config, &ff, &rot_lib);
+        let reporter = ProgressReporter::default();
+        let context = Context::new(&system, &config, &ff, &rot_lib, &reporter);
         assert!(std::ptr::eq(context.system, &system));
         assert!(std::ptr::eq(context.forcefield, &ff));
         assert!(std::ptr::eq(context.config, &config));
@@ -392,6 +397,7 @@ mod tests {
         let system = create_test_system();
         let library = create_test_rotamer_library();
         let ff = create_test_forcefield();
+        let reporter = ProgressReporter::default();
 
         let spec = ResidueSpecifier {
             chain_id: 'A',
@@ -410,7 +416,7 @@ mod tests {
             optimization: create_test_optimization_config(),
         };
 
-        let context = Context::new(&system, &config, &ff, &library);
+        let context = Context::new(&system, &config, &ff, &library, &reporter);
         let design_residues = context.resolve_design_residues().unwrap();
 
         assert_eq!(design_residues.len(), 1);
@@ -424,6 +430,7 @@ mod tests {
         let system = create_test_system();
         let library = create_test_rotamer_library();
         let ff = create_test_forcefield();
+        let reporter = ProgressReporter::default();
 
         let config = PlacementConfig {
             residues_to_optimize: ResidueSelection::All,
@@ -431,7 +438,7 @@ mod tests {
             optimization: create_test_optimization_config(),
         };
 
-        let context = Context::new(&system, &config, &ff, &library);
+        let context = Context::new(&system, &config, &ff, &library, &reporter);
         let design_residues = context.resolve_design_residues().unwrap();
 
         assert!(design_residues.is_empty());
@@ -442,6 +449,7 @@ mod tests {
         let system = create_test_system();
         let library = create_test_rotamer_library();
         let ff = create_test_forcefield();
+        let reporter = ProgressReporter::default();
 
         let design_specifier = ResidueSpecifier {
             chain_id: 'A',
@@ -466,7 +474,7 @@ mod tests {
             optimization: create_test_optimization_config(),
         };
 
-        let context = Context::new(&system, &config, &ff, &library);
+        let context = Context::new(&system, &config, &ff, &library, &reporter);
         let all_active = context.resolve_all_active_residues().unwrap();
 
         assert_eq!(all_active.len(), 2);
