@@ -1,5 +1,6 @@
 use super::ids::{AtomId, ChainId};
 use std::collections::HashMap;
+use std::fmt;
 use std::str::FromStr;
 use thiserror::Error;
 
@@ -49,6 +50,12 @@ impl FromStr for ResidueType {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         ResidueType::from_str_optional(s)
             .ok_or_else(|| ParseResidueTypeError(s.trim().to_uppercase()))
+    }
+}
+
+impl fmt::Display for ResidueType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.to_three_letter())
     }
 }
 
