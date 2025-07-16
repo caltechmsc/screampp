@@ -207,6 +207,13 @@ mod tests {
     }
 
     #[test]
+    fn display_formats_residuetype_as_three_letter_code() {
+        assert_eq!(format!("{}", ResidueType::Alanine), "ALA");
+        assert_eq!(format!("{}", ResidueType::HistidineProtonated), "HSP");
+        assert_eq!(format!("{}", ResidueType::Glycine), "GLY");
+    }
+
+    #[test]
     fn to_three_letter_returns_correct_code() {
         assert_eq!(ResidueType::Alanine.to_three_letter(), "ALA");
         assert_eq!(ResidueType::HistidineProtonated.to_three_letter(), "HSP");
