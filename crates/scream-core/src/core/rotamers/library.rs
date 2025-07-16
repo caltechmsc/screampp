@@ -5,8 +5,11 @@ use crate::core::forcefield::params::Forcefield;
 use crate::core::models::atom::Atom;
 use crate::core::models::ids::ResidueId;
 use crate::core::models::residue::ResidueType;
+use crate::core::models::system::MolecularSystem;
+use crate::core::utils::geometry::calculate_rmsd;
 use nalgebra::Point3;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::path::Path;
 use std::str::FromStr;
 use thiserror::Error;
@@ -125,6 +128,76 @@ impl RotamerLibrary {
 
     pub fn get_placement_info_for(&self, res_type: ResidueType) -> Option<&PlacementInfo> {
         self.placement_info.get(&res_type)
+    }
+
+    pub fn include_system_conformations(
+        &mut self,
+        system: &MolecularSystem,
+        active_residues: &HashSet<ResidueId>,
+        rmsd_threshold: f64,
+    ) {
+        let mut new_rotamers_to_add: HashMap<ResidueType, Rotamer> = HashMap::new();
+
+        for &residue_id in active_residues {
+            let residue = match system.residue(residue_id) {
+                Some(r) => r,
+                None => continue,
+            };
+
+            let res_type = match residue.res_type {
+                Some(rt) => rt,
+                None => continue,
+            };
+
+            let (existing_rotamers, placement_info) = match (
+                self.rotamers.get(&res_type),
+                self.placement_info.get(&res_type),
+            ) {
+                (Some(rots), Some(info)) => (rots, info),
+                _ => continue,
+            };
+
+            let mut extracted_atoms = Vec::new();
+            for atom_name in &placement_info.sidechain_atoms {
+                if let Some(atom_id) = residue.get_atom_id_by_name(atom_name) {
+                    if let Some(atom) = system.atom(atom_id) {
+                        extracted_atoms.push(atom.clone());
+                    }
+                }
+            }
+
+            if extracted_atoms.len() != placement_info.sidechain_atoms.len() {
+                continue;
+            }
+
+            let extracted_rotamer = Rotamer {
+                atoms: extracted_atoms,
+                empty_lattice_energy: None,
+            };
+
+            let is_duplicate = existing_rotamers.iter().any(|existing| {
+                let coords1: Vec<_> = extracted_rotamer.atoms.iter().map(|a| a.position).collect();
+                let coords2: Vec<_> = existing.atoms.iter().map(|a| a.position).collect();
+
+                if let Some(rmsd) = calculate_rmsd(&coords1, &coords2) {
+                    rmsd < rmsd_threshold
+                } else {
+                    false
+                }
+            });
+
+            if !is_duplicate {
+                new_rotamers_to_add
+                    .entry(res_type)
+                    .or_insert(extracted_rotamer);
+            }
+        }
+
+        for (res_type, new_rotamer) in new_rotamers_to_add {
+            if let Some(rotamers) = self.rotamers.get_mut(&res_type) {
+                rotamers.push(new_rotamer);
+            }
+        }
     }
 }
 
