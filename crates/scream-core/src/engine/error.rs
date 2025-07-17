@@ -1,6 +1,8 @@
 use super::config::ResidueSpecifier;
+use crate::core::forcefield::params::ParamLoadError;
 use crate::core::forcefield::scoring::ScoringError;
 use crate::core::models::ids::ResidueId;
+use crate::core::rotamers::library::LibraryLoadError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -37,4 +39,10 @@ pub enum EngineError {
 
     #[error("Internal logic error: {0}")]
     Internal(String),
+
+    #[error("Failed to load forcefield parameters: {0}")]
+    ParamLoad(#[from] ParamLoadError),
+
+    #[error("Failed to load rotamer library: {0}")]
+    LibraryLoad(#[from] LibraryLoadError),
 }
