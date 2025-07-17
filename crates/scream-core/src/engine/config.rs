@@ -23,7 +23,7 @@ pub enum ResidueSelection {
         exclude: Vec<ResidueSpecifier>,
     },
     LigandBindingSite {
-        ligand_residue_name: String,
+        ligand_residue: ResidueSpecifier,
         radius_angstroms: f64,
     },
 }
