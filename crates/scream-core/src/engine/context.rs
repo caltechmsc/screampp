@@ -386,7 +386,10 @@ mod tests {
         let system = create_test_system();
         let library = create_test_rotamer_library();
         let selection = ResidueSelection::LigandBindingSite {
-            ligand_residue_name: "LIG".to_string(),
+            ligand_residue: ResidueSpecifier {
+                chain_id: 'A',
+                residue_number: 1,
+            },
             radius_angstroms: 5.0,
         };
         let _ = resolve_selection_to_ids(&system, &selection, &library);
