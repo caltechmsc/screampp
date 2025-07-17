@@ -58,6 +58,8 @@ pub fn run<C: ProvidesResidueSelections + Sync>(
         total_steps: residue_pairs.len() as u64,
     });
 
+    let scorer = Scorer::new(system, context.forcefield);
+
     #[cfg(not(feature = "parallel"))]
     let iterator = residue_pairs.iter();
 
@@ -68,8 +70,6 @@ pub fn run<C: ProvidesResidueSelections + Sync>(
         .filter_map(|pair| {
             let res_id_a = pair[0];
             let res_id_b = pair[1];
-
-            let scorer = Scorer::new(system, context.forcefield);
 
             let atoms_a = system.residue(res_id_a).unwrap().atoms().to_vec();
             let atoms_b = system.residue(res_id_b).unwrap().atoms().to_vec();
