@@ -2,10 +2,18 @@ use super::config::{DesignConfig, DesignSpec, PlacementConfig, ResidueSelection}
 use super::error::EngineError;
 use super::progress::ProgressReporter;
 use crate::core::forcefield::params::Forcefield;
+use crate::core::models::chain::ChainType;
 use crate::core::models::ids::ResidueId;
 use crate::core::models::system::MolecularSystem;
 use crate::core::rotamers::library::RotamerLibrary;
+use kiddo::KdTree;
+use kiddo::SquaredEuclidean;
 use std::collections::HashSet;
+
+#[cfg(feature = "parallel")]
+use rayon::prelude::*;
+#[cfg(feature = "parallel")]
+use std::sync::Arc;
 
 #[derive(Clone, Copy)]
 pub struct Context<'a, C> {
@@ -90,13 +98,15 @@ fn resolve_selection_to_ids(
     selection: &ResidueSelection,
     library: &RotamerLibrary,
 ) -> Result<HashSet<ResidueId>, EngineError> {
-    let candidate_ids: HashSet<ResidueId> = match selection {
-        ResidueSelection::All => system.residues_iter().map(|(id, _)| id).collect(),
-        ResidueSelection::List { include, exclude } => {
-            let mut initial_set = HashSet::new();
+    let mut candidate_ids: HashSet<ResidueId> = HashSet::new();
 
+    match selection {
+        ResidueSelection::All => {
+            candidate_ids = system.residues_iter().map(|(id, _)| id).collect();
+        }
+        ResidueSelection::List { include, exclude } => {
             if include.is_empty() && !exclude.is_empty() {
-                initial_set = system.residues_iter().map(|(id, _)| id).collect();
+                candidate_ids = system.residues_iter().map(|(id, _)| id).collect();
             } else {
                 for spec in include {
                     let chain_id = system
@@ -105,7 +115,7 @@ fn resolve_selection_to_ids(
                     let residue_id = system
                         .find_residue_by_id(chain_id, spec.residue_number)
                         .ok_or_else(|| EngineError::ResidueNotFound { spec: spec.clone() })?;
-                    initial_set.insert(residue_id);
+                    candidate_ids.insert(residue_id);
                 }
             }
 
@@ -114,15 +124,95 @@ fn resolve_selection_to_ids(
                     if let Some(residue_id) =
                         system.find_residue_by_id(chain_id, spec.residue_number)
                     {
-                        initial_set.remove(&residue_id);
+                        candidate_ids.remove(&residue_id);
                     }
                 }
             }
-            initial_set
         }
-        ResidueSelection::LigandBindingSite { .. } => {
-            // TODO: Implement ligand binding site selection
-            unimplemented!("Ligand binding site selection is not yet implemented.");
+        ResidueSelection::LigandBindingSite {
+            ligand_residue,
+            radius_angstroms,
+        } => {
+            let ligand_chain_id = system
+                .find_chain_by_id(ligand_residue.chain_id)
+                .ok_or_else(|| EngineError::ResidueNotFound {
+                    spec: ligand_residue.clone(),
+                })?;
+            let ligand_res_id = system
+                .find_residue_by_id(ligand_chain_id, ligand_residue.residue_number)
+                .ok_or_else(|| EngineError::ResidueNotFound {
+                    spec: ligand_residue.clone(),
+                })?;
+
+            let mut ligand_heavy_atom_positions: Vec<[f64; 3]> = Vec::new();
+            if let Some(ligand_res) = system.residue(ligand_res_id) {
+                for atom_id in ligand_res.atoms() {
+                    if let Some(atom) = system.atom(*atom_id) {
+                        if crate::core::utils::identifiers::is_heavy_atom(&atom.name) {
+                            ligand_heavy_atom_positions.push([
+                                atom.position.x,
+                                atom.position.y,
+                                atom.position.z,
+                            ]);
+                        }
+                    }
+                }
+            }
+
+            if ligand_heavy_atom_positions.is_empty() {
+                return Ok(HashSet::new());
+            }
+
+            let kdtree: KdTree<f64, 3> = (&ligand_heavy_atom_positions).into();
+            let radius_sq = radius_angstroms * radius_angstroms;
+
+            #[cfg(not(feature = "parallel"))]
+            let residue_iter = system
+                .residues_iter()
+                .filter_map(|(res_id, res)| Some((res_id, res)));
+
+            #[cfg(feature = "parallel")]
+            let residue_iter = system
+                .residues_iter()
+                .par_bridge()
+                .filter_map(|(res_id, res)| Some((res_id, res)));
+
+            for (res_id, residue) in residue_iter {
+                if res_id == ligand_res_id {
+                    continue;
+                }
+                if let Some(chain) = system.chain(residue.chain_id) {
+                    if chain.chain_type != ChainType::Protein {
+                        continue;
+                    }
+                } else {
+                    continue;
+                }
+
+                let mut is_in_binding_site = false;
+                for protein_atom_id in residue.atoms() {
+                    if let Some(protein_atom) = system.atom(*protein_atom_id) {
+                        if crate::core::utils::identifiers::is_heavy_atom(&protein_atom.name) {
+                            let protein_pos = [
+                                protein_atom.position.x,
+                                protein_atom.position.y,
+                                protein_atom.position.z,
+                            ];
+
+                            let nearest = kdtree.nearest_one::<SquaredEuclidean>(&protein_pos);
+
+                            if nearest.distance <= radius_sq {
+                                is_in_binding_site = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if is_in_binding_site {
+                    candidate_ids.insert(res_id);
+                }
+            }
         }
     };
 
