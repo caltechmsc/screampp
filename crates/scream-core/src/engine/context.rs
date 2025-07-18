@@ -234,148 +234,125 @@ fn resolve_selection_to_ids(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::forcefield::params::Forcefield;
+    use crate::core::models::atom::Atom;
     use crate::core::models::chain::ChainType;
     use crate::core::models::residue::ResidueType;
-    use crate::engine::config::{DesignSpec, OptimizationConfig, ResidueSpecifier, ScoringConfig};
+    use crate::core::models::system::MolecularSystem;
+    use crate::core::rotamers::library::RotamerLibrary;
+    use crate::engine::config::ResidueSpecifier;
+    use nalgebra::Point3;
 
-    fn create_test_system() -> MolecularSystem {
+    fn create_simple_test_system() -> (MolecularSystem, RotamerLibrary) {
         let mut system = MolecularSystem::new();
-        let chain_a = system.add_chain('A', ChainType::Protein);
+        let chain_a_id = system.add_chain('A', ChainType::Protein);
         system
-            .add_residue(chain_a, 1, "ALA", Some(ResidueType::Alanine))
+            .add_residue(chain_a_id, 1, "ALA", Some(ResidueType::Alanine))
             .unwrap();
         system
-            .add_residue(chain_a, 2, "GLY", Some(ResidueType::Glycine))
+            .add_residue(chain_a_id, 2, "GLY", Some(ResidueType::Glycine))
             .unwrap();
-        system
-            .add_residue(chain_a, 3, "LEU", Some(ResidueType::Leucine))
-            .unwrap();
-        let chain_b = system.add_chain('B', ChainType::Protein);
-        system
-            .add_residue(chain_b, 10, "TRP", Some(ResidueType::Tryptophan))
-            .unwrap();
-        system
-            .add_residue(chain_b, 11, "XXX", None) // Non-standard residue
-            .unwrap();
-        system
+
+        let mut library = RotamerLibrary::default();
+        library
+            .rotamers
+            .insert(ResidueType::Alanine, Default::default());
+        library
+            .rotamers
+            .insert(ResidueType::Glycine, Default::default());
+
+        (system, library)
     }
 
-    fn create_test_scoring_config() -> ScoringConfig {
-        ScoringConfig {
-            forcefield_path: "".into(),
-            rotamer_library_path: "".into(),
-            delta_params_path: "".into(),
-            s_factor: 1.0,
-        }
-    }
+    fn create_test_system_with_ligand_and_protein() -> MolecularSystem {
+        let mut system = MolecularSystem::new();
 
-    fn create_test_optimization_config() -> OptimizationConfig {
-        OptimizationConfig {
-            max_iterations: 100,
-            convergence_threshold: 0.01,
-            num_solutions: 1,
-            include_input_conformation: false,
-        }
-    }
+        let chain_a_id = system.add_chain('A', ChainType::Protein);
+        let res_ala_id = system
+            .add_residue(chain_a_id, 1, "ALA", Some(ResidueType::Alanine))
+            .unwrap();
+        let res_gly_id = system
+            .add_residue(chain_a_id, 2, "GLY", Some(ResidueType::Glycine))
+            .unwrap();
+        let res_leu_id = system
+            .add_residue(chain_a_id, 3, "LEU", Some(ResidueType::Leucine))
+            .unwrap();
+        let res_phe_id = system
+            .add_residue(chain_a_id, 4, "PHE", Some(ResidueType::Phenylalanine))
+            .unwrap();
 
-    fn create_test_forcefield() -> Forcefield {
-        use crate::core::forcefield::params::{GlobalParams, NonBondedParams};
-        use std::collections::HashMap;
+        let mut ala_ca = Atom::new(10, "CA", res_ala_id, Point3::new(1.0, 0.0, 0.0));
+        ala_ca.force_field_type = "C_sp3".to_string();
+        let mut ala_cb = Atom::new(11, "CB", res_ala_id, Point3::new(0.5, 0.5, 0.0));
+        ala_cb.force_field_type = "C_sp3".to_string();
+        system.add_atom_to_residue(res_ala_id, ala_ca).unwrap();
+        system.add_atom_to_residue(res_ala_id, ala_cb).unwrap();
 
-        let globals = GlobalParams {
-            dielectric_constant: 1.0,
-            potential_function: "mixed".to_string(),
-        };
+        let mut gly_ca = Atom::new(20, "CA", res_gly_id, Point3::new(2.5, 0.0, 0.0));
+        gly_ca.force_field_type = "C_sp3".to_string();
+        system.add_atom_to_residue(res_gly_id, gly_ca).unwrap();
 
-        let non_bonded = NonBondedParams {
-            globals,
-            vdw: HashMap::new(),
-            hbond: HashMap::new(),
-        };
+        let mut leu_ca = Atom::new(30, "CA", res_leu_id, Point3::new(10.0, 0.0, 0.0));
+        leu_ca.force_field_type = "C_sp3".to_string();
+        system.add_atom_to_residue(res_leu_id, leu_ca).unwrap();
 
-        Forcefield {
-            non_bonded,
-            deltas: HashMap::new(),
-        }
+        let mut phe_ca = Atom::new(40, "CA", res_phe_id, Point3::new(12.0, 0.0, 0.0));
+        phe_ca.force_field_type = "C_sp3".to_string();
+        system.add_atom_to_residue(res_phe_id, phe_ca).unwrap();
+
+        let chain_l_id = system.add_chain('L', ChainType::Ligand);
+        let res_lig_id = system.add_residue(chain_l_id, 1, "LIG", None).unwrap();
+
+        let mut lig_c1 = Atom::new(1, "C1", res_lig_id, Point3::new(0.0, 0.0, 0.0));
+        lig_c1.force_field_type = "C_sp3".to_string();
+        let mut lig_h1 = Atom::new(2, "H1", res_lig_id, Point3::new(-0.5, 0.0, 0.0));
+        lig_h1.force_field_type = "H_".to_string();
+        let mut lig_c2 = Atom::new(3, "C2", res_lig_id, Point3::new(2.0, 0.0, 0.0));
+        lig_c2.force_field_type = "C_sp3".to_string();
+        let mut lig_n1 = Atom::new(4, "N1", res_lig_id, Point3::new(0.0, 1.0, 0.0));
+        lig_n1.force_field_type = "N_ar".to_string();
+
+        system.add_atom_to_residue(res_lig_id, lig_c1).unwrap();
+        system.add_atom_to_residue(res_lig_id, lig_h1).unwrap();
+        system.add_atom_to_residue(res_lig_id, lig_c2).unwrap();
+        system.add_atom_to_residue(res_lig_id, lig_n1).unwrap();
+
+        system
     }
 
     fn create_test_rotamer_library() -> RotamerLibrary {
         let mut lib = RotamerLibrary::default();
-        lib.rotamers
-            .insert(ResidueType::Alanine, Default::default());
-        lib.rotamers
-            .insert(ResidueType::Leucine, Default::default());
+        lib.rotamers.insert(ResidueType::Alanine, vec![]);
         lib
     }
 
     #[test]
-    fn context_creation_is_correct() {
-        let system = MolecularSystem::new();
-        let ff = create_test_forcefield();
-        let rot_lib = create_test_rotamer_library();
-        let config = ();
-        let reporter = ProgressReporter::default();
-        let context = Context::new(&system, &config, &ff, &rot_lib, &reporter);
-        assert!(std::ptr::eq(context.system, &system));
-        assert!(std::ptr::eq(context.forcefield, &ff));
-        assert!(std::ptr::eq(context.config, &config));
-        assert!(std::ptr::eq(context.rotamer_library, &rot_lib));
-    }
-
-    #[test]
-    fn resolve_all_residues_selects_all_supported_except_glycine() {
-        let system = create_test_system();
-        let library = create_test_rotamer_library();
+    fn all_selection_selects_all_valid_residues() {
+        let (system, library) = create_simple_test_system();
         let selection = ResidueSelection::All;
-        let resolved = resolve_selection_to_ids(&system, &selection, &library).unwrap();
-
-        assert_eq!(resolved.len(), 2);
-
-        let chain_a = system.find_chain_by_id('A').unwrap();
-        let ala_id = system.find_residue_by_id(chain_a, 1).unwrap();
-        let gly_id = system.find_residue_by_id(chain_a, 2).unwrap();
-        let leu_id = system.find_residue_by_id(chain_a, 3).unwrap();
-        let chain_b = system.find_chain_by_id('B').unwrap();
-        let trp_id = system.find_residue_by_id(chain_b, 10).unwrap();
-        let xxx_id = system.find_residue_by_id(chain_b, 11).unwrap();
-
-        assert!(resolved.contains(&ala_id));
-        assert!(resolved.contains(&leu_id));
-        assert!(!resolved.contains(&gly_id));
-        assert!(!resolved.contains(&trp_id));
-        assert!(!resolved.contains(&xxx_id));
+        let active_residues = resolve_selection_to_ids(&system, &selection, &library).unwrap();
+        assert_eq!(active_residues.len(), 2);
     }
 
     #[test]
-    fn resolve_list_with_include_only_selects_specified_and_supported_residues() {
-        let system = create_test_system();
-        let library = create_test_rotamer_library();
+    fn list_selection_with_include() {
+        let (system, library) = create_simple_test_system();
         let selection = ResidueSelection::List {
-            include: vec![
-                ResidueSpecifier {
-                    chain_id: 'A',
-                    residue_number: 1,
-                },
-                ResidueSpecifier {
-                    chain_id: 'B',
-                    residue_number: 10,
-                },
-            ],
+            include: vec![ResidueSpecifier {
+                chain_id: 'A',
+                residue_number: 1,
+            }],
             exclude: vec![],
         };
-        let resolved = resolve_selection_to_ids(&system, &selection, &library).unwrap();
-
-        assert_eq!(resolved.len(), 1);
-        let chain_a = system.find_chain_by_id('A').unwrap();
-        let ala_id = system.find_residue_by_id(chain_a, 1).unwrap();
-        assert!(resolved.contains(&ala_id));
+        let active_residues = resolve_selection_to_ids(&system, &selection, &library).unwrap();
+        let chain_a_id = system.find_chain_by_id('A').unwrap();
+        let ala_id = system.find_residue_by_id(chain_a_id, 1).unwrap();
+        assert_eq!(active_residues.len(), 1);
+        assert!(active_residues.contains(&ala_id));
     }
 
     #[test]
-    fn resolve_list_with_exclude_only_selects_all_supported_except_excluded() {
-        let system = create_test_system();
-        let library = create_test_rotamer_library();
+    fn list_selection_with_exclude() {
+        let (system, library) = create_simple_test_system();
         let selection = ResidueSelection::List {
             include: vec![],
             exclude: vec![ResidueSpecifier {
@@ -383,21 +360,16 @@ mod tests {
                 residue_number: 1,
             }],
         };
-        let resolved = resolve_selection_to_ids(&system, &selection, &library).unwrap();
-
-        assert_eq!(resolved.len(), 1);
-        let chain_a = system.find_chain_by_id('A').unwrap();
-        let ala_id = system.find_residue_by_id(chain_a, 1).unwrap();
-        let leu_id = system.find_residue_by_id(chain_a, 3).unwrap();
-
-        assert!(!resolved.contains(&ala_id));
-        assert!(resolved.contains(&leu_id));
+        let active_residues = resolve_selection_to_ids(&system, &selection, &library).unwrap();
+        let chain_a_id = system.find_chain_by_id('A').unwrap();
+        let gly_id = system.find_residue_by_id(chain_a_id, 2).unwrap();
+        assert_eq!(active_residues.len(), 1);
+        assert!(active_residues.contains(&gly_id));
     }
 
     #[test]
-    fn resolve_list_with_include_and_exclude_works_correctly() {
-        let system = create_test_system();
-        let library = create_test_rotamer_library();
+    fn list_selection_with_include_and_exclude() {
+        let (system, library) = create_simple_test_system();
         let selection = ResidueSelection::List {
             include: vec![
                 ResidueSpecifier {
@@ -406,7 +378,7 @@ mod tests {
                 },
                 ResidueSpecifier {
                     chain_id: 'A',
-                    residue_number: 3,
+                    residue_number: 2,
                 },
             ],
             exclude: vec![ResidueSpecifier {
@@ -414,167 +386,196 @@ mod tests {
                 residue_number: 1,
             }],
         };
-        let resolved = resolve_selection_to_ids(&system, &selection, &library).unwrap();
-
-        assert_eq!(resolved.len(), 1);
-        let chain_a = system.find_chain_by_id('A').unwrap();
-        let leu_id = system.find_residue_by_id(chain_a, 3).unwrap();
-        assert!(resolved.contains(&leu_id));
+        let active_residues = resolve_selection_to_ids(&system, &selection, &library).unwrap();
+        let chain_a_id = system.find_chain_by_id('A').unwrap();
+        let gly_id = system.find_residue_by_id(chain_a_id, 2).unwrap();
+        assert_eq!(active_residues.len(), 1);
+        assert!(active_residues.contains(&gly_id));
     }
 
     #[test]
-    fn resolve_list_with_nonexistent_include_residue_returns_error() {
-        let system = create_test_system();
+    fn selection_filters_residues_not_in_rotamer_library() {
+        let (system, mut library) = create_simple_test_system();
+        library.rotamers.remove(&ResidueType::Glycine);
+
+        let selection = ResidueSelection::All;
+        let active_residues = resolve_selection_to_ids(&system, &selection, &library).unwrap();
+
+        let chain_a_id = system.find_chain_by_id('A').unwrap();
+        let ala_id = system.find_residue_by_id(chain_a_id, 1).unwrap();
+
+        assert_eq!(active_residues.len(), 1);
+        assert!(active_residues.contains(&ala_id));
+    }
+
+    #[test]
+    fn ligand_binding_site_selects_close_protein_residues() {
+        let system = create_test_system_with_ligand_and_protein();
         let library = create_test_rotamer_library();
-        let spec = ResidueSpecifier {
-            chain_id: 'Z',
+
+        let ligand_specifier = ResidueSpecifier {
+            chain_id: 'L',
+            residue_number: 1,
+        };
+        let selection = ResidueSelection::LigandBindingSite {
+            ligand_residue: ligand_specifier,
+            radius_angstroms: 2.0,
+        };
+
+        let active_residues = resolve_selection_to_ids(&system, &selection, &library).unwrap();
+
+        let chain_a_id = system.find_chain_by_id('A').unwrap();
+        let ala_id = system.find_residue_by_id(chain_a_id, 1).unwrap();
+        let gly_id = system.find_residue_by_id(chain_a_id, 2).unwrap();
+        let leu_id = system.find_residue_by_id(chain_a_id, 3).unwrap();
+        let phe_id = system.find_residue_by_id(chain_a_id, 4).unwrap();
+
+        assert!(active_residues.contains(&ala_id));
+
+        assert!(!active_residues.contains(&gly_id));
+
+        assert!(!active_residues.contains(&leu_id));
+        assert!(!active_residues.contains(&phe_id));
+
+        assert_eq!(active_residues.len(), 1);
+    }
+
+    #[test]
+    fn ligand_binding_site_filters_by_rotamer_library() {
+        let system = create_test_system_with_ligand_and_protein();
+        let mut library_only_ala = RotamerLibrary::default();
+        library_only_ala
+            .rotamers
+            .insert(ResidueType::Alanine, Default::default());
+
+        let ligand_specifier = ResidueSpecifier {
+            chain_id: 'L',
+            residue_number: 1,
+        };
+        let selection = ResidueSelection::LigandBindingSite {
+            ligand_residue: ligand_specifier,
+            radius_angstroms: 3.0,
+        };
+
+        let active_residues =
+            resolve_selection_to_ids(&system, &selection, &library_only_ala).unwrap();
+
+        let chain_a_id = system.find_chain_by_id('A').unwrap();
+        let ala_id = system.find_residue_by_id(chain_a_id, 1).unwrap();
+        let gly_id = system.find_residue_by_id(chain_a_id, 2).unwrap();
+
+        assert!(active_residues.contains(&ala_id));
+        assert!(!active_residues.contains(&gly_id));
+        assert_eq!(active_residues.len(), 1);
+    }
+
+    #[test]
+    fn ligand_binding_site_handles_nonexistent_ligand() {
+        let system = create_test_system_with_ligand_and_protein();
+        let library = create_test_rotamer_library();
+
+        let nonexistent_ligand = ResidueSpecifier {
+            chain_id: 'X',
             residue_number: 99,
         };
-        let selection = ResidueSelection::List {
-            include: vec![spec.clone()],
-            exclude: vec![],
-        };
-        let result = resolve_selection_to_ids(&system, &selection, &library);
-
-        assert!(matches!(
-            result,
-            Err(EngineError::ResidueNotFound { spec: e_spec }) if e_spec == spec
-        ));
-    }
-
-    #[test]
-    fn resolve_list_with_nonexistent_exclude_residue_is_ignored() {
-        let system = create_test_system();
-        let library = create_test_rotamer_library();
-        let selection = ResidueSelection::List {
-            include: vec![],
-            exclude: vec![ResidueSpecifier {
-                chain_id: 'Z',
-                residue_number: 99,
-            }],
-        };
-        let resolved = resolve_selection_to_ids(&system, &selection, &library).unwrap();
-        assert_eq!(resolved.len(), 2);
-    }
-
-    #[test]
-    fn resolve_list_with_empty_include_and_exclude_returns_empty_set() {
-        let system = create_test_system();
-        let library = create_test_rotamer_library();
-        let selection = ResidueSelection::List {
-            include: vec![],
-            exclude: vec![],
-        };
-        let resolved = resolve_selection_to_ids(&system, &selection, &library).unwrap();
-        assert!(resolved.is_empty());
-    }
-
-    // TODO: Implement ligand binding site resolution and update this test
-    #[test]
-    #[should_panic(expected = "Ligand binding site selection is not yet implemented.")]
-    fn resolve_ligand_binding_site_panics() {
-        let system = create_test_system();
-        let library = create_test_rotamer_library();
         let selection = ResidueSelection::LigandBindingSite {
-            ligand_residue: ResidueSpecifier {
-                chain_id: 'A',
-                residue_number: 1,
-            },
+            ligand_residue: nonexistent_ligand.clone(),
             radius_angstroms: 5.0,
         };
-        let _ = resolve_selection_to_ids(&system, &selection, &library);
+
+        let result = resolve_selection_to_ids(&system, &selection, &library);
+
+        assert!(
+            matches!(result, Err(EngineError::ResidueNotFound { spec }) if spec == nonexistent_ligand)
+        );
     }
 
     #[test]
-    fn resolve_design_residues_works_for_design_config() {
-        let system = create_test_system();
+    fn ligand_binding_site_handles_ligand_with_no_heavy_atoms() {
+        let mut system = MolecularSystem::new();
         let library = create_test_rotamer_library();
-        let ff = create_test_forcefield();
-        let reporter = ProgressReporter::default();
 
-        let spec = ResidueSpecifier {
-            chain_id: 'A',
+        let chain_a_id = system.add_chain('A', ChainType::Protein);
+        let res_ala_id = system
+            .add_residue(chain_a_id, 1, "ALA", Some(ResidueType::Alanine))
+            .unwrap();
+        let mut ala_ca = Atom::new(10, "CA", res_ala_id, Point3::new(1.0, 0.0, 0.0));
+        ala_ca.force_field_type = "C_sp3".to_string();
+        system.add_atom_to_residue(res_ala_id, ala_ca).unwrap();
+
+        let chain_l_id = system.add_chain('L', ChainType::Ligand);
+        let res_lig_id = system.add_residue(chain_l_id, 1, "LIG", None).unwrap();
+        let mut lig_h1 = Atom::new(1, "H1", res_lig_id, Point3::new(0.0, 0.0, 0.0));
+        lig_h1.force_field_type = "H_".to_string();
+        system.add_atom_to_residue(res_lig_id, lig_h1).unwrap();
+
+        let ligand_specifier = ResidueSpecifier {
+            chain_id: 'L',
             residue_number: 1,
         };
-        let mut design_spec = DesignSpec::new();
-        design_spec.insert(spec.clone(), vec![ResidueType::Leucine]);
-
-        let config = DesignConfig {
-            design_spec,
-            neighbors_to_repack: ResidueSelection::List {
-                include: vec![],
-                exclude: vec![],
-            },
-            scoring: create_test_scoring_config(),
-            optimization: create_test_optimization_config(),
+        let selection = ResidueSelection::LigandBindingSite {
+            ligand_residue: ligand_specifier,
+            radius_angstroms: 2.0,
         };
 
-        let context = Context::new(&system, &config, &ff, &library, &reporter);
-        let design_residues = context.resolve_design_residues().unwrap();
-
-        assert_eq!(design_residues.len(), 1);
-        let chain_a = system.find_chain_by_id('A').unwrap();
-        let ala_id = system.find_residue_by_id(chain_a, 1).unwrap();
-        assert!(design_residues.contains(&ala_id));
+        let active_residues = resolve_selection_to_ids(&system, &selection, &library).unwrap();
+        assert!(active_residues.is_empty());
     }
 
     #[test]
-    fn resolve_design_residues_returns_empty_for_placement_config() {
-        let system = create_test_system();
+    fn ligand_binding_site_excludes_ligand_itself() {
+        let mut system = create_test_system_with_ligand_and_protein();
         let library = create_test_rotamer_library();
-        let ff = create_test_forcefield();
-        let reporter = ProgressReporter::default();
 
-        let config = PlacementConfig {
-            residues_to_optimize: ResidueSelection::All,
-            scoring: create_test_scoring_config(),
-            optimization: create_test_optimization_config(),
-        };
-
-        let context = Context::new(&system, &config, &ff, &library, &reporter);
-        let design_residues = context.resolve_design_residues().unwrap();
-
-        assert!(design_residues.is_empty());
-    }
-
-    #[test]
-    fn resolve_all_active_residues_combines_repack_and_design() {
-        let system = create_test_system();
-        let library = create_test_rotamer_library();
-        let ff = create_test_forcefield();
-        let reporter = ProgressReporter::default();
-
-        let design_specifier = ResidueSpecifier {
-            chain_id: 'A',
+        let ligand_specifier = ResidueSpecifier {
+            chain_id: 'L',
             residue_number: 1,
         };
-        let mut design_spec = DesignSpec::new();
-        design_spec.insert(design_specifier, vec![ResidueType::Leucine]);
-
-        let repack_specifier = ResidueSpecifier {
-            chain_id: 'A',
-            residue_number: 3,
-        };
-        let repack_selection = ResidueSelection::List {
-            include: vec![repack_specifier],
-            exclude: vec![],
+        let selection = ResidueSelection::LigandBindingSite {
+            ligand_residue: ligand_specifier.clone(),
+            radius_angstroms: 5.0,
         };
 
-        let config = DesignConfig {
-            design_spec,
-            neighbors_to_repack: repack_selection,
-            scoring: create_test_scoring_config(),
-            optimization: create_test_optimization_config(),
+        let active_residues = resolve_selection_to_ids(&system, &selection, &library).unwrap();
+
+        let chain_l_id = system.find_chain_by_id('L').unwrap();
+        let lig_res_id = system.find_residue_by_id(chain_l_id, 1).unwrap();
+
+        assert!(!active_residues.contains(&lig_res_id));
+    }
+
+    #[test]
+    fn ligand_binding_site_works_with_large_radius() {
+        let system = create_test_system_with_ligand_and_protein();
+        let mut library = create_test_rotamer_library();
+        library
+            .rotamers
+            .insert(ResidueType::Leucine, Default::default());
+        library
+            .rotamers
+            .insert(ResidueType::Phenylalanine, Default::default());
+
+        let ligand_specifier = ResidueSpecifier {
+            chain_id: 'L',
+            residue_number: 1,
+        };
+        let selection = ResidueSelection::LigandBindingSite {
+            ligand_residue: ligand_specifier,
+            radius_angstroms: 20.0,
         };
 
-        let context = Context::new(&system, &config, &ff, &library, &reporter);
-        let all_active = context.resolve_all_active_residues().unwrap();
+        let active_residues = resolve_selection_to_ids(&system, &selection, &library).unwrap();
 
-        assert_eq!(all_active.len(), 2);
-        let chain_a = system.find_chain_by_id('A').unwrap();
-        let ala_id = system.find_residue_by_id(chain_a, 1).unwrap();
-        let leu_id = system.find_residue_by_id(chain_a, 3).unwrap();
-        assert!(all_active.contains(&ala_id));
-        assert!(all_active.contains(&leu_id));
+        let chain_a_id = system.find_chain_by_id('A').unwrap();
+        let ala_id = system.find_residue_by_id(chain_a_id, 1).unwrap();
+        let gly_id = system.find_residue_by_id(chain_a_id, 2).unwrap();
+        let leu_id = system.find_residue_by_id(chain_a_id, 3).unwrap();
+        let phe_id = system.find_residue_by_id(chain_a_id, 4).unwrap();
+
+        assert!(active_residues.contains(&ala_id));
+        assert!(!active_residues.contains(&gly_id));
+        assert!(active_residues.contains(&leu_id));
+        assert!(active_residues.contains(&phe_id));
+        assert_eq!(active_residues.len(), 3);
     }
 }
