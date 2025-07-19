@@ -70,3 +70,10 @@ pub fn run<C: ProvidesResidueSelections + Sync>(
 
     Ok(total_el_energy + interaction_energy)
 }
+
+use std::iter::Sum;
+impl Sum for EnergyTerm {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Self::default(), |acc, term| acc + term)
+    }
+}
