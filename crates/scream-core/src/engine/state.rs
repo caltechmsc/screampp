@@ -1,10 +1,17 @@
+use crate::core::models::ids::ResidueId;
 use crate::core::models::system::MolecularSystem;
-use std::collections::BinaryHeap;
+use std::collections::{BinaryHeap, HashMap};
+
+#[derive(Debug, Clone)]
+pub struct SolutionState {
+    pub system: MolecularSystem,
+    pub rotamers: HashMap<ResidueId, usize>,
+}
 
 #[derive(Debug, Clone)]
 pub struct Solution {
     pub energy: f64,
-    pub system: MolecularSystem,
+    pub state: SolutionState,
 }
 
 impl PartialEq for Solution {
@@ -28,25 +35,34 @@ impl Ord for Solution {
 
 #[derive(Debug, Clone)]
 pub struct OptimizationState {
-    pub working_system: MolecularSystem,
+    pub working_state: SolutionState,
     pub current_energy: f64,
     top_solutions: BinaryHeap<Solution>,
     max_solutions: usize,
 }
 
 impl OptimizationState {
-    pub fn new(initial_system: MolecularSystem, initial_energy: f64, max_solutions: usize) -> Self {
+    pub fn new(
+        initial_system: MolecularSystem,
+        initial_rotamers: HashMap<ResidueId, usize>,
+        initial_energy: f64,
+        max_solutions: usize,
+    ) -> Self {
         let max_s = if max_solutions == 0 { 1 } else { max_solutions };
 
-        let mut top_solutions = BinaryHeap::with_capacity(max_s);
+        let initial_state = SolutionState {
+            system: initial_system,
+            rotamers: initial_rotamers,
+        };
 
+        let mut top_solutions = BinaryHeap::with_capacity(max_s);
         top_solutions.push(Solution {
             energy: initial_energy,
-            system: initial_system.clone(),
+            state: initial_state.clone(),
         });
 
         Self {
-            working_system: initial_system,
+            working_state: initial_state,
             current_energy: initial_energy,
             top_solutions,
             max_solutions: max_s,
@@ -57,7 +73,7 @@ impl OptimizationState {
         if self.top_solutions.len() < self.max_solutions {
             let new_solution = Solution {
                 energy: self.current_energy,
-                system: self.working_system.clone(),
+                state: self.working_state.clone(),
             };
             self.top_solutions.push(new_solution);
         } else {
@@ -66,11 +82,11 @@ impl OptimizationState {
             if self.current_energy < worst_of_the_best.energy {
                 let mut new_solution = Solution {
                     energy: self.current_energy,
-                    system: self.working_system.clone(),
+                    state: self.working_state.clone(),
                 };
 
                 if let Some(mut placeholder) = self.top_solutions.pop() {
-                    std::mem::swap(&mut placeholder.system, &mut new_solution.system);
+                    std::mem::swap(&mut placeholder.state, &mut new_solution.state);
                     placeholder.energy = new_solution.energy;
                     self.top_solutions.push(placeholder);
                 }
