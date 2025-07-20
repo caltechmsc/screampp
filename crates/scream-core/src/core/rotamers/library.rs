@@ -16,7 +16,7 @@ use thiserror::Error;
 
 type RawRotamerFile = HashMap<String, Vec<RotamerData>>;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct RotamerLibrary {
     pub rotamers: HashMap<ResidueType, Vec<Rotamer>>,
     pub placement_info: HashMap<ResidueType, PlacementInfo>,
