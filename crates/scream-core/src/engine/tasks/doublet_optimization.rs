@@ -163,3 +163,213 @@ pub fn run<C: ProvidesResidueSelections + Sync>(
         }),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::forcefield::params::{Forcefield, GlobalParams, NonBondedParams, VdwParam};
+    use crate::core::models::atom::Atom;
+    use crate::core::models::chain::ChainType;
+    use crate::core::models::residue::ResidueType;
+    use crate::core::models::system::MolecularSystem;
+    use crate::core::rotamers::library::RotamerLibrary;
+    use crate::core::rotamers::placement::PlacementInfo;
+    use crate::core::rotamers::rotamer::Rotamer;
+    use crate::engine::config::{PlacementConfig, ResidueSelection};
+    use crate::engine::progress::ProgressReporter;
+    use nalgebra::Point3;
+    use std::collections::HashMap;
+
+    fn setup_test_data() -> (
+        MolecularSystem,
+        ResidueId,
+        ResidueId,
+        ELCache,
+        Forcefield,
+        RotamerLibrary,
+        PlacementConfig,
+        ProgressReporter<'static>,
+    ) {
+        let mut system = MolecularSystem::new();
+        let chain_id = system.add_chain('A', ChainType::Protein);
+        let res_a_id = system
+            .add_residue(chain_id, 1, "ALA", Some(ResidueType::Alanine))
+            .unwrap();
+        let res_b_id = system
+            .add_residue(chain_id, 2, "LEU", Some(ResidueType::Leucine))
+            .unwrap();
+
+        let mut n1 = Atom::new(1, "N", res_a_id, Point3::new(0.0, 1.0, 0.0));
+        n1.force_field_type = "N_BB".to_string();
+        let mut ca1 = Atom::new(2, "CA", res_a_id, Point3::new(0.0, 0.0, 0.0));
+        ca1.force_field_type = "C_BB".to_string();
+        let mut c1 = Atom::new(3, "C", res_a_id, Point3::new(1.0, 0.0, 0.0));
+        c1.force_field_type = "C_BB".to_string();
+        system.add_atom_to_residue(res_a_id, n1).unwrap();
+        system.add_atom_to_residue(res_a_id, ca1).unwrap();
+        system.add_atom_to_residue(res_a_id, c1).unwrap();
+
+        let mut n2 = Atom::new(4, "N", res_b_id, Point3::new(4.0, 1.0, 0.0));
+        n2.force_field_type = "N_BB".to_string();
+        let mut ca2 = Atom::new(5, "CA", res_b_id, Point3::new(4.0, 0.0, 0.0));
+        ca2.force_field_type = "C_BB".to_string();
+        let mut c2 = Atom::new(6, "C", res_b_id, Point3::new(5.0, 0.0, 0.0));
+        c2.force_field_type = "C_BB".to_string();
+        system.add_atom_to_residue(res_b_id, n2).unwrap();
+        system.add_atom_to_residue(res_b_id, ca2).unwrap();
+        system.add_atom_to_residue(res_b_id, c2).unwrap();
+
+        let mut vdw = HashMap::new();
+        vdw.insert(
+            "N_BB".to_string(),
+            VdwParam::LennardJones {
+                radius: 3.5,
+                well_depth: 0.15,
+            },
+        );
+        vdw.insert(
+            "C_BB".to_string(),
+            VdwParam::LennardJones {
+                radius: 3.8,
+                well_depth: 0.18,
+            },
+        );
+        vdw.insert(
+            "C_CB".to_string(),
+            VdwParam::LennardJones {
+                radius: 4.0,
+                well_depth: 1.0,
+            },
+        );
+
+        let ff = Forcefield {
+            non_bonded: NonBondedParams {
+                globals: GlobalParams {
+                    dielectric_constant: 1.0,
+                    potential_function: "lennard-jones-12-6".to_string(),
+                },
+                vdw,
+                hbond: HashMap::new(),
+            },
+            deltas: HashMap::new(),
+        };
+
+        let common_backbone_atoms = |residue_id: ResidueId| {
+            let mut atoms = Vec::new();
+            let mut n_atom = Atom::new(1001, "N", residue_id, Point3::new(0.0, 1.0, 0.0));
+            n_atom.force_field_type = "N_BB".to_string();
+            atoms.push(n_atom);
+
+            let mut ca_atom = Atom::new(1002, "CA", residue_id, Point3::new(0.0, 0.0, 0.0));
+            ca_atom.force_field_type = "C_BB".to_string();
+            atoms.push(ca_atom);
+
+            let mut c_atom = Atom::new(1003, "C", residue_id, Point3::new(1.0, 0.0, 0.0));
+            c_atom.force_field_type = "C_BB".to_string();
+            atoms.push(c_atom);
+            atoms
+        };
+
+        let mut ala_rot0_atoms = common_backbone_atoms(res_a_id);
+        let mut ala_cb0 = Atom::new(10, "CB", res_a_id, Point3::new(1.0, 0.0, 0.0));
+        ala_cb0.force_field_type = "C_CB".to_string();
+        ala_rot0_atoms.push(ala_cb0);
+        let rotamer_a0 = Rotamer {
+            atoms: ala_rot0_atoms,
+        };
+
+        let mut leu_rot0_atoms = common_backbone_atoms(res_b_id);
+        let mut leu_cb0 = Atom::new(20, "CB", res_b_id, Point3::new(2.0, 0.0, 0.0));
+        leu_cb0.force_field_type = "C_CB".to_string();
+        leu_rot0_atoms.push(leu_cb0);
+        let rotamer_b0 = Rotamer {
+            atoms: leu_rot0_atoms,
+        };
+
+        let mut leu_rot1_atoms = common_backbone_atoms(res_b_id);
+        let mut leu_cb1 = Atom::new(21, "CB", res_b_id, Point3::new(3.0, 0.0, 0.0));
+        leu_cb1.force_field_type = "C_CB".to_string();
+        leu_rot1_atoms.push(leu_cb1);
+        let rotamer_b1 = Rotamer {
+            atoms: leu_rot1_atoms,
+        };
+
+        let mut rot_lib_map = HashMap::new();
+        rot_lib_map.insert(ResidueType::Alanine, vec![rotamer_a0]);
+        rot_lib_map.insert(ResidueType::Leucine, vec![rotamer_b0, rotamer_b1]);
+
+        let placement_info = PlacementInfo {
+            anchor_atoms: vec!["N".to_string(), "CA".to_string(), "C".to_string()],
+            sidechain_atoms: vec!["CB".to_string()],
+            exact_match_atoms: vec![],
+            connection_points: vec![],
+        };
+
+        let mut placement_map = HashMap::new();
+        placement_map.insert(ResidueType::Alanine, placement_info.clone());
+        placement_map.insert(ResidueType::Leucine, placement_info);
+
+        let rot_lib = RotamerLibrary {
+            rotamers: rot_lib_map,
+            placement_info: placement_map,
+        };
+
+        let mut el_cache = ELCache::new();
+        el_cache.insert(res_a_id, ResidueType::Alanine, 0, Default::default());
+        el_cache.insert(res_b_id, ResidueType::Leucine, 0, Default::default());
+        el_cache.insert(res_b_id, ResidueType::Leucine, 1, Default::default());
+
+        let config = PlacementConfig {
+            residues_to_optimize: ResidueSelection::All,
+            scoring: Default::default(),
+            optimization: Default::default(),
+        };
+        let reporter = ProgressReporter::new();
+
+        (
+            system, res_a_id, res_b_id, el_cache, ff, rot_lib, config, reporter,
+        )
+    }
+
+    #[test]
+    fn run_finds_unique_optimal_pair() {
+        let (system, res_a_id, res_b_id, el_cache, ff, rot_lib, config, reporter) =
+            setup_test_data();
+
+        let context = Context::new(&system, &config, &ff, &rot_lib, &reporter);
+
+        let result = run(res_a_id, res_b_id, &system, &el_cache, &context).unwrap();
+
+        assert_eq!(
+            result.rotamer_idx_a, 0,
+            "Best rotamer for ALA should be index 0"
+        );
+        assert_eq!(
+            result.rotamer_idx_b, 0,
+            "Best rotamer for LEU should be index 0"
+        );
+        assert!(
+            (result.best_local_energy - (-0.455568523264)).abs() < 1e-3,
+            "Energy was {}, expected around -0.455568523264",
+            result.best_local_energy
+        );
+    }
+
+    #[test]
+    fn run_handles_empty_rotamer_list() {
+        let (system, res_a_id, res_b_id, el_cache, ff, mut rot_lib, config, reporter) =
+            setup_test_data();
+
+        rot_lib
+            .rotamers
+            .get_mut(&ResidueType::Alanine)
+            .unwrap()
+            .clear();
+
+        let context = Context::new(&system, &config, &ff, &rot_lib, &reporter);
+
+        let result = run(res_a_id, res_b_id, &system, &el_cache, &context);
+
+        assert!(matches!(result, Err(EngineError::PhaseFailed { .. })));
+    }
+}
