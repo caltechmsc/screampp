@@ -1,5 +1,5 @@
 use crate::core::forcefield::scoring::Scorer;
-use crate::core::models::ids::ResidueId;
+use crate::core::models::ids::{AtomId, ResidueId};
 use crate::engine::cache::ELCache;
 use crate::engine::context::{Context, ProvidesResidueSelections};
 use crate::engine::error::EngineError;
@@ -45,7 +45,6 @@ pub fn run<C: ProvidesResidueSelections + Sync>(
             message: "No rotamers found for doublet optimization.".to_string(),
         })?;
 
-    // Create an iterator of all rotamer index pairs
     let index_pairs: Vec<(usize, usize)> = (0..rotamers_a.len())
         .flat_map(|i| (0..rotamers_b.len()).map(move |j| (i, j)))
         .collect();
@@ -57,7 +56,6 @@ pub fn run<C: ProvidesResidueSelections + Sync>(
         index_pairs.len()
     );
 
-    let scorer = Scorer::new(system, context.forcefield);
     let placement_info_a = context
         .rotamer_library
         .get_placement_info_for(res_type_a)
@@ -79,7 +77,6 @@ pub fn run<C: ProvidesResidueSelections + Sync>(
             let rot_a = &rotamers_a[idx_a];
             let rot_b = &rotamers_b[idx_b];
 
-            // 1. Get EL energies from cache
             let el_a = el_cache
                 .get(res_a_id, res_type_a, idx_a)
                 .map_or(0.0, |e| e.total());
@@ -87,25 +84,46 @@ pub fn run<C: ProvidesResidueSelections + Sync>(
                 .get(res_b_id, res_type_b, idx_b)
                 .map_or(0.0, |e| e.total());
 
-            // 2. Calculate interaction energy (using the simple clone-and-place method for now)
             let mut temp_system = system.clone();
-            placement::place_rotamer_on_system(
-                &mut temp_system,
-                res_a_id,
-                rot_a,
-                placement_info_a,
-            )?;
-            placement::place_rotamer_on_system(
-                &mut temp_system,
-                res_b_id,
-                rot_b,
-                placement_info_b,
-            )?;
 
-            let atoms_a = temp_system.residue(res_a_id).unwrap().atoms();
-            let atoms_b = temp_system.residue(res_b_id).unwrap().atoms();
+            placement::place_rotamer_on_system(&mut temp_system, res_a_id, rot_a, placement_info_a)
+                .map_err(|e| e)?;
+            placement::place_rotamer_on_system(&mut temp_system, res_b_id, rot_b, placement_info_b)
+                .map_err(|e| e)?;
 
-            let interaction = scorer.score_interaction(atoms_a, atoms_b)?.total();
+            let atoms_a_sidechain_ids: Vec<AtomId> = context
+                .rotamer_library
+                .get_placement_info_for(res_type_a)
+                .unwrap()
+                .sidechain_atoms
+                .iter()
+                .filter_map(|atom_name| {
+                    temp_system
+                        .residue(res_a_id)
+                        .unwrap()
+                        .get_atom_id_by_name(atom_name)
+                })
+                .collect();
+
+            let atoms_b_sidechain_ids: Vec<AtomId> = context
+                .rotamer_library
+                .get_placement_info_for(res_type_b)
+                .unwrap()
+                .sidechain_atoms
+                .iter()
+                .filter_map(|atom_name| {
+                    temp_system
+                        .residue(res_b_id)
+                        .unwrap()
+                        .get_atom_id_by_name(atom_name)
+                })
+                .collect();
+
+            let scorer = Scorer::new(&temp_system, context.forcefield);
+
+            let interaction = scorer
+                .score_interaction(&atoms_a_sidechain_ids, &atoms_b_sidechain_ids)?
+                .total();
 
             let local_energy = el_a + el_b + interaction;
 
