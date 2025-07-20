@@ -206,7 +206,7 @@ mod tests {
             NonBondedParams {
                 globals: GlobalParams {
                     dielectric_constant: 1.0,
-                    potential_function: "lj".to_string(),
+                    potential_function: "lennard-jones-12-6".to_string(),
                 },
                 vdw,
                 hbond,

@@ -122,7 +122,7 @@ mod tests {
             r#"
             [globals]
             dielectric_constant = 1.0
-            potential_function = "buckingham_exp_6"
+            potential_function = "buckingham-exp-6"
 
             [vdw.C]
             radius = 3.5
@@ -213,7 +213,7 @@ mod tests {
             &non_bonded_path,
             r#"[globals]
             dielectric_constant = 1.0
-            potential_function = "lj"
+            potential_function = "lennard-jones-12-6"
             [vdw.C]
             radius = 1.0
             well_depth = 1.0
