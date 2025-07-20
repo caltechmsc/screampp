@@ -36,7 +36,7 @@ pub enum AtomSelection {
     All,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct ScoringConfig {
     pub forcefield_path: PathBuf,
     pub rotamer_library_path: PathBuf,
@@ -44,7 +44,7 @@ pub struct ScoringConfig {
     pub s_factor: f64,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct OptimizationConfig {
     pub max_iterations: usize,
     pub convergence_threshold: f64,
