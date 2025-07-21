@@ -389,3 +389,161 @@ impl AnalyzeConfigBuilder {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::Path;
+
+    #[test]
+    fn design_spec_ext_get_by_specifier_finds_existing_entry() {
+        let specifier = ResidueSpecifier {
+            chain_id: 'A',
+            residue_number: 10,
+        };
+        let residue_types = vec![ResidueType::Alanine, ResidueType::Glycine];
+        let mut design_spec: DesignSpec = HashMap::new();
+        design_spec.insert(specifier.clone(), residue_types.clone());
+
+        let result = design_spec.get_by_specifier('A', 10);
+        assert_eq!(result, Some(&residue_types));
+    }
+
+    #[test]
+    fn design_spec_ext_get_by_specifier_returns_none_for_missing_entry() {
+        let design_spec: DesignSpec = HashMap::new();
+        let result = design_spec.get_by_specifier('B', 20);
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn placement_config_builder_builds_successfully_with_all_parameters() {
+        let builder = PlacementConfigBuilder::new()
+            .forcefield_path("ff.dat")
+            .delta_params_path("delta.dat")
+            .s_factor(0.5)
+            .rotamer_library_path("rot.lib")
+            .placement_registry_path("reg.json")
+            .max_iterations(100)
+            .convergence_threshold(0.01)
+            .num_solutions(10)
+            .include_input_conformation(true)
+            .use_simulated_annealing(true)
+            .residues_to_optimize(ResidueSelection::All);
+
+        assert!(builder.build().is_ok());
+    }
+
+    #[test]
+    fn placement_config_builder_fails_on_missing_required_parameter() {
+        assert_eq!(
+            PlacementConfigBuilder::new().build().unwrap_err(),
+            ConfigError::MissingParameter("forcefield_path")
+        );
+
+        let builder_missing_residues = PlacementConfigBuilder::new()
+            .forcefield_path("ff.dat")
+            .delta_params_path("delta.dat")
+            .s_factor(0.5)
+            .rotamer_library_path("rot.lib")
+            .placement_registry_path("reg.json")
+            .max_iterations(100)
+            .convergence_threshold(0.01)
+            .num_solutions(10);
+
+        assert_eq!(
+            builder_missing_residues.build().unwrap_err(),
+            ConfigError::MissingParameter("residues_to_optimize")
+        );
+    }
+
+    #[test]
+    fn placement_config_builder_uses_default_values_for_optional_booleans() {
+        let config = PlacementConfigBuilder::new()
+            .forcefield_path("ff.dat")
+            .delta_params_path("delta.dat")
+            .s_factor(0.5)
+            .rotamer_library_path("rot.lib")
+            .placement_registry_path("reg.json")
+            .max_iterations(100)
+            .convergence_threshold(0.01)
+            .num_solutions(10)
+            .residues_to_optimize(ResidueSelection::All)
+            .build()
+            .unwrap();
+
+        assert!(!config.optimization.include_input_conformation);
+        assert!(!config.optimization.use_simulated_annealing);
+    }
+
+    #[test]
+    fn design_config_builder_builds_successfully_with_all_parameters() {
+        let design_spec = DesignSpec::new();
+        let builder = DesignConfigBuilder::new()
+            .forcefield_path("ff.dat")
+            .delta_params_path("delta.dat")
+            .s_factor(0.5)
+            .rotamer_library_path("rot.lib")
+            .placement_registry_path("reg.json")
+            .max_iterations(100)
+            .convergence_threshold(0.01)
+            .num_solutions(10)
+            .design_spec(design_spec)
+            .neighbors_to_repack(ResidueSelection::All);
+
+        assert!(builder.build().is_ok());
+    }
+
+    #[test]
+    fn design_config_builder_fails_on_missing_design_spec() {
+        let builder = DesignConfigBuilder::new()
+            .forcefield_path("ff.dat")
+            .delta_params_path("delta.dat")
+            .s_factor(0.5)
+            .rotamer_library_path("rot.lib")
+            .placement_registry_path("reg.json")
+            .max_iterations(100)
+            .convergence_threshold(0.01)
+            .num_solutions(10)
+            .neighbors_to_repack(ResidueSelection::All);
+
+        assert_eq!(
+            builder.build().unwrap_err(),
+            ConfigError::MissingParameter("design_spec")
+        );
+    }
+
+    #[test]
+    fn analyze_config_builder_builds_successfully() {
+        let builder = AnalyzeConfigBuilder::new()
+            .forcefield_path("ff.dat")
+            .delta_params_path("delta.dat")
+            .s_factor(0.5)
+            .analysis_type(AnalysisType::ClashDetection {
+                threshold_kcal_mol: 1.0,
+            });
+
+        let config = builder.build().unwrap();
+
+        assert_eq!(config.forcefield.forcefield_path, Path::new("ff.dat"));
+        assert_eq!(
+            config.analysis_type,
+            AnalysisType::ClashDetection {
+                threshold_kcal_mol: 1.0
+            }
+        );
+    }
+
+    #[test]
+    fn analyze_config_builder_fails_on_missing_analysis_type() {
+        let builder = AnalyzeConfigBuilder::new()
+            .forcefield_path("ff.dat")
+            .delta_params_path("delta.dat")
+            .s_factor(0.5);
+
+        assert_eq!(
+            builder.build().unwrap_err(),
+            ConfigError::MissingParameter("analysis_type")
+        );
+    }
+}
