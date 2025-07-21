@@ -97,3 +97,165 @@ pub fn run(
 
     Ok(clashes)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::forcefield::params::{Forcefield, GlobalParams, NonBondedParams, VdwParam};
+    use crate::core::models::atom::Atom;
+    use crate::core::models::chain::ChainType;
+    use crate::core::models::residue::ResidueType;
+    use nalgebra::Point3;
+    use std::collections::HashMap;
+
+    fn create_test_forcefield() -> Forcefield {
+        let mut vdw = HashMap::new();
+        vdw.insert(
+            "C".to_string(),
+            VdwParam::LennardJones {
+                radius: 2.0,
+                well_depth: 0.1,
+            },
+        );
+        let non_bonded = NonBondedParams {
+            globals: GlobalParams {
+                dielectric_constant: 1.0,
+                potential_function: "lennard-jones-12-6".to_string(),
+            },
+            vdw,
+            hbond: HashMap::new(),
+        };
+        Forcefield {
+            non_bonded,
+            deltas: HashMap::new(),
+        }
+    }
+
+    fn create_test_system() -> (MolecularSystem, HashSet<ResidueId>, ResidueId, ResidueId) {
+        let mut system = MolecularSystem::new();
+        let chain_a = system.add_chain('A', ChainType::Protein);
+
+        let res1_id = system
+            .add_residue(chain_a, 1, "ALA", Some(ResidueType::Alanine))
+            .unwrap();
+        let mut atom1 = Atom::new(1, "CA", res1_id, Point3::new(0.0, 0.0, 0.0));
+        atom1.force_field_type = "C".to_string();
+        system.add_atom_to_residue(res1_id, atom1).unwrap();
+
+        let res2_id = system
+            .add_residue(chain_a, 2, "LEU", Some(ResidueType::Leucine))
+            .unwrap();
+        let mut atom2 = Atom::new(2, "CA", res2_id, Point3::new(10.0, 0.0, 0.0));
+        atom2.force_field_type = "C".to_string();
+        system.add_atom_to_residue(res2_id, atom2).unwrap();
+
+        let active_residues = vec![res1_id, res2_id].into_iter().collect();
+
+        (system, active_residues, res1_id, res2_id)
+    }
+
+    #[test]
+    fn run_detects_clash_when_residues_are_close() {
+        let (mut system, active_residues, _, res2_id) = create_test_system();
+        let res2_atom_id = system.residue(res2_id).unwrap().atoms()[0];
+        system.atom_mut(res2_atom_id).unwrap().position = Point3::new(0.1, 0.0, 0.0);
+
+        let ff = create_test_forcefield();
+        let reporter = ProgressReporter::default();
+
+        let clashes = run(&system, &ff, &active_residues, 1.0, &reporter).unwrap();
+
+        assert_eq!(clashes.len(), 1);
+        assert!(clashes[0].energy.total() > 1.0);
+    }
+
+    #[test]
+    fn run_detects_no_clash_when_residues_are_far() {
+        let (system, active_residues, _, _) = create_test_system();
+        let ff = create_test_forcefield();
+        let reporter = ProgressReporter::default();
+
+        let clashes = run(&system, &ff, &active_residues, 1.0, &reporter).unwrap();
+
+        assert!(clashes.is_empty());
+    }
+
+    #[test]
+    fn run_respects_clash_threshold() {
+        let (mut system, active_residues, _, res2_id) = create_test_system();
+        let res2_atom_id = system.residue(res2_id).unwrap().atoms()[0];
+        system.atom_mut(res2_atom_id).unwrap().position = Point3::new(0.1, 0.0, 0.0);
+        let ff = create_test_forcefield();
+        let reporter = ProgressReporter::default();
+
+        let clashes_low_threshold = run(&system, &ff, &active_residues, 1.0, &reporter).unwrap();
+        assert_eq!(clashes_low_threshold.len(), 1);
+
+        let clashes_high_threshold = run(&system, &ff, &active_residues, 1e15, &reporter).unwrap();
+        assert!(clashes_high_threshold.is_empty());
+    }
+
+    #[test]
+    fn run_returns_empty_vec_for_no_pairs() {
+        let (mut system, mut active_residues, res1_id, res2_id) = create_test_system();
+        system.remove_residue(res2_id);
+        active_residues.remove(&res2_id);
+        assert_eq!(active_residues.len(), 1);
+
+        let ff = create_test_forcefield();
+        let reporter = ProgressReporter::default();
+
+        let clashes = run(&system, &ff, &active_residues, 1.0, &reporter).unwrap();
+
+        assert!(clashes.is_empty());
+    }
+
+    #[test]
+    fn run_sorts_clashes_by_energy_descending() {
+        let (mut system, _, res1_id, res2_id) = create_test_system();
+        let chain_a = system.find_chain_by_id('A').unwrap();
+
+        let res3_id = system
+            .add_residue(chain_a, 3, "LEU", Some(ResidueType::Leucine))
+            .unwrap();
+        let mut atom3 = Atom::new(3, "CA", res3_id, Point3::new(1.5, 0.0, 0.0));
+        atom3.force_field_type = "C".to_string();
+        system.add_atom_to_residue(res3_id, atom3).unwrap();
+
+        let res2_atom_id = system.residue(res2_id).unwrap().atoms()[0];
+        system.atom_mut(res2_atom_id).unwrap().position = Point3::new(0.1, 0.0, 0.0);
+
+        let active_residues = vec![res1_id, res2_id, res3_id].into_iter().collect();
+
+        let ff = create_test_forcefield();
+        let reporter = ProgressReporter::default();
+
+        let clashes = run(&system, &ff, &active_residues, 0.01, &reporter).unwrap();
+
+        assert_eq!(
+            clashes.len(),
+            3,
+            "Expected 3 clashes between the three residues"
+        );
+
+        assert!(
+            clashes[0].energy.total() >= clashes[1].energy.total(),
+            "Clash[0] should have energy >= Clash[1]"
+        );
+        assert!(
+            clashes[1].energy.total() >= clashes[2].energy.total(),
+            "Clash[1] should have energy >= Clash[2]"
+        );
+
+        let severe_clash_pair = &clashes[0];
+        let severe_clash_res_ids = [severe_clash_pair.residue_a, severe_clash_pair.residue_b];
+        assert!(
+            severe_clash_res_ids.contains(&res1_id),
+            "The worst clash should involve res1"
+        );
+        assert!(
+            severe_clash_res_ids.contains(&res2_id),
+            "The worst clash should involve res2"
+        );
+    }
+}
