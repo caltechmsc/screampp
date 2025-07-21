@@ -1,1 +1,1 @@
-mod sampling;
+pub mod sampling;
