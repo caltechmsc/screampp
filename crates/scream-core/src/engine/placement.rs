@@ -66,7 +66,7 @@ pub fn place_rotamer_on_system(
 
     // --- 4. Remove old side-chain atoms ---
     let old_atom_ids_to_remove: Vec<AtomId> = {
-        let target_residue = system.residue(target_residue_id).unwrap(); // Should exist if we've come this far.
+        let target_residue = system.residue(target_residue_id).unwrap();
         placement_info
             .sidechain_atoms
             .iter()
