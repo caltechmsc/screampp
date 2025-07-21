@@ -19,7 +19,7 @@ pub enum VdwParam {
 
 #[derive(Debug, Deserialize, Clone, PartialEq)]
 pub struct HBondParam {
-    pub equilibrium_dist: f64,
+    pub equilibrium_distance: f64,
     pub well_depth: f64,
 }
 
@@ -134,7 +134,7 @@ mod tests {
             well_depth = 0.05
 
             [hbond.N_H]
-            equilibrium_dist = 2.7
+            equilibrium_distance = 2.7
             well_depth = 5.0
             "#
         )
@@ -160,7 +160,7 @@ mod tests {
         assert_eq!(
             params.hbond.get("N_H"),
             Some(&HBondParam {
-                equilibrium_dist: 2.7,
+                equilibrium_distance: 2.7,
                 well_depth: 5.0
             })
         );
@@ -218,7 +218,7 @@ mod tests {
             radius = 1.0
             well_depth = 1.0
             [hbond.N]
-            equilibrium_dist = 1.0
+            equilibrium_distance = 1.0
             well_depth = 1.0"#,
         )
         .unwrap();
