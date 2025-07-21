@@ -210,4 +210,285 @@ impl RotamerLibrary {
     }
 }
 
-// TODO: Unit tests for RotamerLibrary
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::forcefield::params::{
+        DeltaParam, Forcefield, GlobalParams, NonBondedParams, VdwParam,
+    };
+    use crate::core::models::atom::Atom;
+    use crate::core::models::chain::ChainType;
+    use crate::core::models::residue::ResidueType;
+    use crate::core::models::system::MolecularSystem;
+    use crate::core::rotamers::placement::PlacementInfo;
+    use nalgebra::Point3;
+    use std::collections::{HashMap, HashSet};
+    use std::fs;
+    use tempfile::tempdir;
+
+    fn dummy_forcefield() -> Forcefield {
+        let mut deltas = HashMap::new();
+        deltas.insert(
+            ("ALA".to_string(), "CA".to_string()),
+            DeltaParam {
+                res_type: "ALA".to_string(),
+                atom_name: "CA".to_string(),
+                mu: 1.0,
+                sigma: 0.0,
+            },
+        );
+        let mut vdw = HashMap::new();
+        vdw.insert(
+            "C_SP3".to_string(),
+            VdwParam::Buckingham {
+                radius: 2.0,
+                well_depth: 0.1,
+                scale: 12.0,
+            },
+        );
+        let globals = GlobalParams {
+            dielectric_constant: 1.0,
+            potential_function: "lennard-jones-12-6".to_string(),
+        };
+        let non_bonded = NonBondedParams {
+            globals,
+            vdw,
+            hbond: HashMap::new(),
+        };
+        Forcefield { deltas, non_bonded }
+    }
+
+    fn dummy_placement_info() -> PlacementInfo {
+        PlacementInfo {
+            sidechain_atoms: vec!["CA".to_string()],
+            anchor_atoms: vec![],
+            connection_points: vec![],
+            exact_match_atoms: vec![],
+        }
+    }
+
+    fn write_file(path: &std::path::Path, content: &str) {
+        fs::write(path, content).unwrap();
+    }
+
+    #[test]
+    fn load_rotamer_library_success() {
+        let dir = tempdir().unwrap();
+        let rotamer_path = dir.path().join("rotamer.toml");
+        let placement_path = dir.path().join("placement.toml");
+        write_file(
+            &rotamer_path,
+            r#"
+ALA = [
+    { atoms = [
+        { serial = 1, atom_name = "CA", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" }
+    ] }
+]
+"#,
+        );
+        write_file(
+            &placement_path,
+            r#"
+ALA = { sidechain_atoms = ["CA"], anchor_atoms = [], connection_points = [], exact_match_atoms = [] }
+"#,
+        );
+        let ff = dummy_forcefield();
+        let lib = RotamerLibrary::load(&rotamer_path, &placement_path, &ff, 0.0);
+        assert!(lib.is_ok());
+        let lib = lib.unwrap();
+        assert_eq!(lib.rotamers.len(), 1);
+        assert_eq!(lib.placement_info.len(), 1);
+        let rots = lib.get_rotamers_for(ResidueType::Alanine).unwrap();
+        assert_eq!(rots.len(), 1);
+        assert_eq!(rots[0].atoms.len(), 1);
+        let ca = &rots[0].atoms[0];
+        assert_eq!(ca.name, "CA");
+        assert_eq!(ca.vdw_radius, 2.0);
+        assert_eq!(ca.vdw_well_depth, 0.1);
+        let placement = lib.get_placement_info_for(ResidueType::Alanine).unwrap();
+        assert_eq!(placement.sidechain_atoms, vec!["CA"]);
+    }
+
+    #[test]
+    fn load_rotamer_library_missing_placement_info() {
+        let dir = tempdir().unwrap();
+        let rotamer_path = dir.path().join("rotamer.toml");
+        let placement_path = dir.path().join("placement.toml");
+        write_file(
+            &rotamer_path,
+            r#"
+ALA = [
+    { atoms = [
+        { serial = 1, atom_name = "CA", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" }
+    ] }
+]
+"#,
+        );
+        write_file(&placement_path, "");
+        let ff = dummy_forcefield();
+        let lib = RotamerLibrary::load(&rotamer_path, &placement_path, &ff, 0.0);
+        assert!(matches!(
+            lib,
+            Err(LibraryLoadError::Toml { .. }) | Err(LibraryLoadError::MissingPlacementInfo(_))
+        ));
+    }
+
+    #[test]
+    fn load_rotamer_library_returns_io_error_for_nonexistent_file() {
+        let ff = dummy_forcefield();
+        let rotamer_path = std::path::Path::new("nonexistent_rotamer_file.toml");
+        let placement_path = std::path::Path::new("nonexistent_placement_file.toml");
+        let lib = RotamerLibrary::load(rotamer_path, placement_path, &ff, 0.0);
+        assert!(matches!(lib, Err(LibraryLoadError::Io { .. })));
+    }
+
+    #[test]
+    fn load_rotamer_library_returns_toml_error_for_malformed_file() {
+        let dir = tempdir().unwrap();
+        let rotamer_path = dir.path().join("malformed.toml");
+        let placement_path = dir.path().join("placement.toml");
+        write_file(&rotamer_path, "this is not toml");
+        write_file(
+            &placement_path,
+            r#"ALA = { sidechain_atoms = ["CA"], anchor_atoms = [], connection_points = [], exact_match_atoms = [] }"#,
+        );
+        let ff = dummy_forcefield();
+        let lib = RotamerLibrary::load(&rotamer_path, &placement_path, &ff, 0.0);
+        assert!(matches!(lib, Err(LibraryLoadError::Toml { .. })));
+    }
+
+    #[test]
+    fn load_rotamer_library_returns_error_for_unknown_residue_type() {
+        let dir = tempdir().unwrap();
+        let rotamer_path = dir.path().join("rotamer.toml");
+        let placement_path = dir.path().join("placement.toml");
+        write_file(
+            &rotamer_path,
+            r#"
+UNK = [ { atoms = [] } ]
+"#,
+        );
+        write_file(
+            &placement_path,
+            r#"ALA = { sidechain_atoms = ["CA"], anchor_atoms = [], connection_points = [], exact_match_atoms = [] }"#,
+        );
+        let ff = dummy_forcefield();
+        let lib = RotamerLibrary::load(&rotamer_path, &placement_path, &ff, 0.0);
+        assert!(matches!(lib, Err(LibraryLoadError::UnknownResidueType(name)) if name == "UNK"));
+    }
+
+    #[test]
+    fn load_rotamer_library_returns_error_for_parameterization_failure() {
+        let dir = tempdir().unwrap();
+        let rotamer_path = dir.path().join("rotamer.toml");
+        let placement_path = dir.path().join("placement.toml");
+        write_file(
+            &rotamer_path,
+            r#"
+ALA = [ { atoms = [ { serial = 1, atom_name = "CA", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "UnknownType" } ] } ]
+"#,
+        );
+        write_file(
+            &placement_path,
+            r#"ALA = { sidechain_atoms = ["CA"], anchor_atoms = [], connection_points = [], exact_match_atoms = [] }"#,
+        );
+        let ff = dummy_forcefield();
+        let lib = RotamerLibrary::load(&rotamer_path, &placement_path, &ff, 0.0);
+        assert!(matches!(
+            lib,
+            Err(LibraryLoadError::Parameterization { .. })
+        ));
+    }
+
+    #[test]
+    fn load_rotamer_library_empty_file() {
+        let dir = tempdir().unwrap();
+        let rotamer_path = dir.path().join("empty.toml");
+        let placement_path = dir.path().join("placement.toml");
+        write_file(&rotamer_path, "");
+        write_file(&placement_path, "");
+        let ff = dummy_forcefield();
+        let lib = RotamerLibrary::load(&rotamer_path, &placement_path, &ff, 0.0);
+        match lib {
+            Ok(library) => {
+                assert!(library.rotamers.is_empty());
+                assert!(library.placement_info.is_empty());
+            }
+            Err(_) => {}
+        }
+    }
+
+    #[test]
+    fn load_rotamer_library_handles_residue_with_empty_rotamer_list() {
+        let dir = tempdir().unwrap();
+        let rotamer_path = dir.path().join("rotamer.toml");
+        let placement_path = dir.path().join("placement.toml");
+        write_file(
+            &rotamer_path,
+            r#"
+ALA = [ { atoms = [] } ]
+"#,
+        );
+        write_file(
+            &placement_path,
+            r#"ALA = { sidechain_atoms = ["CA"], anchor_atoms = [], connection_points = [], exact_match_atoms = [] }"#,
+        );
+        let ff = dummy_forcefield();
+        let lib = RotamerLibrary::load(&rotamer_path, &placement_path, &ff, 0.0).unwrap();
+        assert_eq!(lib.rotamers.len(), 1);
+        let rots = lib.get_rotamers_for(ResidueType::Alanine).unwrap();
+        assert_eq!(rots.len(), 1);
+        assert!(rots[0].atoms.is_empty());
+    }
+
+    #[test]
+    fn include_system_conformations_adds_unique_original_rotamer() {
+        let mut lib = RotamerLibrary::default();
+        let placement_info = dummy_placement_info();
+        lib.placement_info
+            .insert(ResidueType::Alanine, placement_info.clone());
+        lib.rotamers.insert(ResidueType::Alanine, vec![]);
+        let mut system = MolecularSystem::new();
+        let chain_id = system.add_chain('A', ChainType::Protein);
+        let res_id = system
+            .add_residue(chain_id, 1, "ALA", Some(ResidueType::Alanine))
+            .unwrap();
+        let mut atom = Atom::new(1, "CA", res_id, Point3::new(5.0, 5.0, 5.0));
+        atom.force_field_type = "C_SP3".to_string();
+        system.add_atom_to_residue(res_id, atom).unwrap();
+        let mut active = HashSet::new();
+        active.insert(res_id);
+        let original_count = lib.get_rotamers_for(ResidueType::Alanine).unwrap().len();
+        lib.include_system_conformations(&system, &active, 0.1);
+        let new_count = lib.get_rotamers_for(ResidueType::Alanine).unwrap().len();
+        assert_eq!(new_count, original_count + 1);
+    }
+
+    #[test]
+    fn include_system_conformations_skips_duplicate_rotamer() {
+        let mut lib = RotamerLibrary::default();
+        let placement_info = dummy_placement_info();
+        lib.placement_info
+            .insert(ResidueType::Alanine, placement_info.clone());
+        let mut system = MolecularSystem::new();
+        let chain_id = system.add_chain('A', ChainType::Protein);
+        let res_id = system
+            .add_residue(chain_id, 1, "ALA", Some(ResidueType::Alanine))
+            .unwrap();
+        let mut atom = Atom::new(1, "CA", res_id, Point3::new(1.0, 2.0, 3.0));
+        atom.force_field_type = "C_SP3".to_string();
+        system.add_atom_to_residue(res_id, atom.clone()).unwrap();
+        lib.rotamers.insert(
+            ResidueType::Alanine,
+            vec![Rotamer {
+                atoms: vec![atom.clone()],
+            }],
+        );
+        let mut active = HashSet::new();
+        active.insert(res_id);
+        let original_count = lib.get_rotamers_for(ResidueType::Alanine).unwrap().len();
+        lib.include_system_conformations(&system, &active, 0.1);
+        let new_count = lib.get_rotamers_for(ResidueType::Alanine).unwrap().len();
+        assert_eq!(new_count, original_count);
+    }
+}
