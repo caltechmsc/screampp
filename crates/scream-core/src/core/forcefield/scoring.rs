@@ -126,7 +126,7 @@ impl<'a> Scorer<'a> {
                                 acceptor,
                                 hydrogen,
                                 donor,
-                                hbond_param.equilibrium_dist,
+                                hbond_param.equilibrium_distance,
                                 hbond_param.well_depth,
                             );
                         }
@@ -189,7 +189,7 @@ mod tests {
         hbond.insert(
             "O-N".to_string(),
             HBondParam {
-                equilibrium_dist: 2.8,
+                equilibrium_distance: 2.8,
                 well_depth: 5.0,
             },
         );
