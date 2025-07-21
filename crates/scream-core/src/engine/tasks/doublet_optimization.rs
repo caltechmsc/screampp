@@ -91,12 +91,16 @@ where
             let rot_a = &rotamers_a[idx_a];
             let rot_b = &rotamers_b[idx_b];
 
-            let el_a = el_cache
+            let el_a_term = el_cache
                 .get(res_a_id, res_type_a, idx_a)
-                .map_or(0.0, |e| e.total());
-            let el_b = el_cache
+                .copied()
+                .unwrap_or_default();
+            let el_b_term = el_cache
                 .get(res_b_id, res_type_b, idx_b)
-                .map_or(0.0, |e| e.total());
+                .copied()
+                .unwrap_or_default();
+            let el_a_total = el_a_term.total();
+            let el_b_total = el_b_term.total();
 
             let mut temp_system = system.clone();
             placement::place_rotamer_on_system(
@@ -112,36 +116,19 @@ where
                 placement_info_b,
             )?;
 
-            let atoms_a_sidechain_ids: Vec<AtomId> = placement_info_a
-                .sidechain_atoms
-                .iter()
-                .filter_map(|name| {
-                    temp_system
-                        .residue(res_a_id)
-                        .unwrap()
-                        .get_atom_id_by_name(name)
-                })
-                .collect();
-            let atoms_b_sidechain_ids: Vec<AtomId> = placement_info_b
-                .sidechain_atoms
-                .iter()
-                .filter_map(|name| {
-                    temp_system
-                        .residue(res_b_id)
-                        .unwrap()
-                        .get_atom_id_by_name(name)
-                })
-                .collect();
+            let atoms_a_all_ids: Vec<AtomId> =
+                temp_system.residue(res_a_id).unwrap().atoms().to_vec();
+            let atoms_b_all_ids: Vec<AtomId> =
+                temp_system.residue(res_b_id).unwrap().atoms().to_vec();
 
             let scorer = Scorer::new(&temp_system, context.forcefield);
-            let interaction = scorer
-                .score_interaction(&atoms_a_sidechain_ids, &atoms_b_sidechain_ids)?
-                .total();
-            let local_energy = el_a + el_b + interaction;
+            let interaction_term = scorer.score_interaction(&atoms_a_all_ids, &atoms_b_all_ids)?;
+            let interaction_total = interaction_term.total();
+            let local_energy = el_a_total + el_b_total + interaction_total;
 
             trace!(
-                "Pair ({}, {}): E_local = {:.2} (EL_A={:.2}, EL_B={:.2}, Int={:.2})",
-                idx_a, idx_b, local_energy, el_a, el_b, interaction
+                "Pair (A:{}, B:{}): E_local = {:.2} (EL_A={:.2}, EL_B={:.2}, Int={:.2})",
+                idx_a, idx_b, local_energy, el_a_total, el_b_total, interaction_total
             );
 
             Ok((local_energy, (idx_a, idx_b)))
