@@ -114,7 +114,7 @@ impl ProvidesResidueSelections for DesignConfig {
     }
 }
 
-fn resolve_selection_to_ids(
+pub fn resolve_selection_to_ids(
     system: &MolecularSystem,
     selection: &ResidueSelection,
     library: &RotamerLibrary,
