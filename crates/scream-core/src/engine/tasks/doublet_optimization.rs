@@ -164,7 +164,7 @@ mod tests {
     use crate::core::rotamers::library::RotamerLibrary;
     use crate::core::rotamers::placement::PlacementInfo;
     use crate::core::rotamers::rotamer::Rotamer;
-    use crate::engine::config::{PlacementConfigBuilder, ResidueSelection};
+    use crate::engine::config::{ConvergenceConfig, PlacementConfigBuilder, ResidueSelection};
     use crate::engine::context::OptimizationContext;
     use crate::engine::progress::ProgressReporter;
     use nalgebra::Point3;
@@ -302,7 +302,10 @@ mod tests {
             .rotamer_library_path("dummy.rotlib")
             .placement_registry_path("dummy.reg")
             .max_iterations(1)
-            .convergence_threshold(0.1)
+            .convergence_config(ConvergenceConfig {
+                energy_threshold: 0.1,
+                patience_iterations: 1,
+            })
             .num_solutions(1)
             .residues_to_optimize(ResidueSelection::All)
             .build()
@@ -335,7 +338,10 @@ mod tests {
             .rotamer_library_path("dummy.rotlib")
             .placement_registry_path("dummy.reg")
             .max_iterations(1)
-            .convergence_threshold(0.1)
+            .convergence_config(ConvergenceConfig {
+                energy_threshold: 0.1,
+                patience_iterations: 1,
+            })
             .num_solutions(1)
             .residues_to_optimize(ResidueSelection::All)
             .build()
