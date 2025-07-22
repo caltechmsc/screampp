@@ -175,6 +175,7 @@ mod tests {
     use crate::core::rotamers::library::RotamerLibrary;
     use crate::core::rotamers::placement::PlacementInfo;
     use crate::core::rotamers::rotamer::Rotamer;
+    use crate::engine::config::ConvergenceConfig;
     use crate::engine::config::{
         DesignConfig, DesignConfigBuilder, DesignSpec, PlacementConfig, PlacementConfigBuilder,
         ResidueSelection, ResidueSpecifier,
@@ -281,7 +282,10 @@ mod tests {
             .rotamer_library_path("")
             .placement_registry_path("")
             .max_iterations(1)
-            .convergence_threshold(0.1)
+            .convergence_config(ConvergenceConfig {
+                energy_threshold: 0.1,
+                patience_iterations: 1,
+            })
             .num_solutions(1)
             .residues_to_optimize(selection)
             .build()
@@ -299,7 +303,10 @@ mod tests {
             .rotamer_library_path("")
             .placement_registry_path("")
             .max_iterations(1)
-            .convergence_threshold(0.1)
+            .convergence_config(ConvergenceConfig {
+                energy_threshold: 0.1,
+                patience_iterations: 1,
+            })
             .num_solutions(1)
             .design_spec(design_spec)
             .neighbors_to_repack(repack_selection)
