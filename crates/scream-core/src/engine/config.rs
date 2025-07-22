@@ -1,5 +1,4 @@
 use crate::core::models::residue::ResidueType;
-use itertools::Itertools;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use thiserror::Error;
@@ -30,6 +29,20 @@ pub enum ResidueSelection {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct ConvergenceConfig {
+    pub energy_threshold: f64,
+    pub patience_iterations: usize,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct SimulatedAnnealingConfig {
+    pub initial_temperature: f64,
+    pub final_temperature: f64,
+    pub cooling_rate: f64,
+    pub steps_per_temperature: usize,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct ForcefieldConfig {
     pub forcefield_path: PathBuf,
     pub delta_params_path: PathBuf,
@@ -45,10 +58,11 @@ pub struct SamplingConfig {
 #[derive(Debug, Clone, PartialEq)]
 pub struct OptimizationConfig {
     pub max_iterations: usize,
-    pub convergence_threshold: f64,
     pub num_solutions: usize,
     pub include_input_conformation: bool,
-    pub use_simulated_annealing: bool,
+    pub convergence: ConvergenceConfig,
+    pub simulated_annealing: Option<SimulatedAnnealingConfig>,
+    pub final_refinement_iterations: usize,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -115,10 +129,11 @@ pub struct PlacementConfigBuilder {
     rotamer_library_path: Option<PathBuf>,
     placement_registry_path: Option<PathBuf>,
     max_iterations: Option<usize>,
-    convergence_threshold: Option<f64>,
     num_solutions: Option<usize>,
     include_input_conformation: Option<bool>,
-    use_simulated_annealing: Option<bool>,
+    convergence_config: Option<ConvergenceConfig>,
+    simulated_annealing_config: Option<SimulatedAnnealingConfig>,
+    final_refinement_iterations: Option<usize>,
     residues_to_optimize: Option<ResidueSelection>,
 }
 
@@ -151,10 +166,6 @@ impl PlacementConfigBuilder {
         self.max_iterations = Some(iterations);
         self
     }
-    pub fn convergence_threshold(mut self, threshold: f64) -> Self {
-        self.convergence_threshold = Some(threshold);
-        self
-    }
     pub fn num_solutions(mut self, n: usize) -> Self {
         self.num_solutions = Some(n);
         self
@@ -163,8 +174,16 @@ impl PlacementConfigBuilder {
         self.include_input_conformation = Some(include);
         self
     }
-    pub fn use_simulated_annealing(mut self, use_sa: bool) -> Self {
-        self.use_simulated_annealing = Some(use_sa);
+    pub fn convergence_config(mut self, config: ConvergenceConfig) -> Self {
+        self.convergence_config = Some(config);
+        self
+    }
+    pub fn simulated_annealing_config(mut self, config: SimulatedAnnealingConfig) -> Self {
+        self.simulated_annealing_config = Some(config);
+        self
+    }
+    pub fn final_refinement_iterations(mut self, iterations: usize) -> Self {
+        self.final_refinement_iterations = Some(iterations);
         self
     }
     pub fn residues_to_optimize(mut self, selection: ResidueSelection) -> Self {
@@ -196,14 +215,15 @@ impl PlacementConfigBuilder {
             max_iterations: self
                 .max_iterations
                 .ok_or(ConfigError::MissingParameter("max_iterations"))?,
-            convergence_threshold: self
-                .convergence_threshold
-                .ok_or(ConfigError::MissingParameter("convergence_threshold"))?,
             num_solutions: self
                 .num_solutions
                 .ok_or(ConfigError::MissingParameter("num_solutions"))?,
             include_input_conformation: self.include_input_conformation.unwrap_or(false),
-            use_simulated_annealing: self.use_simulated_annealing.unwrap_or(false),
+            convergence: self
+                .convergence_config
+                .ok_or(ConfigError::MissingParameter("convergence_config"))?,
+            simulated_annealing: self.simulated_annealing_config,
+            final_refinement_iterations: self.final_refinement_iterations.unwrap_or(0),
         };
 
         Ok(PlacementConfig {
@@ -225,10 +245,11 @@ pub struct DesignConfigBuilder {
     rotamer_library_path: Option<PathBuf>,
     placement_registry_path: Option<PathBuf>,
     max_iterations: Option<usize>,
-    convergence_threshold: Option<f64>,
     num_solutions: Option<usize>,
     include_input_conformation: Option<bool>,
-    use_simulated_annealing: Option<bool>,
+    convergence_config: Option<ConvergenceConfig>,
+    simulated_annealing_config: Option<SimulatedAnnealingConfig>,
+    final_refinement_iterations: Option<usize>,
     design_spec: Option<DesignSpec>,
     neighbors_to_repack: Option<ResidueSelection>,
 }
@@ -264,10 +285,6 @@ impl DesignConfigBuilder {
         self.max_iterations = Some(iterations);
         self
     }
-    pub fn convergence_threshold(mut self, threshold: f64) -> Self {
-        self.convergence_threshold = Some(threshold);
-        self
-    }
     pub fn num_solutions(mut self, n: usize) -> Self {
         self.num_solutions = Some(n);
         self
@@ -276,8 +293,16 @@ impl DesignConfigBuilder {
         self.include_input_conformation = Some(include);
         self
     }
-    pub fn use_simulated_annealing(mut self, use_sa: bool) -> Self {
-        self.use_simulated_annealing = Some(use_sa);
+    pub fn convergence_config(mut self, config: ConvergenceConfig) -> Self {
+        self.convergence_config = Some(config);
+        self
+    }
+    pub fn simulated_annealing_config(mut self, config: SimulatedAnnealingConfig) -> Self {
+        self.simulated_annealing_config = Some(config);
+        self
+    }
+    pub fn final_refinement_iterations(mut self, iterations: usize) -> Self {
+        self.final_refinement_iterations = Some(iterations);
         self
     }
 
@@ -314,14 +339,15 @@ impl DesignConfigBuilder {
             max_iterations: self
                 .max_iterations
                 .ok_or(ConfigError::MissingParameter("max_iterations"))?,
-            convergence_threshold: self
-                .convergence_threshold
-                .ok_or(ConfigError::MissingParameter("convergence_threshold"))?,
             num_solutions: self
                 .num_solutions
                 .ok_or(ConfigError::MissingParameter("num_solutions"))?,
             include_input_conformation: self.include_input_conformation.unwrap_or(false),
-            use_simulated_annealing: self.use_simulated_annealing.unwrap_or(false),
+            convergence: self
+                .convergence_config
+                .ok_or(ConfigError::MissingParameter("convergence_config"))?,
+            simulated_annealing: self.simulated_annealing_config,
+            final_refinement_iterations: self.final_refinement_iterations.unwrap_or(0),
         };
 
         Ok(DesignConfig {
@@ -418,6 +444,16 @@ mod tests {
 
     #[test]
     fn placement_config_builder_builds_successfully_with_all_parameters() {
+        let convergence = ConvergenceConfig {
+            energy_threshold: 0.01,
+            patience_iterations: 10,
+        };
+        let simulated_annealing = SimulatedAnnealingConfig {
+            initial_temperature: 100.0,
+            final_temperature: 1.0,
+            cooling_rate: 0.95,
+            steps_per_temperature: 50,
+        };
         let builder = PlacementConfigBuilder::new()
             .forcefield_path("ff.dat")
             .delta_params_path("delta.dat")
@@ -425,13 +461,20 @@ mod tests {
             .rotamer_library_path("rot.lib")
             .placement_registry_path("reg.json")
             .max_iterations(100)
-            .convergence_threshold(0.01)
             .num_solutions(10)
             .include_input_conformation(true)
-            .use_simulated_annealing(true)
+            .convergence_config(convergence.clone())
+            .simulated_annealing_config(simulated_annealing.clone())
+            .final_refinement_iterations(5)
             .residues_to_optimize(ResidueSelection::All);
 
-        assert!(builder.build().is_ok());
+        let config = builder.build().unwrap();
+        assert_eq!(config.optimization.convergence, convergence);
+        assert_eq!(
+            config.optimization.simulated_annealing,
+            Some(simulated_annealing)
+        );
+        assert_eq!(config.optimization.final_refinement_iterations, 5);
     }
 
     #[test]
@@ -448,8 +491,12 @@ mod tests {
             .rotamer_library_path("rot.lib")
             .placement_registry_path("reg.json")
             .max_iterations(100)
-            .convergence_threshold(0.01)
-            .num_solutions(10);
+            .num_solutions(10)
+            .convergence_config(ConvergenceConfig {
+                energy_threshold: 0.01,
+                patience_iterations: 10,
+            })
+            .final_refinement_iterations(5);
 
         assert_eq!(
             builder_missing_residues.build().unwrap_err(),
@@ -458,26 +505,40 @@ mod tests {
     }
 
     #[test]
-    fn placement_config_builder_uses_default_values_for_optional_booleans() {
-        let config = PlacementConfigBuilder::new()
+    fn placement_config_builder_uses_default_values_for_optional_fields() {
+        let convergence = ConvergenceConfig {
+            energy_threshold: 0.01,
+            patience_iterations: 10,
+        };
+        let builder = PlacementConfigBuilder::new()
             .forcefield_path("ff.dat")
             .delta_params_path("delta.dat")
             .s_factor(0.5)
             .rotamer_library_path("rot.lib")
             .placement_registry_path("reg.json")
             .max_iterations(100)
-            .convergence_threshold(0.01)
             .num_solutions(10)
-            .residues_to_optimize(ResidueSelection::All)
-            .build()
-            .unwrap();
+            .convergence_config(convergence.clone())
+            .final_refinement_iterations(0)
+            .residues_to_optimize(ResidueSelection::All);
 
-        assert!(!config.optimization.include_input_conformation);
-        assert!(!config.optimization.use_simulated_annealing);
+        let config = builder.build().unwrap();
+        assert_eq!(config.optimization.simulated_annealing, None);
+        assert_eq!(config.optimization.final_refinement_iterations, 0);
     }
 
     #[test]
     fn design_config_builder_builds_successfully_with_all_parameters() {
+        let convergence = ConvergenceConfig {
+            energy_threshold: 0.01,
+            patience_iterations: 10,
+        };
+        let simulated_annealing = SimulatedAnnealingConfig {
+            initial_temperature: 100.0,
+            final_temperature: 1.0,
+            cooling_rate: 0.95,
+            steps_per_temperature: 50,
+        };
         let design_spec = DesignSpec::new();
         let builder = DesignConfigBuilder::new()
             .forcefield_path("ff.dat")
@@ -486,12 +547,21 @@ mod tests {
             .rotamer_library_path("rot.lib")
             .placement_registry_path("reg.json")
             .max_iterations(100)
-            .convergence_threshold(0.01)
             .num_solutions(10)
+            .include_input_conformation(true)
+            .convergence_config(convergence.clone())
+            .simulated_annealing_config(simulated_annealing.clone())
+            .final_refinement_iterations(5)
             .design_spec(design_spec)
             .neighbors_to_repack(ResidueSelection::All);
 
-        assert!(builder.build().is_ok());
+        let config = builder.build().unwrap();
+        assert_eq!(config.optimization.convergence, convergence);
+        assert_eq!(
+            config.optimization.simulated_annealing,
+            Some(simulated_annealing)
+        );
+        assert_eq!(config.optimization.final_refinement_iterations, 5);
     }
 
     #[test]
@@ -503,8 +573,12 @@ mod tests {
             .rotamer_library_path("rot.lib")
             .placement_registry_path("reg.json")
             .max_iterations(100)
-            .convergence_threshold(0.01)
             .num_solutions(10)
+            .convergence_config(ConvergenceConfig {
+                energy_threshold: 0.01,
+                patience_iterations: 10,
+            })
+            .final_refinement_iterations(5)
             .neighbors_to_repack(ResidueSelection::All);
 
         assert_eq!(
