@@ -10,6 +10,9 @@ use crate::engine::placement::place_rotamer_on_system;
 use crate::engine::progress::{Progress, ProgressReporter};
 use crate::engine::state::{OptimizationState, Solution};
 use crate::engine::tasks;
+use rand::Rng;
+use rand::seq::SliceRandom;
+use rand::thread_rng;
 use std::collections::{HashMap, HashSet};
 use tracing::{info, instrument, warn};
 
@@ -42,10 +45,15 @@ pub fn run(
     // --- Phase 3: Clash-Driven Optimization ---
     resolve_clashes_iteratively(&mut state, &active_residues, &context, &el_cache, reporter)?;
 
-    // --- Phase 4: Final Refinement (Singlet Optimization) ---
+    // --- Phase 4: Optional Global Search (Simulated Annealing) ---
+    if context.config.optimization.simulated_annealing.is_some() {
+        run_simulated_annealing(&mut state, &active_residues, &context, &el_cache, reporter)?;
+    }
+
+    // --- Phase 5: Final Refinement (Singlet Optimization) ---
     final_refinement(&mut state, &active_residues, &context, &el_cache, reporter)?;
 
-    // --- Phase 5: Finalization ---
+    // --- Phase 6: Finalization ---
     let sorted_solutions = state.into_sorted_solutions();
     info!(
         "Workflow complete. Returning {} sorted solutions.",
@@ -166,7 +174,6 @@ fn initialize_state<'a>(
     Ok(state)
 }
 
-// Replace the existing function with this one.
 #[instrument(skip_all, name = "clash_resolution_loop")]
 fn resolve_clashes_iteratively<'a>(
     state: &mut OptimizationState,
@@ -180,22 +187,29 @@ fn resolve_clashes_iteratively<'a>(
     });
     info!("Starting iterative clash resolution loop.");
 
+    let convergence_energy_threshold = context.config.optimization.convergence.energy_threshold;
+    let convergence_patience_iterations =
+        context.config.optimization.convergence.patience_iterations;
+
+    let mut last_total_energy = state.best_solution().map(|s| s.energy).unwrap_or(f64::MAX);
+    let mut iterations_without_significant_improvement = 0;
+
     for iteration in 0..context.config.optimization.max_iterations {
         let clashes = tasks::clash_detection::run(
             &state.working_state.system,
             context.forcefield,
             active_residues,
-            25.0,
+            25.0, // Clash threshold (kcal/mol)
             reporter,
         )?;
 
         if clashes.is_empty() {
             info!(
-                "System converged after {} clash resolution iterations.",
+                "System converged after {} clash resolution iterations (no clashes found).",
                 iteration
             );
             reporter.report(Progress::Message(format!(
-                "Converged after {} iterations.",
+                "Converged after {} iterations (no clashes).",
                 iteration
             )));
             break;
@@ -275,12 +289,34 @@ fn resolve_clashes_iteratively<'a>(
         .total();
         state.current_energy = energy_after_update;
         state.submit_current_solution();
+
+        let current_best_energy = state.best_solution().unwrap().energy;
+        let energy_improvement = last_total_energy - current_best_energy;
+
+        if energy_improvement < convergence_energy_threshold {
+            iterations_without_significant_improvement += 1;
+        } else {
+            iterations_without_significant_improvement = 0;
+        }
+
+        last_total_energy = current_best_energy;
+
+        if iterations_without_significant_improvement >= convergence_patience_iterations {
+            info!(
+                "System converged after {} clash resolution iterations (energy stabilized below {}).",
+                iteration, convergence_energy_threshold
+            );
+            reporter.report(Progress::Message(format!(
+                "Converged after {} iterations (energy stabilized).",
+                iteration
+            )));
+            break;
+        }
     }
     reporter.report(Progress::PhaseFinish);
     Ok(())
 }
 
-// TODO: Implement simulated annealing
 #[instrument(skip_all, name = "final_refinement_loop")]
 fn final_refinement<'a>(
     state: &mut OptimizationState,
@@ -294,14 +330,19 @@ fn final_refinement<'a>(
     });
     info!("Starting final refinement (singlet optimization).");
 
-    for i in 0..2 {
+    let final_refinement_iterations = context.config.optimization.final_refinement_iterations;
+
+    for i in 0..final_refinement_iterations {
         let mut changed_in_cycle = false;
 
         reporter.report(Progress::TaskStart {
             total_steps: active_residues.len() as u64,
         });
 
-        for &residue_id in active_residues {
+        let mut residues_to_process: Vec<ResidueId> = active_residues.iter().cloned().collect();
+        residues_to_process.shuffle(&mut thread_rng());
+
+        for &residue_id in &residues_to_process {
             let res_type = state
                 .working_state
                 .system
@@ -315,36 +356,44 @@ fn final_refinement<'a>(
                 .get_placement_info_for(res_type)
                 .unwrap();
 
-            let mut best_rotamer_idx = *state.working_state.rotamers.get(&residue_id).unwrap();
+            let current_rot_idx = *state.working_state.rotamers.get(&residue_id).unwrap();
+            let mut best_rotamer_idx = current_rot_idx;
             let mut best_energy = state.current_energy;
 
-            let mut temp_system = state.working_state.system.clone();
+            let mut temp_system_for_eval = state.working_state.system.clone();
+            let mut temp_rotamers_for_eval = state.working_state.rotamers.clone();
 
             for (idx, rotamer) in rotamers.iter().enumerate() {
-                if idx == best_rotamer_idx {
+                if idx == current_rot_idx {
                     continue;
                 }
 
-                place_rotamer_on_system(&mut temp_system, residue_id, rotamer, p_info)?;
+                place_rotamer_on_system(&mut temp_system_for_eval, residue_id, rotamer, p_info)?;
+                temp_rotamers_for_eval.insert(residue_id, idx);
 
-                let mut temp_rotamers = state.working_state.rotamers.clone();
-                temp_rotamers.insert(residue_id, idx);
-                let current_energy = tasks::total_energy::run(
-                    &temp_system,
+                let new_energy = tasks::total_energy::run(
+                    &temp_system_for_eval,
                     context.forcefield,
                     active_residues,
-                    &temp_rotamers,
+                    &temp_rotamers_for_eval,
                     el_cache,
                 )?
                 .total();
 
-                if current_energy < best_energy {
-                    best_energy = current_energy;
+                if new_energy < best_energy {
+                    best_energy = new_energy;
                     best_rotamer_idx = idx;
                 }
+
+                place_rotamer_on_system(
+                    &mut temp_system_for_eval,
+                    residue_id,
+                    &rotamers[current_rot_idx],
+                    p_info,
+                )?;
+                temp_rotamers_for_eval.insert(residue_id, current_rot_idx);
             }
 
-            let current_rot_idx = *state.working_state.rotamers.get(&residue_id).unwrap();
             if best_rotamer_idx != current_rot_idx {
                 changed_in_cycle = true;
                 let best_rotamer = &rotamers[best_rotamer_idx];
@@ -359,6 +408,7 @@ fn final_refinement<'a>(
                     .rotamers
                     .insert(residue_id, best_rotamer_idx);
                 state.current_energy = best_energy;
+                state.submit_current_solution();
             }
             reporter.report(Progress::TaskIncrement);
         }
@@ -366,13 +416,149 @@ fn final_refinement<'a>(
         reporter.report(Progress::TaskFinish);
 
         if !changed_in_cycle {
-            info!("Refinement converged after {} cycle(s).", i + 1);
+            info!(
+                "Refinement converged after {} cycle(s). No further improvements.",
+                i + 1
+            );
             break;
         }
     }
 
     state.submit_current_solution();
 
+    reporter.report(Progress::PhaseFinish);
+    Ok(())
+}
+
+#[instrument(skip_all, name = "simulated_annealing_loop")]
+fn run_simulated_annealing<'a>(
+    state: &mut OptimizationState,
+    active_residues: &HashSet<ResidueId>,
+    context: &OptimizationContext<'a, PlacementConfig>,
+    el_cache: &ELCache,
+    reporter: &ProgressReporter,
+) -> Result<(), EngineError> {
+    reporter.report(Progress::PhaseStart {
+        name: "Simulated Annealing",
+    });
+    info!("Starting Simulated Annealing exploration.");
+
+    let sa_config = context
+        .config
+        .optimization
+        .simulated_annealing
+        .as_ref()
+        .unwrap();
+
+    let initial_temperature = sa_config.initial_temperature;
+    let final_temperature = sa_config.final_temperature;
+    let cooling_rate = sa_config.cooling_rate;
+    let steps_per_temperature = sa_config.steps_per_temperature;
+
+    let mut rng = thread_rng();
+    let mut current_temperature = initial_temperature;
+
+    let active_residues_vec: Vec<ResidueId> = active_residues.iter().cloned().collect();
+
+    while current_temperature > final_temperature {
+        reporter.report(Progress::Message(format!(
+            "SA Temp: {:.4}",
+            current_temperature
+        )));
+        reporter.report(Progress::TaskStart {
+            total_steps: steps_per_temperature as u64,
+        });
+
+        for _step in 0..steps_per_temperature {
+            let residue_to_perturb_id = *active_residues_vec.choose(&mut rng).unwrap();
+
+            let res_type = state
+                .working_state
+                .system
+                .residue(residue_to_perturb_id)
+                .unwrap()
+                .res_type
+                .unwrap();
+            let rotamers = context.rotamer_library.get_rotamers_for(res_type).unwrap();
+            let p_info = context
+                .rotamer_library
+                .get_placement_info_for(res_type)
+                .unwrap();
+
+            if rotamers.len() <= 1 {
+                reporter.report(Progress::TaskIncrement);
+                continue;
+            }
+
+            let current_rot_idx = *state
+                .working_state
+                .rotamers
+                .get(&residue_to_perturb_id)
+                .unwrap();
+            let new_rot_idx = loop {
+                let r_idx = rng.gen_range(0..rotamers.len());
+                if r_idx != current_rot_idx {
+                    break r_idx;
+                }
+            };
+            let new_rotamer = &rotamers[new_rot_idx];
+
+            let current_total_energy = state.current_energy;
+
+            let mut temp_system_for_eval = state.working_state.system.clone();
+            let mut temp_rotamers_for_eval = state.working_state.rotamers.clone();
+
+            place_rotamer_on_system(
+                &mut temp_system_for_eval,
+                residue_to_perturb_id,
+                new_rotamer,
+                p_info,
+            )?;
+            temp_rotamers_for_eval.insert(residue_to_perturb_id, new_rot_idx);
+
+            let energy_after_change = tasks::total_energy::run(
+                &temp_system_for_eval,
+                context.forcefield,
+                active_residues,
+                &temp_rotamers_for_eval,
+                el_cache,
+            )?
+            .total();
+
+            let delta_E = energy_after_change - current_total_energy;
+
+            if delta_E < 0.0 {
+                info!("  SA accepted: Delta_E={:.4} (downhill)", delta_E);
+                state.working_state.system = temp_system_for_eval;
+                state.working_state.rotamers = temp_rotamers_for_eval;
+                state.current_energy = energy_after_change;
+                state.submit_current_solution();
+            } else {
+                let acceptance_probability = (-delta_E / current_temperature).exp();
+                if rng.r#gen::<f64>() < acceptance_probability {
+                    info!(
+                        "  SA accepted: Delta_E={:.4} (uphill, prob={:.4})",
+                        delta_E, acceptance_probability
+                    );
+                    state.working_state.system = temp_system_for_eval;
+                    state.working_state.rotamers = temp_rotamers_for_eval;
+                    state.current_energy = energy_after_change;
+                    state.submit_current_solution();
+                } else {
+                    info!(
+                        "  SA rejected: Delta_E={:.4} (uphill, prob={:.4})",
+                        delta_E, acceptance_probability
+                    );
+                }
+            }
+            reporter.report(Progress::TaskIncrement);
+        }
+
+        reporter.report(Progress::TaskFinish);
+
+        current_temperature *= cooling_rate;
+    }
+    info!("Simulated Annealing finished. Final temperature reached.");
     reporter.report(Progress::PhaseFinish);
     Ok(())
 }
