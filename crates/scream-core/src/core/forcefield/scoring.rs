@@ -57,21 +57,20 @@ impl<'a> Scorer<'a> {
                     continue;
                 }
 
-                // Note: 1-3 neighbor exclusion is unnecessary because intra-residue nonbonded interactions are already excluded above. (intra-residue + 1-2 (Peptide) is already enough)
-                // let mut is_1_3_neighbor = false;
-                // for &neighbor_of_query in neighbors_of_query {
-                //     let neighbors_of_neighbor = self
-                //         .system
-                //         .get_bonded_neighbors(neighbor_of_query)
-                //         .unwrap_or(&[]);
-                //     if neighbors_of_neighbor.contains(&env_id) {
-                //         is_1_3_neighbor = true;
-                //         break;
-                //     }
-                // }
-                // if is_1_3_neighbor {
-                //     continue;
-                // }
+                let mut is_1_3_neighbor = false;
+                for &neighbor_of_query in neighbors_of_query {
+                    let neighbors_of_neighbor = self
+                        .system
+                        .get_bonded_neighbors(neighbor_of_query)
+                        .unwrap_or(&[]);
+                    if neighbors_of_neighbor.contains(&env_id) {
+                        is_1_3_neighbor = true;
+                        break;
+                    }
+                }
+                if is_1_3_neighbor {
+                    continue;
+                }
 
                 let vdw_param1 = self
                     .forcefield
