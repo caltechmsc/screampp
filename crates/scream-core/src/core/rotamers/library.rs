@@ -303,8 +303,15 @@ ALA = { sidechain_atoms = ["CA"], anchor_atoms = [], connection_points = [], exa
         assert_eq!(rots[0].atoms.len(), 1);
         let ca = &rots[0].atoms[0];
         assert_eq!(ca.name, "CA");
-        assert_eq!(ca.vdw_radius, 2.0);
-        assert_eq!(ca.vdw_well_depth, 0.1);
+        match ca.vdw_param {
+            crate::core::models::atom::CachedVdwParam::Buckingham {
+                radius, well_depth, ..
+            } => {
+                assert_eq!(radius, 2.0);
+                assert_eq!(well_depth, 0.1);
+            }
+            _ => panic!("Expected Buckingham variant for CA atom"),
+        }
         let placement = lib.get_placement_info_for(ResidueType::Alanine).unwrap();
         assert_eq!(placement.sidechain_atoms, vec!["CA"]);
     }
