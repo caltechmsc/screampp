@@ -52,6 +52,27 @@ impl<'a> Scorer<'a> {
                     continue;
                 }
 
+                let neighbors_of_query = self.system.get_bonded_neighbors(query_id).unwrap_or(&[]);
+                if neighbors_of_query.contains(&env_id) {
+                    continue;
+                }
+
+                // Note: 1-3 neighbor exclusion is unnecessary because intra-residue nonbonded interactions are already excluded above. (intra-residue + 1-2 (Peptide) is already enough)
+                // let mut is_1_3_neighbor = false;
+                // for &neighbor_of_query in neighbors_of_query {
+                //     let neighbors_of_neighbor = self
+                //         .system
+                //         .get_bonded_neighbors(neighbor_of_query)
+                //         .unwrap_or(&[]);
+                //     if neighbors_of_neighbor.contains(&env_id) {
+                //         is_1_3_neighbor = true;
+                //         break;
+                //     }
+                // }
+                // if is_1_3_neighbor {
+                //     continue;
+                // }
+
                 let vdw_param1 = self
                     .forcefield
                     .non_bonded
@@ -64,6 +85,7 @@ impl<'a> Scorer<'a> {
                     .vdw
                     .get(&env_atom.force_field_type)
                     .ok_or_else(|| ScoringError::ForceFieldTypeMissing(env_id))?;
+
                 energy.vdw +=
                     EnergyCalculator::calculate_vdw(query_atom, env_atom, vdw_param1, vdw_param2);
 
