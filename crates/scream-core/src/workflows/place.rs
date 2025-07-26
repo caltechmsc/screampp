@@ -16,6 +16,8 @@ use rand::thread_rng;
 use std::collections::{HashMap, HashSet};
 use tracing::{info, instrument, warn};
 
+const CLASH_THRESHOLD: f64 = 25.0; // Clash threshold (kcal/mol)
+
 #[instrument(skip_all, name = "placement_workflow")]
 pub fn run(
     initial_system: &MolecularSystem,
@@ -199,7 +201,7 @@ fn resolve_clashes_iteratively<'a>(
             &state.working_state.system,
             context.forcefield,
             active_residues,
-            25.0, // Clash threshold (kcal/mol)
+            CLASH_THRESHOLD,
             reporter,
         )?;
 
