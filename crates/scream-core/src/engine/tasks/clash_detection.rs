@@ -102,7 +102,7 @@ pub fn run(
 mod tests {
     use super::*;
     use crate::core::forcefield::params::{Forcefield, GlobalParams, NonBondedParams, VdwParam};
-    use crate::core::models::atom::Atom;
+    use crate::core::models::atom::{Atom, CachedVdwParam};
     use crate::core::models::chain::ChainType;
     use crate::core::models::residue::ResidueType;
     use nalgebra::Point3;
@@ -140,6 +140,10 @@ mod tests {
             .unwrap();
         let mut atom1 = Atom::new(1, "CA", res1_id, Point3::new(0.0, 0.0, 0.0));
         atom1.force_field_type = "C".to_string();
+        atom1.vdw_param = CachedVdwParam::LennardJones {
+            radius: 1.7,
+            well_depth: 0.2,
+        };
         system.add_atom_to_residue(res1_id, atom1).unwrap();
 
         let res2_id = system
@@ -147,6 +151,10 @@ mod tests {
             .unwrap();
         let mut atom2 = Atom::new(2, "CA", res2_id, Point3::new(10.0, 0.0, 0.0));
         atom2.force_field_type = "C".to_string();
+        atom2.vdw_param = CachedVdwParam::LennardJones {
+            radius: 1.7,
+            well_depth: 0.2,
+        };
         system.add_atom_to_residue(res2_id, atom2).unwrap();
 
         let active_residues = vec![res1_id, res2_id].into_iter().collect();
@@ -220,6 +228,10 @@ mod tests {
             .unwrap();
         let mut atom3 = Atom::new(3, "CA", res3_id, Point3::new(1.5, 0.0, 0.0));
         atom3.force_field_type = "C".to_string();
+        atom3.vdw_param = CachedVdwParam::LennardJones {
+            radius: 1.7,
+            well_depth: 0.2,
+        };
         system.add_atom_to_residue(res3_id, atom3).unwrap();
 
         let res2_atom_id = system.residue(res2_id).unwrap().atoms()[0];
