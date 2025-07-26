@@ -288,6 +288,29 @@ mod tests {
     }
 
     #[test]
+    fn ignores_1_2_peptide_bond_interactions() {
+        let mut system = MolecularSystem::new();
+        let ff = create_test_forcefield();
+
+        let chain_id = system.add_chain('A', crate::core::models::chain::ChainType::Protein);
+        let res1_id = system.add_residue(chain_id, 1, "RES", None).unwrap();
+        let res2_id = system.add_residue(chain_id, 2, "RES", None).unwrap();
+
+        let atom1 = create_atom(1, "C", res1_id, Point3::origin(), "C", 0.5, -1);
+        let atom2 = create_atom(2, "N", res2_id, Point3::new(1.3, 0.0, 0.0), "N", -0.5, -1);
+
+        let id1 = system.add_atom_to_residue(res1_id, atom1).unwrap();
+        let id2 = system.add_atom_to_residue(res2_id, atom2).unwrap();
+
+        system.add_bond(id1, id2, BondOrder::Single).unwrap();
+
+        let scorer = Scorer::new(&system, &ff);
+        let energy = scorer.score_interaction(&[id1], &[id2]).unwrap();
+
+        assert_eq!(energy.total(), 0.0);
+    }
+
+    #[test]
     fn scores_hydrogen_bond_between_query_and_environment() {
         let mut system = MolecularSystem::new();
         let ff = create_test_forcefield();
