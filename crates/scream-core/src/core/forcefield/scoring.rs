@@ -152,7 +152,7 @@ impl<'a> Scorer<'a> {
 mod tests {
     use super::*;
     use crate::core::forcefield::params::{GlobalParams, HBondParam, NonBondedParams, VdwParam};
-    use crate::core::models::atom::Atom;
+    use crate::core::models::atom::{Atom, CachedVdwParam};
     use crate::core::models::ids::ResidueId;
     use crate::core::models::topology::BondOrder;
     use nalgebra::Point3;
@@ -231,31 +231,31 @@ mod tests {
 
         match ff_type {
             "C" => {
-                atom.vdw_param = crate::core::models::atom::CachedVdwParam::LennardJones {
+                atom.vdw_param = CachedVdwParam::LennardJones {
                     radius: 4.0,
                     well_depth: 0.1,
                 };
             }
             "N" => {
-                atom.vdw_param = crate::core::models::atom::CachedVdwParam::LennardJones {
+                atom.vdw_param = CachedVdwParam::LennardJones {
                     radius: 3.5,
                     well_depth: 0.2,
                 };
             }
             "O" => {
-                atom.vdw_param = crate::core::models::atom::CachedVdwParam::LennardJones {
+                atom.vdw_param = CachedVdwParam::LennardJones {
                     radius: 3.2,
                     well_depth: 0.3,
                 };
             }
             "H" => {
-                atom.vdw_param = crate::core::models::atom::CachedVdwParam::LennardJones {
+                atom.vdw_param = CachedVdwParam::LennardJones {
                     radius: 1.0,
                     well_depth: 0.01,
                 };
             }
             _ => {
-                atom.vdw_param = crate::core::models::atom::CachedVdwParam::None;
+                atom.vdw_param = CachedVdwParam::None;
             }
         }
 
