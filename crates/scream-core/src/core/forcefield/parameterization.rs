@@ -1,5 +1,5 @@
 use super::params::Forcefield;
-use crate::core::models::atom::Atom;
+use crate::core::models::atom::{Atom, CachedVdwParam};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -85,15 +85,6 @@ impl Parameterizer {
                 .get(&ff_type)
                 .ok_or_else(|| ParameterizationError::MissingVdwParams(ff_type.clone()))?;
 
-            let (vdw_radius, vdw_well_depth) = match vdw_param {
-                super::params::VdwParam::LennardJones { radius, well_depth } => {
-                    (*radius, *well_depth)
-                }
-                super::params::VdwParam::Buckingham {
-                    radius, well_depth, ..
-                } => (*radius, *well_depth),
-            };
-
             let hbond_type_id = if ff_type == "H___A" {
                 0
             } else {
@@ -105,8 +96,23 @@ impl Parameterizer {
             };
 
             if let Some(atom) = system.atom_mut(atom_id) {
-                atom.vdw_radius = vdw_radius;
-                atom.vdw_well_depth = vdw_well_depth;
+                atom.vdw_param = match vdw_param {
+                    super::params::VdwParam::LennardJones { radius, well_depth } => {
+                        CachedVdwParam::LennardJones {
+                            radius: *radius,
+                            well_depth: *well_depth,
+                        }
+                    }
+                    super::params::VdwParam::Buckingham {
+                        radius,
+                        well_depth,
+                        scale,
+                    } => CachedVdwParam::Buckingham {
+                        radius: *radius,
+                        well_depth: *well_depth,
+                        scale: *scale,
+                    },
+                };
                 atom.hbond_type_id = hbond_type_id;
             }
         }
@@ -135,14 +141,23 @@ impl Parameterizer {
             .get(ff_type)
             .ok_or_else(|| ParameterizationError::MissingVdwParams(ff_type.clone()))?;
 
-        let (vdw_radius, vdw_well_depth) = match vdw_param {
-            super::params::VdwParam::LennardJones { radius, well_depth } => (*radius, *well_depth),
+        atom.vdw_param = match vdw_param {
+            super::params::VdwParam::LennardJones { radius, well_depth } => {
+                CachedVdwParam::LennardJones {
+                    radius: *radius,
+                    well_depth: *well_depth,
+                }
+            }
             super::params::VdwParam::Buckingham {
-                radius, well_depth, ..
-            } => (*radius, *well_depth),
+                radius,
+                well_depth,
+                scale,
+            } => CachedVdwParam::Buckingham {
+                radius: *radius,
+                well_depth: *well_depth,
+                scale: *scale,
+            },
         };
-        atom.vdw_radius = vdw_radius;
-        atom.vdw_well_depth = vdw_well_depth;
 
         atom.hbond_type_id = if ff_type == "H___A" {
             0
@@ -162,7 +177,7 @@ impl Parameterizer {
 mod tests {
     use super::*;
     use crate::core::forcefield::params::{
-        DeltaParam, Forcefield, GlobalParams, HBondParam, NonBondedParams, VdwParam,
+        DeltaParam, Forcefield, GlobalParams, NonBondedParams, VdwParam,
     };
     use crate::core::models::atom::Atom;
     use crate::core::models::chain::ChainType;
@@ -282,8 +297,15 @@ mod tests {
             .unwrap();
 
         let atom_ca = system.atom(system.find_atom_by_serial(2).unwrap()).unwrap();
-        assert_eq!(atom_ca.vdw_radius, 2.0);
-        assert_eq!(atom_ca.vdw_well_depth, 0.1);
+        match atom_ca.vdw_param {
+            CachedVdwParam::Buckingham {
+                radius, well_depth, ..
+            } => {
+                assert_eq!(radius, 2.0);
+                assert_eq!(well_depth, 0.1);
+            }
+            _ => panic!("Expected Buckingham variant for CA atom"),
+        }
         assert_eq!(atom_ca.hbond_type_id, -1);
     }
 
@@ -324,14 +346,18 @@ mod tests {
             (atom.delta - 1.43).abs() < 1e-9,
             "Delta value should be mu + s * sigma"
         );
-        assert_eq!(
-            atom.vdw_radius, 2.0,
-            "VDW radius should be set from forcefield"
-        );
-        assert_eq!(
-            atom.vdw_well_depth, 0.1,
-            "VDW well depth should be set from forcefield"
-        );
+        match atom.vdw_param {
+            CachedVdwParam::Buckingham {
+                radius, well_depth, ..
+            } => {
+                assert_eq!(radius, 2.0, "VDW radius should be set from forcefield");
+                assert_eq!(
+                    well_depth, 0.1,
+                    "VDW well depth should be set from forcefield"
+                );
+            }
+            _ => panic!("Expected Buckingham variant for CA atom"),
+        }
         assert_eq!(
             atom.hbond_type_id, -1,
             "HBond type ID for non-HBond atom should be -1"
