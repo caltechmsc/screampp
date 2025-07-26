@@ -228,6 +228,37 @@ mod tests {
         atom.force_field_type = ff_type.to_string();
         atom.partial_charge = charge;
         atom.hbond_type_id = hbond_type_id;
+
+        match ff_type {
+            "C" => {
+                atom.vdw_param = crate::core::models::atom::CachedVdwParam::LennardJones {
+                    radius: 4.0,
+                    well_depth: 0.1,
+                };
+            }
+            "N" => {
+                atom.vdw_param = crate::core::models::atom::CachedVdwParam::LennardJones {
+                    radius: 3.5,
+                    well_depth: 0.2,
+                };
+            }
+            "O" => {
+                atom.vdw_param = crate::core::models::atom::CachedVdwParam::LennardJones {
+                    radius: 3.2,
+                    well_depth: 0.3,
+                };
+            }
+            "H" => {
+                atom.vdw_param = crate::core::models::atom::CachedVdwParam::LennardJones {
+                    radius: 1.0,
+                    well_depth: 0.01,
+                };
+            }
+            _ => {
+                atom.vdw_param = crate::core::models::atom::CachedVdwParam::None;
+            }
+        }
+
         atom
     }
 
