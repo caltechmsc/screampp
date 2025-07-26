@@ -68,8 +68,10 @@ pub fn run(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::forcefield::energy::EnergyCalculationError;
     use crate::core::forcefield::params::{GlobalParams, NonBondedParams, VdwParam};
-    use crate::core::models::atom::Atom;
+    use crate::core::forcefield::scoring::ScoringError;
+    use crate::core::models::atom::{Atom, CachedVdwParam};
     use crate::core::models::chain::ChainType;
     use crate::core::models::residue::ResidueType;
     use nalgebra::Point3;
@@ -91,6 +93,10 @@ mod tests {
             .unwrap();
         let mut atom1 = Atom::new(1, "CA", res1_id, Point3::new(0.0, 0.0, 0.0));
         atom1.force_field_type = "C".to_string();
+        atom1.vdw_param = CachedVdwParam::LennardJones {
+            radius: 4.0,
+            well_depth: 0.1,
+        };
         system.add_atom_to_residue(res1_id, atom1).unwrap();
 
         let res2_id = system
@@ -98,6 +104,10 @@ mod tests {
             .unwrap();
         let mut atom2 = Atom::new(2, "CA", res2_id, Point3::new(5.0, 0.0, 0.0));
         atom2.force_field_type = "C".to_string();
+        atom2.vdw_param = CachedVdwParam::LennardJones {
+            radius: 4.0,
+            well_depth: 0.1,
+        };
         system.add_atom_to_residue(res2_id, atom2).unwrap();
 
         let active_residues: HashSet<ResidueId> = [res1_id, res2_id].iter().cloned().collect();
@@ -246,7 +256,7 @@ mod tests {
             setup_test_environment();
 
         let atom1_id = system.residue(res1_id).unwrap().atoms()[0];
-        system.atom_mut(atom1_id).unwrap().force_field_type = "UNKNOWN".to_string();
+        system.atom_mut(atom1_id).unwrap().vdw_param = CachedVdwParam::None;
 
         let result = run(
             &system,
@@ -256,7 +266,20 @@ mod tests {
             &el_cache,
         );
 
-        assert!(matches!(result, Err(EngineError::Scoring { .. })));
+        match result {
+            Err(EngineError::Scoring {
+                source:
+                    ScoringError::EnergyCalculation {
+                        source: EnergyCalculationError::UnparameterizedAtom(_),
+                    },
+            }) => {
+                // Test passes
+            }
+            _ => panic!(
+                "Expected EngineError::Scoring with EnergyCalculationError::UnparameterizedAtom, but got {:?}",
+                result
+            ),
+        }
     }
 
     #[test]
@@ -270,6 +293,10 @@ mod tests {
             .unwrap();
         let mut atom3 = Atom::new(3, "CA", res3_id, Point3::new(0.0, 5.0, 0.0));
         atom3.force_field_type = "C".to_string();
+        atom3.vdw_param = CachedVdwParam::LennardJones {
+            radius: 4.0,
+            well_depth: 0.1,
+        };
         system.add_atom_to_residue(res3_id, atom3).unwrap();
 
         let active_residues: HashSet<ResidueId> =
