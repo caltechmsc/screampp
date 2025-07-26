@@ -1,6 +1,13 @@
 use super::ids::ResidueId;
 use nalgebra::Point3;
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum CachedVdwParam {
+    LennardJones { radius: f64, well_depth: f64 },
+    Buckingham { radius: f64, well_depth: f64, scale: f64 },
+    None,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Atom {
     // --- Identity & Topology ---
