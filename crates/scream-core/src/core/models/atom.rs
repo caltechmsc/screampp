@@ -3,8 +3,15 @@ use nalgebra::Point3;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum CachedVdwParam {
-    LennardJones { radius: f64, well_depth: f64 },
-    Buckingham { radius: f64, well_depth: f64, scale: f64 },
+    LennardJones {
+        radius: f64,
+        well_depth: f64,
+    },
+    Buckingham {
+        radius: f64,
+        well_depth: f64,
+        scale: f64,
+    },
     None,
 }
 
@@ -24,9 +31,8 @@ pub struct Atom {
     pub delta: f64, // "Delta" value for the flat-bottom potential
 
     // --- Cached Force Field Parameters for Performance ---
-    pub vdw_radius: f64,     // van der Waals radius
-    pub vdw_well_depth: f64, // van der Waals well depth (epsilon)
-    pub hbond_type_id: i8,   // Hydrogen bond type identifier
+    pub vdw_param: CachedVdwParam, // Cached van der Waals parameters
+    pub hbond_type_id: i8,         // Hydrogen bond type identifier
 }
 
 impl Atom {
@@ -39,8 +45,7 @@ impl Atom {
             force_field_type: "".to_string(),
             partial_charge: 0.0,
             delta: 0.0,
-            vdw_radius: 0.0,
-            vdw_well_depth: 0.0,
+            vdw_param: CachedVdwParam::None,
             hbond_type_id: -1,
         }
     }
@@ -63,8 +68,7 @@ mod tests {
         assert_eq!(atom.force_field_type, "");
         assert_eq!(atom.partial_charge, 0.0);
         assert_eq!(atom.delta, 0.0);
-        assert_eq!(atom.vdw_radius, 0.0);
-        assert_eq!(atom.vdw_well_depth, 0.0);
+        assert!(matches!(atom.vdw_param, CachedVdwParam::None));
         assert_eq!(atom.hbond_type_id, -1);
     }
 
