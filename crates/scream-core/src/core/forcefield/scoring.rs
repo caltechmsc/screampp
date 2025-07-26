@@ -1,4 +1,4 @@
-use super::energy::EnergyCalculator;
+use super::energy::{EnergyCalculationError, EnergyCalculator};
 use super::params::Forcefield;
 use super::term::EnergyTerm;
 use crate::core::models::ids::AtomId;
@@ -9,10 +9,13 @@ use thiserror::Error;
 pub enum ScoringError {
     #[error("Atom with ID {0:?} not found in the system")]
     AtomNotFound(AtomId),
-    #[error("Force field type not parameterized for atom {0:?}")]
-    ForceFieldTypeMissing(AtomId),
     #[error("Could not find donor for hydrogen atom {0:?}")]
     DonorNotFound(AtomId),
+    #[error("Energy calculation failed: {source}")]
+    EnergyCalculation {
+        #[from]
+        source: EnergyCalculationError,
+    },
 }
 
 pub struct Scorer<'a> {
@@ -72,22 +75,7 @@ impl<'a> Scorer<'a> {
                     continue;
                 }
 
-                let vdw_param1 = self
-                    .forcefield
-                    .non_bonded
-                    .vdw
-                    .get(&query_atom.force_field_type)
-                    .ok_or_else(|| ScoringError::ForceFieldTypeMissing(query_id))?;
-                let vdw_param2 = self
-                    .forcefield
-                    .non_bonded
-                    .vdw
-                    .get(&env_atom.force_field_type)
-                    .ok_or_else(|| ScoringError::ForceFieldTypeMissing(env_id))?;
-
-                energy.vdw +=
-                    EnergyCalculator::calculate_vdw(query_atom, env_atom, vdw_param1, vdw_param2);
-
+                energy.vdw += EnergyCalculator::calculate_vdw(query_atom, env_atom)?;
                 energy.coulomb += EnergyCalculator::calculate_coulomb(
                     query_atom,
                     env_atom,
