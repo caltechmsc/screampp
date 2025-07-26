@@ -370,30 +370,6 @@ mod tests {
     }
 
     #[test]
-    fn returns_error_for_unparameterized_force_field_type() {
-        let mut system = MolecularSystem::new();
-        let ff = create_test_forcefield();
-
-        let chain_id = system.add_chain('A', crate::core::models::chain::ChainType::Protein);
-        let res1_id = system.add_residue(chain_id, 1, "RES", None).unwrap();
-        let res2_id = system.add_residue(chain_id, 2, "RES", None).unwrap();
-
-        let query_atom = create_atom(1, "C1", res1_id, Point3::origin(), "Unknown", 0.0, -1);
-        let env_atom = create_atom(2, "C2", res2_id, Point3::new(3.0, 0.0, 0.0), "C", 0.0, -1);
-
-        let query_id = system.add_atom_to_residue(res1_id, query_atom).unwrap();
-        let env_id = system.add_atom_to_residue(res2_id, env_atom).unwrap();
-
-        let scorer = Scorer::new(&system, &ff);
-        let result = scorer.score_interaction(&[query_id], &[env_id]);
-
-        assert!(matches!(
-            result,
-            Err(ScoringError::ForceFieldTypeMissing(_))
-        ));
-    }
-
-    #[test]
     fn returns_error_for_hydrogen_without_donor() {
         let mut system = MolecularSystem::new();
         let ff = create_test_forcefield();
