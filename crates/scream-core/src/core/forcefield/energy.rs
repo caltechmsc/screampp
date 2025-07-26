@@ -93,7 +93,6 @@ impl EnergyCalculator {
 #[cfg(test)]
 mod energy_calculator_tests {
     use super::*;
-    use crate::core::forcefield::params::VdwParam;
     use crate::core::models::atom::Atom;
     use crate::core::models::ids::ResidueId;
     use nalgebra::Point3;
@@ -113,34 +112,32 @@ mod energy_calculator_tests {
         let mut atom = Atom::new(serial, "X", residue_id, Point3::new(pos[0], pos[1], pos[2]));
         atom.partial_charge = charge;
         atom.delta = delta;
+        atom.vdw_param = CachedVdwParam::LennardJones {
+            radius: 1.0,
+            well_depth: 1.0,
+        };
         atom
     }
 
     #[test]
     fn calculate_vdw_returns_finite_for_identical_atoms() {
         let atom = atom_with_params(1, [0.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(1));
-        let vdw = VdwParam::LennardJones {
-            radius: 1.0,
-            well_depth: 1.0,
-        };
-        let energy = EnergyCalculator::calculate_vdw(&atom, &atom, &vdw, &vdw);
+        let energy =
+            EnergyCalculator::calculate_vdw(&atom, &atom).expect("vdw calculation should succeed");
         assert!(energy.is_finite());
     }
 
     #[test]
     fn calculate_vdw_combines_lj_and_buckingham_correctly() {
-        let atom1 = atom_with_params(1, [0.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(1));
-        let atom2 = atom_with_params(2, [2.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(2));
-        let vdw1 = VdwParam::LennardJones {
-            radius: 1.0,
-            well_depth: 2.0,
-        };
-        let vdw2 = VdwParam::Buckingham {
+        let mut atom1 = atom_with_params(1, [0.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(1));
+        let mut atom2 = atom_with_params(2, [2.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(2));
+        atom2.vdw_param = CachedVdwParam::Buckingham {
             radius: 2.0,
             well_depth: 1.0,
             scale: 10.0,
         };
-        let energy = EnergyCalculator::calculate_vdw(&atom1, &atom2, &vdw1, &vdw2);
+        let energy = EnergyCalculator::calculate_vdw(&atom1, &atom2)
+            .expect("vdw calculation should succeed");
         assert!(energy.is_finite());
     }
 
@@ -148,11 +145,8 @@ mod energy_calculator_tests {
     fn calculate_vdw_with_nonzero_delta_applies_flat_bottom() {
         let atom1 = atom_with_params(1, [0.0, 0.0, 0.0], 0.0, 1.0, residue_id_from_usize(1));
         let atom2 = atom_with_params(2, [0.5, 0.0, 0.0], 0.0, 1.0, residue_id_from_usize(2));
-        let vdw = VdwParam::LennardJones {
-            radius: 1.0,
-            well_depth: 1.0,
-        };
-        let energy = EnergyCalculator::calculate_vdw(&atom1, &atom2, &vdw, &vdw);
+        let energy = EnergyCalculator::calculate_vdw(&atom1, &atom2)
+            .expect("vdw calculation should succeed");
         assert!(energy.is_finite());
     }
 
@@ -205,5 +199,17 @@ mod energy_calculator_tests {
         let donor = atom_with_params(3, [1.0, 1.0, 0.0], 0.0, 1.0, residue_id_from_usize(2));
         let energy = EnergyCalculator::calculate_hbond(&acceptor, &hydrogen, &donor, 2.0, 1.0);
         assert!(energy.is_finite());
+    }
+
+    #[test]
+    fn calculate_vdw_returns_error_for_unparameterized_atom() {
+        let mut atom1 = atom_with_params(1, [0.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(1));
+        let atom2 = atom_with_params(2, [1.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(2));
+        atom1.vdw_param = CachedVdwParam::None;
+        let result = EnergyCalculator::calculate_vdw(&atom1, &atom2);
+        assert!(matches!(
+            result,
+            Err(EnergyCalculationError::UnparameterizedAtom(1))
+        ));
     }
 }
