@@ -158,7 +158,7 @@ where
 mod tests {
     use super::*;
     use crate::core::forcefield::params::{Forcefield, GlobalParams, NonBondedParams, VdwParam};
-    use crate::core::models::atom::Atom;
+    use crate::core::models::atom::{Atom, CachedVdwParam};
     use crate::core::models::chain::ChainType;
     use crate::core::models::residue::ResidueType;
     use crate::core::rotamers::library::RotamerLibrary;
@@ -198,11 +198,19 @@ mod tests {
         for (name, pos) in backbone_atoms_data(res_a_id, 0.0) {
             let mut atom = Atom::new(system.atoms_iter().count() + 1, name, res_a_id, pos);
             atom.force_field_type = "BB".to_string();
+            atom.vdw_param = CachedVdwParam::LennardJones {
+                radius: 1.0,
+                well_depth: 0.0,
+            };
             system.add_atom_to_residue(res_a_id, atom).unwrap();
         }
         for (name, pos) in backbone_atoms_data(res_b_id, 2.0) {
             let mut atom = Atom::new(system.atoms_iter().count() + 1, name, res_b_id, pos);
             atom.force_field_type = "BB".to_string();
+            atom.vdw_param = CachedVdwParam::LennardJones {
+                radius: 1.0,
+                well_depth: 0.0,
+            };
             system.add_atom_to_residue(res_b_id, atom).unwrap();
         }
 
@@ -237,15 +245,31 @@ mod tests {
             let mut atoms = Vec::new();
             let mut n = Atom::new(1001, "N", residue_id, Point3::new(0.0, 1.0, 0.0));
             n.force_field_type = "BB".to_string();
+            n.vdw_param = CachedVdwParam::LennardJones {
+                radius: 1.0,
+                well_depth: 0.0,
+            };
             atoms.push(n);
             let mut ca = Atom::new(1002, "CA", residue_id, Point3::new(0.0, 0.0, 0.0));
             ca.force_field_type = "BB".to_string();
+            ca.vdw_param = CachedVdwParam::LennardJones {
+                radius: 1.0,
+                well_depth: 0.0,
+            };
             atoms.push(ca);
             let mut c = Atom::new(1003, "C", residue_id, Point3::new(1.0, 0.0, 0.0));
             c.force_field_type = "BB".to_string();
+            c.vdw_param = CachedVdwParam::LennardJones {
+                radius: 1.0,
+                well_depth: 0.0,
+            };
             atoms.push(c);
             let mut cb = Atom::new(10, "CB", residue_id, cb_pos);
             cb.force_field_type = "C_SC".to_string();
+            cb.vdw_param = CachedVdwParam::LennardJones {
+                radius: 3.8,
+                well_depth: 0.1,
+            };
             atoms.push(cb);
             Rotamer { atoms }
         };
