@@ -216,7 +216,6 @@ mod tests {
     }
 
     fn create_atom(
-        serial: usize,
         name: &str,
         residue_id: ResidueId,
         pos: Point3<f64>,
@@ -224,7 +223,7 @@ mod tests {
         charge: f64,
         hbond_type_id: i8,
     ) -> Atom {
-        let mut atom = Atom::new(serial, name, residue_id, pos);
+        let mut atom = Atom::new(name, residue_id, pos);
         atom.force_field_type = ff_type.to_string();
         atom.partial_charge = charge;
         atom.hbond_type_id = hbond_type_id;
@@ -271,8 +270,8 @@ mod tests {
         let res1_id = system.add_residue(chain_id, 1, "RES", None).unwrap();
         let res2_id = system.add_residue(chain_id, 2, "RES", None).unwrap();
 
-        let query_atom = create_atom(1, "C1", res1_id, Point3::origin(), "C", 0.5, -1);
-        let env_atom = create_atom(2, "C2", res2_id, Point3::new(4.5, 0.0, 0.0), "C", -0.5, -1);
+        let query_atom = create_atom("C1", res1_id, Point3::origin(), "C", 0.5, -1);
+        let env_atom = create_atom("C2", res2_id, Point3::new(4.5, 0.0, 0.0), "C", -0.5, -1);
 
         let query_id = system.add_atom_to_residue(res1_id, query_atom).unwrap();
         let env_id = system.add_atom_to_residue(res2_id, env_atom).unwrap();
@@ -293,8 +292,8 @@ mod tests {
         let chain_id = system.add_chain('A', crate::core::models::chain::ChainType::Protein);
         let res1_id = system.add_residue(chain_id, 1, "RES", None).unwrap();
 
-        let atom1 = create_atom(1, "C1", res1_id, Point3::origin(), "C", 0.5, -1);
-        let atom2 = create_atom(2, "C2", res1_id, Point3::new(3.0, 0.0, 0.0), "C", -0.5, -1);
+        let atom1 = create_atom("C1", res1_id, Point3::origin(), "C", 0.5, -1);
+        let atom2 = create_atom("C2", res1_id, Point3::new(3.0, 0.0, 0.0), "C", -0.5, -1);
 
         let id1 = system.add_atom_to_residue(res1_id, atom1).unwrap();
         let id2 = system.add_atom_to_residue(res1_id, atom2).unwrap();
@@ -314,8 +313,8 @@ mod tests {
         let res1_id = system.add_residue(chain_id, 1, "RES", None).unwrap();
         let res2_id = system.add_residue(chain_id, 2, "RES", None).unwrap();
 
-        let atom1 = create_atom(1, "C", res1_id, Point3::origin(), "C", 0.5, -1);
-        let atom2 = create_atom(2, "N", res2_id, Point3::new(1.3, 0.0, 0.0), "N", -0.5, -1);
+        let atom1 = create_atom("C", res1_id, Point3::origin(), "C", 0.5, -1);
+        let atom2 = create_atom("N", res2_id, Point3::new(1.3, 0.0, 0.0), "N", -0.5, -1);
 
         let id1 = system.add_atom_to_residue(res1_id, atom1).unwrap();
         let id2 = system.add_atom_to_residue(res2_id, atom2).unwrap();
@@ -337,13 +336,13 @@ mod tests {
         let res1_id = system.add_residue(chain_id, 1, "RES", None).unwrap();
         let res2_id = system.add_residue(chain_id, 2, "RES", None).unwrap();
 
-        let donor = create_atom(1, "N", res1_id, Point3::new(0.0, 0.0, 0.0), "N", -0.3, 1);
-        let hydrogen = create_atom(2, "H", res1_id, Point3::new(1.0, 0.0, 0.0), "H", 0.3, 0);
+        let donor = create_atom("N", res1_id, Point3::new(0.0, 0.0, 0.0), "N", -0.3, 1);
+        let hydrogen = create_atom("H", res1_id, Point3::new(1.0, 0.0, 0.0), "H", 0.3, 0);
         let donor_id = system.add_atom_to_residue(res1_id, donor).unwrap();
         let h_id = system.add_atom_to_residue(res1_id, hydrogen).unwrap();
         system.add_bond(donor_id, h_id, BondOrder::Single).unwrap();
 
-        let acceptor = create_atom(3, "O", res2_id, Point3::new(2.8, 0.0, 0.0), "O", -0.5, 1);
+        let acceptor = create_atom("O", res2_id, Point3::new(2.8, 0.0, 0.0), "O", -0.5, 1);
         let acceptor_id = system.add_atom_to_residue(res2_id, acceptor).unwrap();
 
         let scorer = Scorer::new(&system, &ff);
@@ -365,9 +364,9 @@ mod tests {
         let res1_id = system.add_residue(chain_id, 1, "RES", None).unwrap();
         let res2_id = system.add_residue(chain_id, 2, "RES", None).unwrap();
 
-        let donor = create_atom(1, "N", res1_id, Point3::new(0.0, 0.0, 0.0), "N", -0.3, 1);
-        let hydrogen = create_atom(2, "H", res1_id, Point3::new(1.0, 0.0, 0.0), "H", 0.3, 0);
-        let acceptor = create_atom(3, "O", res2_id, Point3::new(2.8, 0.0, 0.0), "O", -0.5, 1);
+        let donor = create_atom("N", res1_id, Point3::new(0.0, 0.0, 0.0), "N", -0.3, 1);
+        let hydrogen = create_atom("H", res1_id, Point3::new(1.0, 0.0, 0.0), "H", 0.3, 0);
+        let acceptor = create_atom("O", res2_id, Point3::new(2.8, 0.0, 0.0), "O", -0.5, 1);
 
         let donor_id = system.add_atom_to_residue(res1_id, donor).unwrap();
         let h_id = system.add_atom_to_residue(res1_id, hydrogen).unwrap();
@@ -375,7 +374,7 @@ mod tests {
         system.add_bond(donor_id, h_id, BondOrder::Single).unwrap();
 
         let res3_id = system.add_residue(chain_id, 3, "RES", None).unwrap();
-        let env_atom = create_atom(4, "C", res3_id, Point3::new(5.0, 5.0, 5.0), "C", 0.1, -1);
+        let env_atom = create_atom("C", res3_id, Point3::new(5.0, 5.0, 5.0), "C", 0.1, -1);
         let env_id = system.add_atom_to_residue(res3_id, env_atom).unwrap();
 
         let scorer = Scorer::new(&system, &ff);
@@ -408,7 +407,7 @@ mod tests {
         let chain_id = system.add_chain('A', crate::core::models::chain::ChainType::Protein);
         let res1_id = system.add_residue(chain_id, 1, "RES", None).unwrap();
 
-        let hydrogen = create_atom(1, "H", res1_id, Point3::new(1.0, 0.0, 0.0), "H", 0.3, 0);
+        let hydrogen = create_atom("H", res1_id, Point3::new(1.0, 0.0, 0.0), "H", 0.3, 0);
         let h_id = system.add_atom_to_residue(res1_id, hydrogen).unwrap();
 
         let scorer = Scorer::new(&system, &ff);
