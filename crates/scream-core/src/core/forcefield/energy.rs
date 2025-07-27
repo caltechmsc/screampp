@@ -13,28 +13,19 @@ pub struct EnergyCalculator;
 
 impl EnergyCalculator {
     pub fn calculate_vdw(atom1: &Atom, atom2: &Atom) -> Result<f64, EnergyCalculationError> {
-        let (r_min1, well_depth1, scale1) = match atom1.vdw_param {
-            CachedVdwParam::LennardJones { radius, well_depth } => (radius, well_depth, 0.0),
+        let extract_params = |atom: &Atom| match atom.vdw_param {
+            CachedVdwParam::LennardJones { radius, well_depth } => Ok((radius, well_depth, 0.0)),
             CachedVdwParam::Buckingham {
                 radius,
                 well_depth,
                 scale,
-            } => (radius, well_depth, scale),
-            CachedVdwParam::None => {
-                return Err(EnergyCalculationError::UnparameterizedAtom(atom1.serial));
-            }
+            } => Ok((radius, well_depth, scale)),
+            CachedVdwParam::None => Err(EnergyCalculationError::UnparameterizedAtom(atom.serial)),
         };
-        let (r_min2, well_depth2, scale2) = match atom2.vdw_param {
-            CachedVdwParam::LennardJones { radius, well_depth } => (radius, well_depth, 0.0),
-            CachedVdwParam::Buckingham {
-                radius,
-                well_depth,
-                scale,
-            } => (radius, well_depth, scale),
-            CachedVdwParam::None => {
-                return Err(EnergyCalculationError::UnparameterizedAtom(atom2.serial));
-            }
-        };
+
+        let (r_min1, well_depth1, scale1) = extract_params(atom1)?;
+        let (r_min2, well_depth2, scale2) = extract_params(atom2)?;
+
         let dist = (atom1.position - atom2.position).norm();
 
         let total_delta = (atom1.delta.powi(2) + atom2.delta.powi(2)).sqrt();
