@@ -205,7 +205,7 @@ mod tests {
 
     #[test]
     fn run_returns_empty_vec_for_no_pairs() {
-        let (mut system, mut active_residues, res1_id, res2_id) = create_test_system();
+        let (mut system, mut active_residues, _res1_id, res2_id) = create_test_system();
         system.remove_residue(res2_id);
         active_residues.remove(&res2_id);
         assert_eq!(active_residues.len(), 1);
