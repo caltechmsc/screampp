@@ -207,14 +207,14 @@ mod tests {
         let chain_id = system.add_chain('A', ChainType::Protein);
         let residue_id = system.add_residue(chain_id, 1, "ALA", None).unwrap();
 
-        let n = Atom::new(1, "N", residue_id, Point3::new(0.0, 1.0, 0.0));
-        let ca = Atom::new(2, "CA", residue_id, Point3::new(0.0, 0.0, 0.0));
-        let c = Atom::new(3, "C", residue_id, Point3::new(1.0, 0.0, 0.0));
+        let n = Atom::new("N", residue_id, Point3::new(0.0, 1.0, 0.0));
+        let ca = Atom::new("CA", residue_id, Point3::new(0.0, 0.0, 0.0));
+        let c = Atom::new("C", residue_id, Point3::new(1.0, 0.0, 0.0));
         system.add_atom_to_residue(residue_id, n);
         system.add_atom_to_residue(residue_id, ca);
         system.add_atom_to_residue(residue_id, c);
 
-        let old_cb = Atom::new(4, "CB", residue_id, Point3::new(-1.0, -1.0, -1.0));
+        let old_cb = Atom::new("CB", residue_id, Point3::new(-1.0, -1.0, -1.0));
         system.add_atom_to_residue(residue_id, old_cb);
 
         (system, residue_id)
@@ -223,10 +223,10 @@ mod tests {
     fn create_test_rotamer() -> Rotamer {
         Rotamer {
             atoms: vec![
-                Atom::new(101, "N", ResidueId::default(), Point3::new(5.0, 5.0, 6.0)),
-                Atom::new(102, "CA", ResidueId::default(), Point3::new(5.0, 5.0, 5.0)),
-                Atom::new(103, "C", ResidueId::default(), Point3::new(6.0, 5.0, 5.0)),
-                Atom::new(104, "CB", ResidueId::default(), Point3::new(4.0, 4.0, 4.0)),
+                Atom::new("N", ResidueId::default(), Point3::new(5.0, 5.0, 6.0)),
+                Atom::new("CA", ResidueId::default(), Point3::new(5.0, 5.0, 5.0)),
+                Atom::new("C", ResidueId::default(), Point3::new(6.0, 5.0, 5.0)),
+                Atom::new("CB", ResidueId::default(), Point3::new(4.0, 4.0, 4.0)),
             ],
         }
     }
