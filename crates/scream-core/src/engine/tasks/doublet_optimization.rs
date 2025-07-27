@@ -187,7 +187,7 @@ mod tests {
             .add_residue(chain_id, 2, "LEU", Some(ResidueType::Leucine))
             .unwrap();
 
-        let backbone_atoms_data = |residue_id, offset: f64| {
+        let backbone_atoms_data = |_residue_id, offset: f64| {
             vec![
                 ("N", Point3::new(offset, 1.0, 0.0)),
                 ("CA", Point3::new(offset, 0.0, 0.0)),
