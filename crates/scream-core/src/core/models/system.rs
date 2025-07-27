@@ -64,8 +64,14 @@ impl MolecularSystem {
     pub fn find_chain_by_id(&self, id: char) -> Option<ChainId> {
         self.chain_id_map.get(&id).copied()
     }
-    pub fn find_residue_by_id(&self, chain_id: ChainId, res_seq: isize) -> Option<ResidueId> {
-        self.residue_id_map.get(&(chain_id, res_seq)).copied()
+    pub fn find_residue_by_id(
+        &self,
+        chain_id: ChainId,
+        residue_number: isize,
+    ) -> Option<ResidueId> {
+        self.residue_id_map
+            .get(&(chain_id, residue_number))
+            .copied()
     }
 
     pub fn add_chain(&mut self, id: char, chain_type: ChainType) -> ChainId {
@@ -78,15 +84,15 @@ impl MolecularSystem {
     pub fn add_residue(
         &mut self,
         chain_id: ChainId,
-        res_seq: isize,
+        residue_number: isize,
         name: &str,
         residue_type: Option<ResidueType>,
     ) -> Option<ResidueId> {
         let chain = self.chains.get_mut(chain_id)?;
-        let key = (chain_id, res_seq);
+        let key = (chain_id, residue_number);
 
         let residue_id = *self.residue_id_map.entry(key).or_insert_with(|| {
-            let residue = Residue::new(res_seq, name, residue_type, chain_id);
+            let residue = Residue::new(residue_number, name, residue_type, chain_id);
             self.residues.insert(residue)
         });
 
