@@ -88,15 +88,14 @@ impl MolecularSystem {
     ) -> Option<ResidueId> {
         let chain = self.chains.get_mut(chain_id)?;
         let key = (chain_id, res_seq);
+
         let residue_id = *self.residue_id_map.entry(key).or_insert_with(|| {
             let residue = Residue::new(res_seq, name, residue_type, chain_id);
             self.residues.insert(residue)
         });
 
-        let chain = self.chains.get_mut(chain_id).unwrap();
-        let chain_residues = &mut chain.residues;
-        if !chain_residues.contains(&residue_id) {
-            chain_residues.push(residue_id);
+        if !chain.residues.contains(&residue_id) {
+            chain.residues.push(residue_id);
         }
 
         Some(residue_id)
