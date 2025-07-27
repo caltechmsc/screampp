@@ -6,8 +6,11 @@ use thiserror::Error;
 pub enum ParameterizationError {
     #[error("Missing VDW parameter for force field type: {0}")]
     MissingVdwParams(String),
-    #[error("Missing delta parameter for atom '{atom_name}' in residue '{res_type}'")]
-    MissingDelta { res_type: String, atom_name: String },
+    #[error("Missing delta parameter for atom '{atom_name}' in residue '{residue_type}'")]
+    MissingDelta {
+        residue_type: String,
+        atom_name: String,
+    },
 }
 
 pub struct Parameterizer {
@@ -39,19 +42,19 @@ impl Parameterizer {
         let atom_ids: Vec<_> = system.atoms_iter().map(|(id, _)| id).collect();
 
         for atom_id in atom_ids {
-            let (res_type_str, atom_name) = {
+            let (residue_type_str, atom_name) = {
                 let atom = system.atom(atom_id).unwrap();
                 let residue = system.residue(atom.residue_id).unwrap();
                 (residue.name.clone(), atom.name.clone())
             };
 
-            let final_delta = if res_type_str == "GLY" {
+            let final_delta = if residue_type_str == "GLY" {
                 0.0
             } else {
                 let delta_param = self
                     .forcefield
                     .deltas
-                    .get(&(res_type_str.clone(), atom_name.clone()));
+                    .get(&(residue_type_str.clone(), atom_name.clone()));
 
                 match delta_param {
                     Some(p) => p.mu + self.delta_s_factor * p.sigma,
@@ -122,14 +125,14 @@ impl Parameterizer {
     pub fn parameterize_atom(
         &self,
         atom: &mut Atom,
-        res_type_str: &str,
+        residue_type_str: &str,
     ) -> Result<(), ParameterizationError> {
-        atom.delta = if res_type_str == "GLY" {
+        atom.delta = if residue_type_str == "GLY" {
             0.0
         } else {
             self.forcefield
                 .deltas
-                .get(&(res_type_str.to_string(), atom.name.clone()))
+                .get(&(residue_type_str.to_string(), atom.name.clone()))
                 .map_or(0.0, |p| p.mu + self.delta_s_factor * p.sigma)
         };
 
@@ -191,7 +194,7 @@ mod tests {
             map.insert(
                 ("ALA".to_string(), "CA".to_string()),
                 DeltaParam {
-                    res_type: "ALA".to_string(),
+                    residue_type: "ALA".to_string(),
                     atom_name: "CA".to_string(),
                     mu: 1.23,
                     sigma: 0.0,
@@ -246,7 +249,7 @@ mod tests {
         ff.deltas.insert(
             ("ALA".to_string(), "CA".to_string()),
             DeltaParam {
-                res_type: "ALA".to_string(),
+                residue_type: "ALA".to_string(),
                 atom_name: "CA".to_string(),
                 mu: 1.23,
                 sigma: 0.2,
