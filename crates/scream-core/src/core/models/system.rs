@@ -84,12 +84,12 @@ impl MolecularSystem {
         chain_id: ChainId,
         res_seq: isize,
         name: &str,
-        res_type: Option<ResidueType>,
+        residue_type: Option<ResidueType>,
     ) -> Option<ResidueId> {
         let chain = self.chains.get_mut(chain_id)?;
         let key = (chain_id, res_seq);
         let residue_id = *self.residue_id_map.entry(key).or_insert_with(|| {
-            let residue = Residue::new(res_seq, name, res_type, chain_id);
+            let residue = Residue::new(res_seq, name, residue_type, chain_id);
             self.residues.insert(residue)
         });
 
@@ -322,11 +322,11 @@ mod tests {
 
         assert_eq!(system.residue(gly_id).unwrap().name, "GLY");
         assert_eq!(
-            system.residue(gly_id).unwrap().res_type,
+            system.residue(gly_id).unwrap().residue_type,
             Some(ResidueType::Glycine)
         );
         assert_eq!(
-            system.residue(ala_id).unwrap().res_type,
+            system.residue(ala_id).unwrap().residue_type,
             Some(ResidueType::Alanine)
         );
     }
