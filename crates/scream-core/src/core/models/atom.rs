@@ -18,7 +18,6 @@ pub enum CachedVdwParam {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Atom {
     // --- Identity & Topology ---
-    pub serial: usize,         // Atom serial number from source file
     pub name: String,          // Atom name (e.g., "CA", "N", "O")
     pub residue_id: ResidueId, // ID of the parent residue
 
@@ -36,9 +35,8 @@ pub struct Atom {
 }
 
 impl Atom {
-    pub fn new(serial: usize, name: &str, residue_id: ResidueId, position: Point3<f64>) -> Self {
+    pub fn new(name: &str, residue_id: ResidueId, position: Point3<f64>) -> Self {
         Self {
-            serial,
             name: name.to_string(),
             residue_id,
             position,
@@ -60,8 +58,7 @@ mod tests {
     #[test]
     fn new_atom_has_expected_default_fields() {
         let residue_id = ResidueId::default();
-        let atom = Atom::new(42, "CA", residue_id, Point3::new(1.0, 2.0, 3.0));
-        assert_eq!(atom.serial, 42);
+        let atom = Atom::new("CA", residue_id, Point3::new(1.0, 2.0, 3.0));
         assert_eq!(atom.name, "CA");
         assert_eq!(atom.residue_id, residue_id);
         assert_eq!(atom.position, Point3::new(1.0, 2.0, 3.0));
@@ -75,7 +72,7 @@ mod tests {
     #[test]
     fn atom_equality_and_clone_works() {
         let residue_id = ResidueId::default();
-        let atom1 = Atom::new(1, "N", residue_id, Point3::new(0.0, 0.0, 0.0));
+        let atom1 = Atom::new("N", residue_id, Point3::new(0.0, 0.0, 0.0));
         let atom2 = atom1.clone();
         assert_eq!(atom1, atom2);
     }
