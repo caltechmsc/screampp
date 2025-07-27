@@ -97,7 +97,7 @@ where
         }
 
         if !is_design_site {
-            if let Some(native_type) = residue.res_type {
+            if let Some(native_type) = residue.residue_type {
                 work_list.push(WorkUnit {
                     residue_id,
                     residue_type: native_type,
