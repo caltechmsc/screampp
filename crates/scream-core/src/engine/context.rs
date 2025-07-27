@@ -242,9 +242,9 @@ pub fn resolve_selection_to_ids(
         .filter(|&residue_id| {
             system
                 .residue(residue_id)
-                .and_then(|res| res.res_type)
-                .map_or(false, |res_type| {
-                    library.get_rotamers_for(res_type).is_some()
+                .and_then(|res| res.residue_type)
+                .map_or(false, |residue_type| {
+                    library.get_rotamers_for(residue_type).is_some()
                 })
         })
         .collect();
