@@ -184,6 +184,7 @@ mod tests {
     };
     use crate::core::models::atom::Atom;
     use crate::core::models::chain::ChainType;
+    use crate::core::models::ids::AtomId;
     use crate::core::models::system::MolecularSystem;
     use nalgebra::Point3;
     use std::collections::HashMap;
@@ -220,7 +221,7 @@ mod tests {
                     well_depth: 0.01,
                 },
             );
-            let mut hbond = HashMap::new();
+            let hbond = HashMap::new();
             NonBondedParams {
                 globals: GlobalParams {
                     dielectric_constant: 1.0,
@@ -234,14 +235,14 @@ mod tests {
         Forcefield { deltas, non_bonded }
     }
 
-    fn create_test_system() -> MolecularSystem {
+    fn create_test_system() -> (MolecularSystem, AtomId) {
         let mut system = MolecularSystem::new();
         let chain_id = system.add_chain('A', ChainType::Protein);
         let res1_id = system.add_residue(chain_id, 1, "ALA", None).unwrap();
-        let mut atom1_ca = Atom::new(2, "CA", res1_id, Point3::origin());
+        let mut atom1_ca = Atom::new("CA", res1_id, Point3::origin());
         atom1_ca.force_field_type = "C_SP3".to_string();
-        system.add_atom_to_residue(res1_id, atom1_ca).unwrap();
-        system
+        let atom_id = system.add_atom_to_residue(res1_id, atom1_ca).unwrap();
+        (system, atom_id)
     }
 
     fn create_dummy_forcefield_for_atom_test() -> Forcefield {
@@ -261,12 +262,12 @@ mod tests {
     #[test]
     fn parameterize_deltas_assigns_values_correctly() {
         let ff = create_dummy_forcefield();
-        let mut system = create_test_system();
+        let (mut system, atom_ca_id) = create_test_system();
         let parameterizer = Parameterizer::new(ff, 0.0);
 
         parameterizer.parameterize_system(&mut system).unwrap();
 
-        let atom_ca = system.atom(system.find_atom_by_serial(2).unwrap()).unwrap();
+        let atom_ca = system.atom(atom_ca_id).unwrap();
         assert_eq!(atom_ca.delta, 1.23);
     }
 
@@ -276,30 +277,28 @@ mod tests {
         let mut system = MolecularSystem::new();
         let chain_id = system.add_chain('A', ChainType::Protein);
         let res_id = system.add_residue(chain_id, 1, "GLY", None).unwrap();
-        let mut atom_ca = Atom::new(1, "CA", res_id, Point3::origin());
-        atom_ca.force_field_type = "C_SP3".to_string(); // Ensure VDW params exist
-        system.add_atom_to_residue(res_id, atom_ca).unwrap();
+        let mut atom_ca = Atom::new("CA", res_id, Point3::origin());
+        atom_ca.force_field_type = "C_SP3".to_string();
+        let atom_ca_id = system.add_atom_to_residue(res_id, atom_ca).unwrap();
         let parameterizer = Parameterizer::new(ff, 0.0);
 
         parameterizer.parameterize_deltas(&mut system).unwrap();
 
-        let atom_ca_id = system.find_atom_by_serial(1).unwrap();
         let atom = system.atom(atom_ca_id).unwrap();
-
         assert_eq!(atom.delta, 0.0);
     }
 
     #[test]
     fn parameterize_non_bonded_properties_assigns_vdw_and_hbond_params() {
         let ff = create_dummy_forcefield();
-        let mut system = create_test_system();
+        let (mut system, atom_ca_id) = create_test_system();
         let parameterizer = Parameterizer::new(ff, 0.0);
 
         parameterizer
             .parameterize_non_bonded_properties(&mut system)
             .unwrap();
 
-        let atom_ca = system.atom(system.find_atom_by_serial(2).unwrap()).unwrap();
+        let atom_ca = system.atom(atom_ca_id).unwrap();
         match atom_ca.vdw_param {
             CachedVdwParam::Buckingham {
                 radius, well_depth, ..
@@ -315,10 +314,9 @@ mod tests {
     #[test]
     fn parameterize_non_bonded_properties_fails_for_missing_vdw_params() {
         let ff = create_dummy_forcefield();
-        let mut system = create_test_system();
+        let (mut system, atom_id) = create_test_system();
         let parameterizer = Parameterizer::new(ff, 0.0);
 
-        let atom_id = system.find_atom_by_serial(2).unwrap();
         system.atom_mut(atom_id).unwrap().force_field_type = "UNKNOWN_TYPE".to_string();
 
         let result = parameterizer.parameterize_non_bonded_properties(&mut system);
@@ -334,7 +332,7 @@ mod tests {
         let parameterizer = Parameterizer::new(ff, 1.0);
         let residue_id = crate::core::models::ids::ResidueId::default();
 
-        let mut atom = Atom::new(1, "CA", residue_id, Point3::origin());
+        let mut atom = Atom::new("CA", residue_id, Point3::origin());
         atom.partial_charge = -99.9;
         atom.force_field_type = "C_SP3".to_string();
 
@@ -373,7 +371,7 @@ mod tests {
         let parameterizer = Parameterizer::new(ff, 1.0);
         let residue_id = crate::core::models::ids::ResidueId::default();
 
-        let mut atom = Atom::new(1, "HN", residue_id, Point3::origin());
+        let mut atom = Atom::new("HN", residue_id, Point3::origin());
         atom.force_field_type = "H___A".to_string();
         atom.partial_charge = 0.35;
 
