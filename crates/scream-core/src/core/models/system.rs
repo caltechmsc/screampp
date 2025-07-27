@@ -14,8 +14,7 @@ pub struct MolecularSystem {
     chains: SlotMap<ChainId, Chain>,
     bonds: Vec<Bond>,
 
-    // --- Lookup Maps for Fast Access by External Identifiers ---
-    atom_serial_map: HashMap<usize, AtomId>,
+    // --- Lookup Maps for Fast Access ---
     residue_id_map: HashMap<(ChainId, isize), ResidueId>,
     chain_id_map: HashMap<char, ChainId>,
 
@@ -62,9 +61,6 @@ impl MolecularSystem {
         &self.bonds
     }
 
-    pub fn find_atom_by_serial(&self, serial: usize) -> Option<AtomId> {
-        self.atom_serial_map.get(&serial).copied()
-    }
     pub fn find_chain_by_id(&self, id: char) -> Option<ChainId> {
         self.chain_id_map.get(&id).copied()
     }
@@ -106,12 +102,10 @@ impl MolecularSystem {
             return None;
         }
 
-        let serial = atom.serial;
         let name = atom.name.clone();
 
         let atom_id = self.atoms.insert(atom);
         self.bond_adjacency.insert(atom_id, Vec::new());
-        self.atom_serial_map.insert(serial, atom_id);
 
         let residue = self.residues.get_mut(residue_id).unwrap();
         residue.add_atom(&name, atom_id);
@@ -145,17 +139,14 @@ impl MolecularSystem {
             residue.remove_atom(&atom.name, atom_id);
         }
 
-        // 2. Remove from serial map
-        self.atom_serial_map.remove(&atom.serial);
-
-        // 3. Remove all bonds connected to this atom
+        // 2. Remove all bonds connected to this atom
         let original_bonds = std::mem::take(&mut self.bonds);
         self.bonds = original_bonds
             .into_iter()
             .filter(|bond| !bond.contains(atom_id))
             .collect();
 
-        // 4. Clean up adjacency list
+        // 3. Clean up adjacency list
         let neighbors = self.bond_adjacency.remove(atom_id).unwrap_or_default();
         for neighbor_id in neighbors {
             if let Some(adjacency) = self.bond_adjacency.get_mut(neighbor_id) {
