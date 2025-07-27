@@ -122,7 +122,7 @@ impl ResidueType {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Residue {
-    pub id: isize,                          // Residue sequence number from source file
+    pub res_seq: isize,                     // Residue sequence number from source file
     pub name: String,                       // Name of the residue (e.g., "ALA", "GLY")
     pub res_type: Option<ResidueType>,      // Optional residue type (e.g., Alanine, Glycine)
     pub chain_id: ChainId,                  // ID of the parent chain
@@ -132,13 +132,13 @@ pub struct Residue {
 
 impl Residue {
     pub(crate) fn new(
-        id: isize,
+        res_seq: isize,
         name: &str,
         res_type: Option<ResidueType>,
         chain_id: ChainId,
     ) -> Self {
         Self {
-            id,
+            res_seq,
             name: name.to_string(),
             res_type,
             chain_id,
