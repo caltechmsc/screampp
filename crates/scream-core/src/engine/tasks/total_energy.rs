@@ -31,11 +31,11 @@ pub fn run(
         .iter()
         .map(|&residue_id| {
             let residue = system.residue(residue_id).unwrap();
-            let res_type = residue.res_type.unwrap();
+            let residue_type = residue.residue_type.unwrap();
             let rotamer_idx = current_rotamers.get(&residue_id).unwrap();
 
             el_cache
-                .get(residue_id, res_type, *rotamer_idx)
+                .get(residue_id, residue_type, *rotamer_idx)
                 .copied()
                 .unwrap_or_default()
         })
