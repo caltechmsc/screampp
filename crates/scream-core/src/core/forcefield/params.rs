@@ -38,7 +38,7 @@ pub struct NonBondedParams {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct DeltaParam {
-    pub res_type: String,
+    pub residue_type: String,
     pub atom_name: String,
     pub mu: f64,
     pub sigma: f64,
@@ -99,7 +99,10 @@ impl Forcefield {
                 path: path.to_string_lossy().to_string(),
                 source: e,
             })?;
-            lib_deltas.insert((record.res_type.clone(), record.atom_name.clone()), record);
+            lib_deltas.insert(
+                (record.residue_type.clone(), record.atom_name.clone()),
+                record,
+            );
         }
         Ok(lib_deltas)
     }
@@ -187,7 +190,11 @@ mod tests {
     fn load_delta_csv_succeeds_with_valid_csv() {
         let dir = tempdir().unwrap();
         let file_path = dir.path().join("test_lib.csv");
-        fs::write(&file_path, "res_type,atom_name,mu,sigma\nALA,CA,1.0,0.5").unwrap();
+        fs::write(
+            &file_path,
+            "residue_type,atom_name,mu,sigma\nALA,CA,1.0,0.5",
+        )
+        .unwrap();
 
         let deltas = Forcefield::load_delta_csv(&file_path).unwrap();
         let param = deltas.get(&("ALA".to_string(), "CA".to_string())).unwrap();
@@ -224,7 +231,11 @@ mod tests {
         .unwrap();
 
         let delta_path = dir.path().join("delta.csv");
-        fs::write(&delta_path, "res_type,atom_name,mu,sigma\nALA,CA,1.0,0.5").unwrap();
+        fs::write(
+            &delta_path,
+            "residue_type,atom_name,mu,sigma\nALA,CA,1.0,0.5",
+        )
+        .unwrap();
 
         let ff = Forcefield::load(&non_bonded_path, &delta_path).unwrap();
 
