@@ -267,7 +267,7 @@ mod tests {
     }
 
     fn write_file(path: &std::path::Path, content: &str) {
-        fs::write(path, content).unwrap();
+        fs::write(path, content).expect("Failed to write temporary file for test setup");
     }
 
     #[test]
@@ -280,7 +280,7 @@ mod tests {
             r#"
 ALA = [
     { atoms = [
-        { serial = 1, atom_name = "CA", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" }
+        { atom_name = "CA", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" }
     ] }
 ]
 "#,
@@ -325,7 +325,7 @@ ALA = { sidechain_atoms = ["CA"], anchor_atoms = [], connection_points = [], exa
             r#"
 ALA = [
     { atoms = [
-        { serial = 1, atom_name = "CA", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" }
+        { atom_name = "CA", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" }
     ] }
 ]
 "#,
@@ -391,7 +391,7 @@ UNK = [ { atoms = [] } ]
         write_file(
             &rotamer_path,
             r#"
-ALA = [ { atoms = [ { serial = 1, atom_name = "CA", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "UnknownType" } ] } ]
+ALA = [ { atoms = [ { atom_name = "CA", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "UnknownType" } ] } ]
 "#,
         );
         write_file(
@@ -415,12 +415,9 @@ ALA = [ { atoms = [ { serial = 1, atom_name = "CA", position = [0.0, 0.0, 0.0], 
         write_file(&placement_path, "");
         let ff = dummy_forcefield();
         let lib = RotamerLibrary::load(&rotamer_path, &placement_path, &ff, 0.0);
-        match lib {
-            Ok(library) => {
-                assert!(library.rotamers.is_empty());
-                assert!(library.placement_info.is_empty());
-            }
-            Err(_) => {}
+        if let Ok(library) = lib {
+            assert!(library.rotamers.is_empty());
+            assert!(library.placement_info.is_empty());
         }
     }
 
@@ -459,7 +456,7 @@ ALA = [ { atoms = [] } ]
         let res_id = system
             .add_residue(chain_id, 1, "ALA", Some(ResidueType::Alanine))
             .unwrap();
-        let mut atom = Atom::new(1, "CA", res_id, Point3::new(5.0, 5.0, 5.0));
+        let mut atom = Atom::new("CA", res_id, Point3::new(5.0, 5.0, 5.0));
         atom.force_field_type = "C_SP3".to_string();
         system.add_atom_to_residue(res_id, atom).unwrap();
         let mut active = HashSet::new();
@@ -481,7 +478,7 @@ ALA = [ { atoms = [] } ]
         let res_id = system
             .add_residue(chain_id, 1, "ALA", Some(ResidueType::Alanine))
             .unwrap();
-        let mut atom = Atom::new(1, "CA", res_id, Point3::new(1.0, 2.0, 3.0));
+        let mut atom = Atom::new("CA", res_id, Point3::new(1.0, 2.0, 3.0));
         atom.force_field_type = "C_SP3".to_string();
         system.add_atom_to_residue(res_id, atom.clone()).unwrap();
         lib.rotamers.insert(
