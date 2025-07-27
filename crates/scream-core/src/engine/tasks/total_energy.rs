@@ -35,7 +35,7 @@ pub fn run(
             let rotamer_idx = current_rotamers.get(&residue_id).unwrap();
 
             el_cache
-                .get(residue_id, residue_type, *rotamer_idx)
+                .get(residue_id, res_type, *rotamer_idx)
                 .copied()
                 .unwrap_or_default()
         })
@@ -91,7 +91,7 @@ mod tests {
         let res1_id = system
             .add_residue(chain_id, 1, "ALA", Some(ResidueType::Alanine))
             .unwrap();
-        let mut atom1 = Atom::new(1, "CA", res1_id, Point3::new(0.0, 0.0, 0.0));
+        let mut atom1 = Atom::new("CA", res1_id, Point3::new(0.0, 0.0, 0.0));
         atom1.force_field_type = "C".to_string();
         atom1.vdw_param = CachedVdwParam::LennardJones {
             radius: 4.0,
@@ -102,7 +102,7 @@ mod tests {
         let res2_id = system
             .add_residue(chain_id, 2, "GLY", Some(ResidueType::Glycine))
             .unwrap();
-        let mut atom2 = Atom::new(2, "CA", res2_id, Point3::new(5.0, 0.0, 0.0));
+        let mut atom2 = Atom::new("CA", res2_id, Point3::new(5.0, 0.0, 0.0));
         atom2.force_field_type = "C".to_string();
         atom2.vdw_param = CachedVdwParam::LennardJones {
             radius: 4.0,
