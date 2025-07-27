@@ -189,41 +189,50 @@ mod tests {
     use super::*;
     use crate::core::models::residue::ResidueType;
     use nalgebra::Point3;
+    use std::collections::HashMap;
 
-    fn create_test_system() -> MolecularSystem {
+    fn create_test_system() -> (MolecularSystem, HashMap<String, AtomId>) {
         let mut system = MolecularSystem::new();
+        let mut key_atom_ids = HashMap::new();
 
         let chain_a_id = system.add_chain('A', ChainType::Protein);
 
         let gly_id = system
             .add_residue(chain_a_id, 1, "GLY", Some(ResidueType::Glycine))
             .unwrap();
-        let n_atom = Atom::new(1, "N", gly_id, Point3::new(0.0, 0.0, 0.0));
-        let ca_atom = Atom::new(2, "CA", gly_id, Point3::new(1.4, 0.0, 0.0));
+        let n_atom = Atom::new("N", gly_id, Point3::new(0.0, 0.0, 0.0));
+        let ca_atom = Atom::new("CA", gly_id, Point3::new(1.4, 0.0, 0.0));
+
         let n_id = system.add_atom_to_residue(gly_id, n_atom).unwrap();
+        key_atom_ids.insert("GLY_1_N".to_string(), n_id);
+
         let ca_id = system.add_atom_to_residue(gly_id, ca_atom).unwrap();
+        key_atom_ids.insert("GLY_1_CA".to_string(), ca_id);
         system.add_bond(n_id, ca_id, BondOrder::Single).unwrap();
 
         let ala_id = system
             .add_residue(chain_a_id, 2, "ALA", Some(ResidueType::Alanine))
             .unwrap();
-        let ala_ca_atom = Atom::new(3, "CA", ala_id, Point3::new(2.0, 1.0, 0.0));
+        let ala_ca_atom = Atom::new("CA", ala_id, Point3::new(2.0, 1.0, 0.0));
+
         let ala_ca_id = system.add_atom_to_residue(ala_id, ala_ca_atom).unwrap();
+        key_atom_ids.insert("ALA_2_CA".to_string(), ala_ca_id);
+
         system
             .add_bond(ca_id, ala_ca_id, BondOrder::Single)
             .unwrap();
 
-        system
+        (system, key_atom_ids)
     }
 
     #[test]
     fn system_creation_and_access() {
-        let system = create_test_system();
+        let (system, key_atom_ids) = create_test_system();
 
         assert_eq!(system.atoms_iter().count(), 3);
         assert_eq!(system.residues_iter().count(), 2);
         assert_eq!(system.chains_iter().count(), 1);
-        assert_eq!(system.bonds.len(), 2);
+        assert_eq!(system.bonds().len(), 2);
 
         let chain_a_id = system.find_chain_by_id('A').unwrap();
         assert!(system.find_chain_by_id('B').is_none());
@@ -234,18 +243,18 @@ mod tests {
         assert_eq!(system.residue(gly_id).unwrap().name, "GLY");
         assert_eq!(system.residue(ala_id).unwrap().name, "ALA");
 
-        let atom_n_id = system.find_atom_by_serial(1).unwrap();
+        let atom_n_id = *key_atom_ids.get("GLY_1_N").unwrap();
         assert_eq!(system.atom(atom_n_id).unwrap().name, "N");
     }
 
     #[test]
     fn atom_removal_updates_system_correctly() {
-        let mut system = create_test_system();
-        let atom_n_id = system.find_atom_by_serial(1).unwrap();
-        let atom_ca_id = system.find_atom_by_serial(2).unwrap();
+        let (mut system, key_atom_ids) = create_test_system();
+        let atom_n_id = *key_atom_ids.get("GLY_1_N").unwrap();
+        let atom_ca_id = *key_atom_ids.get("GLY_1_CA").unwrap();
 
-        assert_eq!(system.bonds.len(), 2);
-        assert!(system.bonds.iter().any(|b| b.contains(atom_n_id)));
+        assert_eq!(system.bonds().len(), 2);
+        assert!(system.bonds().iter().any(|b| b.contains(atom_n_id)));
         assert!(system.atom(atom_n_id).is_some());
         let residue_id = system.atom(atom_n_id).unwrap().residue_id;
         assert_eq!(system.residue(residue_id).unwrap().residue_number, 1);
@@ -255,9 +264,8 @@ mod tests {
 
         assert_eq!(system.atoms_iter().count(), 2);
         assert!(system.atom(atom_n_id).is_none());
-        assert!(system.find_atom_by_serial(1).is_none());
 
-        assert_eq!(system.bonds.len(), 1);
+        assert_eq!(system.bonds().len(), 1);
 
         assert!(system.bond_adjacency.get(atom_n_id).is_none());
         assert!(!system.bond_adjacency[atom_ca_id].contains(&atom_n_id));
@@ -267,16 +275,18 @@ mod tests {
         assert_eq!(system.residue(gly_id).unwrap().atoms().len(), 1);
         assert!(!system.residue(gly_id).unwrap().atoms().contains(&atom_n_id));
     }
+
     #[test]
     fn residue_removal_updates_system_correctly() {
-        let mut system = create_test_system();
+        let (mut system, key_atom_ids) = create_test_system();
+        let atom_ala_ca_id = *key_atom_ids.get("ALA_2_CA").unwrap();
 
         let chain_a_id = system.find_chain_by_id('A').unwrap();
         let gly_id = system.find_residue_by_id(chain_a_id, 1).unwrap();
 
         assert_eq!(system.atoms_iter().count(), 3);
         assert_eq!(system.residues_iter().count(), 2);
-        assert_eq!(system.bonds.len(), 2);
+        assert_eq!(system.bonds().len(), 2);
         assert_eq!(system.chain(chain_a_id).unwrap().residues().len(), 2);
 
         let removed_residue = system.remove_residue(gly_id).unwrap();
@@ -287,11 +297,15 @@ mod tests {
         assert!(system.find_residue_by_id(chain_a_id, 1).is_none());
 
         assert_eq!(system.atoms_iter().count(), 1);
-        assert!(system.find_atom_by_serial(1).is_none());
-        assert!(system.find_atom_by_serial(2).is_none());
-        assert!(system.find_atom_by_serial(3).is_some());
+        assert!(system.atom(*key_atom_ids.get("GLY_1_N").unwrap()).is_none());
+        assert!(
+            system
+                .atom(*key_atom_ids.get("GLY_1_CA").unwrap())
+                .is_none()
+        );
+        assert!(system.atom(atom_ala_ca_id).is_some());
 
-        assert!(system.bonds.is_empty());
+        assert!(system.bonds().is_empty());
 
         assert_eq!(system.chain(chain_a_id).unwrap().residues().len(), 1);
         assert!(
@@ -305,7 +319,7 @@ mod tests {
 
     #[test]
     fn system_creation_and_access_with_residue_type() {
-        let system = create_test_system();
+        let (system, _) = create_test_system();
         let chain_a_id = system.find_chain_by_id('A').unwrap();
         let gly_id = system.find_residue_by_id(chain_a_id, 1).unwrap();
         let ala_id = system.find_residue_by_id(chain_a_id, 2).unwrap();
@@ -323,18 +337,27 @@ mod tests {
 
     #[test]
     fn get_bonded_neighbors_returns_correct_neighbors() {
-        let system = create_test_system();
-        let atom_n_id = system.find_atom_by_serial(1).unwrap();
-        let atom_ca_id = system.find_atom_by_serial(2).unwrap();
-        let atom_ala_ca_id = system.find_atom_by_serial(3).unwrap();
+        let (system, _) = create_test_system();
+
+        let chain_a_id = system.find_chain_by_id('A').unwrap();
+        let gly_residue = system
+            .residue(system.find_residue_by_id(chain_a_id, 1).unwrap())
+            .unwrap();
+        let ala_residue = system
+            .residue(system.find_residue_by_id(chain_a_id, 2).unwrap())
+            .unwrap();
+
+        let atom_n_id = gly_residue.get_atom_id_by_name("N").unwrap();
+        let atom_gly_ca_id = gly_residue.get_atom_id_by_name("CA").unwrap();
+        let atom_ala_ca_id = ala_residue.get_atom_id_by_name("CA").unwrap();
 
         let neighbors_n = system.get_bonded_neighbors(atom_n_id).unwrap();
-        assert_eq!(neighbors_n, &[atom_ca_id]);
+        assert_eq!(neighbors_n, &[atom_gly_ca_id]);
 
-        let neighbors_ca = system.get_bonded_neighbors(atom_ca_id).unwrap();
+        let neighbors_ca = system.get_bonded_neighbors(atom_gly_ca_id).unwrap();
         assert_eq!(neighbors_ca, &[atom_n_id, atom_ala_ca_id]);
 
         let neighbors_ala_ca = system.get_bonded_neighbors(atom_ala_ca_id).unwrap();
-        assert_eq!(neighbors_ala_ca, &[atom_ca_id]);
+        assert_eq!(neighbors_ala_ca, &[atom_gly_ca_id]);
     }
 }
