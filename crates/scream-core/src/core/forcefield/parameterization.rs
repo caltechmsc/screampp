@@ -377,7 +377,7 @@ mod tests {
         atom.force_field_type = "H___A".to_string();
         atom.partial_charge = 0.35;
 
-        let mut ff_for_hbond = create_dummy_forcefield_for_atom_test();
+        let ff_for_hbond = create_dummy_forcefield_for_atom_test();
         let parameterizer_for_hbond = Parameterizer::new(ff_for_hbond, 1.0);
         let result = parameterizer_for_hbond.parameterize_atom(&mut atom, "ALA");
 
