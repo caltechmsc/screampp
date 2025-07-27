@@ -31,7 +31,7 @@ pub fn run(
         .iter()
         .map(|&residue_id| {
             let residue = system.residue(residue_id).unwrap();
-            let residue_type = residue.residue_type.unwrap();
+            let res_type = residue.residue_type.unwrap();
             let rotamer_idx = current_rotamers.get(&residue_id).unwrap();
 
             el_cache
@@ -270,11 +270,9 @@ mod tests {
             Err(EngineError::Scoring {
                 source:
                     ScoringError::EnergyCalculation {
-                        source: EnergyCalculationError::UnparameterizedAtom(_),
+                        source: EnergyCalculationError::UnparameterizedAtom { .. },
                     },
-            }) => {
-                // Test passes
-            }
+            }) => {}
             _ => panic!(
                 "Expected EngineError::Scoring with EnergyCalculationError::UnparameterizedAtom, but got {:?}",
                 result
@@ -291,7 +289,7 @@ mod tests {
         let res3_id = system
             .add_residue(chain_id, 3, "LEU", Some(ResidueType::Leucine))
             .unwrap();
-        let mut atom3 = Atom::new(3, "CA", res3_id, Point3::new(0.0, 5.0, 0.0));
+        let mut atom3 = Atom::new("CA", res3_id, Point3::new(0.0, 5.0, 0.0));
         atom3.force_field_type = "C".to_string();
         atom3.vdw_param = CachedVdwParam::LennardJones {
             radius: 4.0,
@@ -332,18 +330,9 @@ mod tests {
         let interaction23 = scorer.score_interaction(atoms2, atoms3).unwrap();
         let total_interaction = interaction12 + interaction13 + interaction23;
 
-        let el_energy = el_cache
-            .get(res1_id, ResidueType::Alanine, 0)
-            .unwrap()
-            .clone()
-            + el_cache
-                .get(res2_id, ResidueType::Glycine, 1)
-                .unwrap()
-                .clone()
-            + el_cache
-                .get(res3_id, ResidueType::Leucine, 0)
-                .unwrap()
-                .clone();
+        let el_energy = *el_cache.get(res1_id, ResidueType::Alanine, 0).unwrap()
+            + *el_cache.get(res2_id, ResidueType::Glycine, 1).unwrap()
+            + *el_cache.get(res3_id, ResidueType::Leucine, 0).unwrap();
 
         let expected_total_energy = el_energy + total_interaction;
 
