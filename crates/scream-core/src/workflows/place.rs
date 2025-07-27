@@ -537,20 +537,20 @@ fn run_simulated_annealing<'a>(
             )?
             .total();
 
-            let delta_E = energy_after_change - current_total_energy;
+            let delta_e = energy_after_change - current_total_energy;
 
-            if delta_E < 0.0 {
-                info!("  SA accepted: Delta_E={:.4} (downhill)", delta_E);
+            if delta_e < 0.0 {
+                info!("  SA accepted: ΔE={:.4} (downhill)", delta_e);
                 state.working_state.system = temp_system_for_eval;
                 state.working_state.rotamers = temp_rotamers_for_eval;
                 state.current_energy = energy_after_change;
                 state.submit_current_solution();
             } else {
-                let acceptance_probability = (-delta_E / current_temperature).exp();
+                let acceptance_probability = (-delta_e / current_temperature).exp();
                 if rng.r#gen::<f64>() < acceptance_probability {
                     info!(
-                        "  SA accepted: Delta_E={:.4} (uphill, prob={:.4})",
-                        delta_E, acceptance_probability
+                        "  SA accepted: ΔE={:.4} (uphill, prob={:.4})",
+                        delta_e, acceptance_probability
                     );
                     state.working_state.system = temp_system_for_eval;
                     state.working_state.rotamers = temp_rotamers_for_eval;
@@ -558,8 +558,8 @@ fn run_simulated_annealing<'a>(
                     state.submit_current_solution();
                 } else {
                     info!(
-                        "  SA rejected: Delta_E={:.4} (uphill, prob={:.4})",
-                        delta_E, acceptance_probability
+                        "  SA rejected: ΔE={:.4} (uphill, prob={:.4})",
+                        delta_e, acceptance_probability
                     );
                 }
             }
