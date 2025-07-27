@@ -1,12 +1,18 @@
 use super::potentials;
 use crate::core::models::atom::{Atom, CachedVdwParam};
+use crate::core::models::ids::ResidueId;
 use std::f64::consts::PI;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum EnergyCalculationError {
-    #[error("Atom with serial {0} is not parameterized for VDW calculation")]
-    UnparameterizedAtom(usize),
+    #[error(
+        "Atom '{atom_name}' in residue {residue_id:?} is not parameterized for VDW calculation"
+    )]
+    UnparameterizedAtom {
+        atom_name: String,
+        residue_id: ResidueId,
+    },
 }
 
 pub struct EnergyCalculator;
@@ -20,7 +26,10 @@ impl EnergyCalculator {
                 well_depth,
                 scale,
             } => Ok((radius, well_depth, scale)),
-            CachedVdwParam::None => Err(EnergyCalculationError::UnparameterizedAtom(atom.serial)),
+            CachedVdwParam::None => Err(EnergyCalculationError::UnparameterizedAtom {
+                atom_name: atom.name.clone(),
+                residue_id: atom.residue_id,
+            }),
         };
 
         let (r_min1, well_depth1, scale1) = extract_params(atom1)?;
