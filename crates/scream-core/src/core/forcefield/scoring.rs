@@ -328,6 +328,32 @@ mod tests {
     }
 
     #[test]
+    fn ignores_1_3_peptide_bond_interactions() {
+        let mut system = MolecularSystem::new();
+        let ff = create_test_forcefield();
+
+        let chain_id = system.add_chain('A', crate::core::models::chain::ChainType::Protein);
+        let res1_id = system.add_residue(chain_id, 1, "RES", None).unwrap();
+        let res2_id = system.add_residue(chain_id, 2, "RES", None).unwrap();
+
+        let atom_c_res1 = create_atom("C", res1_id, Point3::new(0.0, 0.0, 0.0), "C", 0.5, -1);
+        let atom_n_res2 = create_atom("N", res2_id, Point3::new(1.3, 0.0, 0.0), "N", -0.5, -1);
+        let atom_ca_res2 = create_atom("CA", res2_id, Point3::new(1.8, 1.2, 0.0), "C", 0.1, -1);
+
+        let id_c1 = system.add_atom_to_residue(res1_id, atom_c_res1).unwrap();
+        let id_n2 = system.add_atom_to_residue(res2_id, atom_n_res2).unwrap();
+        let id_ca2 = system.add_atom_to_residue(res2_id, atom_ca_res2).unwrap();
+
+        system.add_bond(id_c1, id_n2, BondOrder::Single).unwrap();
+        system.add_bond(id_n2, id_ca2, BondOrder::Single).unwrap();
+
+        let scorer = Scorer::new(&system, &ff);
+        let energy = scorer.score_interaction(&[id_c1], &[id_ca2]).unwrap();
+
+        assert_eq!(energy.total(), 0.0);
+    }
+
+    #[test]
     fn scores_hydrogen_bond_between_query_and_environment() {
         let mut system = MolecularSystem::new();
         let ff = create_test_forcefield();
