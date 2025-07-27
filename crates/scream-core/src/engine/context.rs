@@ -278,17 +278,17 @@ mod tests {
             .unwrap();
 
         let atom_ala =
-            crate::core::models::atom::Atom::new(1, "CA", res_ala_id, Point3::new(5.0, 0.0, 0.0));
+            crate::core::models::atom::Atom::new("CA", res_ala_id, Point3::new(5.0, 0.0, 0.0));
         system.add_atom_to_residue(res_ala_id, atom_ala).unwrap();
 
         let atom_lys =
-            crate::core::models::atom::Atom::new(2, "CA", res_lys_id, Point3::new(10.0, 0.0, 0.0));
+            crate::core::models::atom::Atom::new("CA", res_lys_id, Point3::new(10.0, 0.0, 0.0));
         system.add_atom_to_residue(res_lys_id, atom_lys).unwrap();
 
         let chain_b_id = system.add_chain('B', ChainType::Ligand);
         let res_lig_id = system.add_residue(chain_b_id, 10, "LIG", None).unwrap();
         let atom_lig =
-            crate::core::models::atom::Atom::new(3, "C1", res_lig_id, Point3::new(0.0, 0.0, 0.0));
+            crate::core::models::atom::Atom::new("C1", res_lig_id, Point3::new(0.0, 0.0, 0.0));
         system.add_atom_to_residue(res_lig_id, atom_lig).unwrap();
 
         let mut library = RotamerLibrary::default();
