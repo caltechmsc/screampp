@@ -30,8 +30,8 @@ where
 {
     let residue_a = system.residue(res_a_id).unwrap();
     let residue_b = system.residue(res_b_id).unwrap();
-    let res_type_a = residue_a.res_type.unwrap();
-    let res_type_b = residue_b.res_type.unwrap();
+    let res_type_a = residue_a.residue_type.unwrap();
+    let res_type_b = residue_b.residue_type.unwrap();
 
     let rotamers_a = context
         .rotamer_library
