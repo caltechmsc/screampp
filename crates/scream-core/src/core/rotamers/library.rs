@@ -41,11 +41,11 @@ pub enum LibraryLoadError {
     )]
     MissingPlacementInfo(String),
     #[error(
-        "Parameterization failed for residue '{res_type}' in rotamer from file '{path}': {source}"
+        "Parameterization failed for residue '{residue_type}' in rotamer from file '{path}': {source}"
     )]
     Parameterization {
         path: String,
-        res_type: String,
+        residue_type: String,
         source: ParameterizationError,
     },
 }
@@ -86,14 +86,14 @@ impl RotamerLibrary {
         let mut final_placement_map = HashMap::new();
 
         for (res_name, raw_rotamer_list) in raw_lib {
-            let res_type = ResidueType::from_str(&res_name)
+            let residue_type = ResidueType::from_str(&res_name)
                 .map_err(|_| LibraryLoadError::UnknownResidueType(res_name.clone()))?;
 
             let placement_data = placement_registry
                 .get(&res_name)
                 .ok_or_else(|| LibraryLoadError::MissingPlacementInfo(res_name.clone()))?
                 .clone();
-            final_placement_map.insert(res_type, placement_data);
+            final_placement_map.insert(residue_type, placement_data);
 
             let mut parameterized_rotamers = Vec::with_capacity(raw_rotamer_list.len());
             let placeholder_residue_id = ResidueId::default();
@@ -114,7 +114,7 @@ impl RotamerLibrary {
                         .parameterize_atom(&mut atom, &res_name)
                         .map_err(|e| LibraryLoadError::Parameterization {
                             path: rotamer_toml_path.to_string_lossy().to_string(),
-                            res_type: res_name.clone(),
+                            residue_type: res_name.clone(),
                             source: e,
                         })?;
 
@@ -123,7 +123,7 @@ impl RotamerLibrary {
                 parameterized_rotamers.push(Rotamer { atoms });
             }
 
-            final_rotamers_map.insert(res_type, parameterized_rotamers);
+            final_rotamers_map.insert(residue_type, parameterized_rotamers);
         }
 
         Ok(Self {
@@ -132,12 +132,12 @@ impl RotamerLibrary {
         })
     }
 
-    pub fn get_rotamers_for(&self, res_type: ResidueType) -> Option<&Vec<Rotamer>> {
-        self.rotamers.get(&res_type)
+    pub fn get_rotamers_for(&self, residue_type: ResidueType) -> Option<&Vec<Rotamer>> {
+        self.rotamers.get(&residue_type)
     }
 
-    pub fn get_placement_info_for(&self, res_type: ResidueType) -> Option<&PlacementInfo> {
-        self.placement_info.get(&res_type)
+    pub fn get_placement_info_for(&self, residue_type: ResidueType) -> Option<&PlacementInfo> {
+        self.placement_info.get(&residue_type)
     }
 
     pub fn include_system_conformations(
@@ -154,14 +154,14 @@ impl RotamerLibrary {
                 None => continue,
             };
 
-            let res_type = match residue.res_type {
+            let residue_type = match residue.residue_type {
                 Some(rt) => rt,
                 None => continue,
             };
 
             let (existing_rotamers, placement_info) = match (
-                self.rotamers.get(&res_type),
-                self.placement_info.get(&res_type),
+                self.rotamers.get(&residue_type),
+                self.placement_info.get(&residue_type),
             ) {
                 (Some(rots), Some(info)) => (rots, info),
                 _ => continue,
@@ -197,13 +197,13 @@ impl RotamerLibrary {
 
             if !is_duplicate {
                 new_rotamers_to_add
-                    .entry(res_type)
+                    .entry(residue_type)
                     .or_insert(extracted_rotamer);
             }
         }
 
-        for (res_type, new_rotamer) in new_rotamers_to_add {
-            if let Some(rotamers) = self.rotamers.get_mut(&res_type) {
+        for (residue_type, new_rotamer) in new_rotamers_to_add {
+            if let Some(rotamers) = self.rotamers.get_mut(&residue_type) {
                 rotamers.push(new_rotamer);
             }
         }
@@ -231,7 +231,7 @@ mod tests {
         deltas.insert(
             ("ALA".to_string(), "CA".to_string()),
             DeltaParam {
-                res_type: "ALA".to_string(),
+                residue_type: "ALA".to_string(),
                 atom_name: "CA".to_string(),
                 mu: 1.0,
                 sigma: 0.0,
