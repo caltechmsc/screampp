@@ -129,7 +129,7 @@ mod energy_calculator_tests {
 
     #[test]
     fn calculate_vdw_combines_lj_and_buckingham_correctly() {
-        let mut atom1 = atom_with_params(1, [0.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(1));
+        let atom1 = atom_with_params(1, [0.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(1));
         let mut atom2 = atom_with_params(2, [2.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(2));
         atom2.vdw_param = CachedVdwParam::Buckingham {
             radius: 2.0,
