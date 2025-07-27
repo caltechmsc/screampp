@@ -83,7 +83,9 @@ where
         let mut is_design_site = false;
         if let Some(design_spec) = context.config.design_spec() {
             let chain = context.system.chain(residue.chain_id).unwrap();
-            if let Some(allowed_types) = design_spec.get_by_specifier(chain.id, residue.res_seq) {
+            if let Some(allowed_types) =
+                design_spec.get_by_specifier(chain.id, residue.residue_number)
+            {
                 for &residue_type in allowed_types {
                     work_list.push(WorkUnit {
                         residue_id,
