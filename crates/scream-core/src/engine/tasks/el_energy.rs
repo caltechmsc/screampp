@@ -241,16 +241,16 @@ mod tests {
 
     fn create_test_rotamer_library() -> RotamerLibrary {
         let mut atoms = Vec::new();
-        let mut n = Atom::new(1, "N", ResidueId::default(), Point3::new(0.0, 1.0, 0.0));
+        let mut n = Atom::new("N", ResidueId::default(), Point3::new(0.0, 1.0, 0.0));
         n.force_field_type = "N_BB".to_string();
         atoms.push(n);
-        let mut ca = Atom::new(2, "CA", ResidueId::default(), Point3::new(0.0, 0.0, 0.0));
+        let mut ca = Atom::new("CA", ResidueId::default(), Point3::new(0.0, 0.0, 0.0));
         ca.force_field_type = "C_BB".to_string();
         atoms.push(ca);
-        let mut c = Atom::new(3, "C", ResidueId::default(), Point3::new(1.0, 0.0, 0.0));
+        let mut c = Atom::new("C", ResidueId::default(), Point3::new(1.0, 0.0, 0.0));
         c.force_field_type = "C_BB".to_string();
         atoms.push(c);
-        let mut cb = Atom::new(4, "CB", ResidueId::default(), Point3::new(0.0, -1.0, -1.0));
+        let mut cb = Atom::new("CB", ResidueId::default(), Point3::new(0.0, -1.0, -1.0));
         cb.force_field_type = "C_SC".to_string();
         atoms.push(cb);
 
@@ -391,24 +391,24 @@ mod tests {
         let chain_a = system.find_chain_by_id('A').unwrap();
 
         let res1_id = system.find_residue_by_id(chain_a, 1).unwrap();
-        let mut n1 = Atom::new(1, "N", res1_id, Point3::new(0.0, 1.0, 0.0));
+        let mut n1 = Atom::new("N", res1_id, Point3::new(0.0, 1.0, 0.0));
         n1.force_field_type = "N_BB".to_string();
         system.add_atom_to_residue(res1_id, n1).unwrap();
-        let mut ca1 = Atom::new(2, "CA", res1_id, Point3::new(0.0, 0.0, 0.0));
+        let mut ca1 = Atom::new("CA", res1_id, Point3::new(0.0, 0.0, 0.0));
         ca1.force_field_type = "C_BB".to_string();
         system.add_atom_to_residue(res1_id, ca1).unwrap();
-        let mut c1 = Atom::new(3, "C", res1_id, Point3::new(1.0, 0.0, 0.0));
+        let mut c1 = Atom::new("C", res1_id, Point3::new(1.0, 0.0, 0.0));
         c1.force_field_type = "C_BB".to_string();
         system.add_atom_to_residue(res1_id, c1).unwrap();
 
         let res3_id = system.find_residue_by_id(chain_a, 3).unwrap();
-        let mut n3 = Atom::new(4, "N", res3_id, Point3::new(2.0, 1.0, 0.0));
+        let mut n3 = Atom::new("N", res3_id, Point3::new(2.0, 1.0, 0.0));
         n3.force_field_type = "N_BB".to_string();
         system.add_atom_to_residue(res3_id, n3).unwrap();
-        let mut ca3 = Atom::new(5, "CA", res3_id, Point3::new(2.0, 0.0, 0.0));
+        let mut ca3 = Atom::new("CA", res3_id, Point3::new(2.0, 0.0, 0.0));
         ca3.force_field_type = "C_BB".to_string();
         system.add_atom_to_residue(res3_id, ca3).unwrap();
-        let mut c3 = Atom::new(6, "C", res3_id, Point3::new(3.0, 0.0, 0.0));
+        let mut c3 = Atom::new("C", res3_id, Point3::new(3.0, 0.0, 0.0));
         c3.force_field_type = "C_BB".to_string();
         system.add_atom_to_residue(res3_id, c3).unwrap();
 
