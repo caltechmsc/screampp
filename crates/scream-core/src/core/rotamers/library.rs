@@ -102,7 +102,6 @@ impl RotamerLibrary {
                 let mut atoms = Vec::with_capacity(raw_rotamer.atoms.len());
                 for atom_data in raw_rotamer.atoms {
                     let mut atom = Atom::new(
-                        atom_data.serial,
                         &atom_data.atom_name,
                         placeholder_residue_id,
                         Point3::from(atom_data.position),
