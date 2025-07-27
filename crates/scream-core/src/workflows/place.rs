@@ -130,20 +130,24 @@ fn initialize_state<'a>(
     let mut working_system = initial_system.clone();
 
     for &residue_id in active_residues {
-        let res_type = working_system
+        let residue_type = working_system
             .residue(residue_id)
-            .and_then(|r| r.res_type)
+            .and_then(|r| r.residue_type)
             .ok_or(EngineError::Internal(format!(
                 "Active residue {:?} has no residue type.",
                 residue_id
             )))?;
 
-        if let Some((ground_state_idx, _)) = el_cache.find_ground_state_for(residue_id, res_type) {
-            let rotamer =
-                &context.rotamer_library.get_rotamers_for(res_type).unwrap()[ground_state_idx];
+        if let Some((ground_state_idx, _)) =
+            el_cache.find_ground_state_for(residue_id, residue_type)
+        {
+            let rotamer = &context
+                .rotamer_library
+                .get_rotamers_for(residue_type)
+                .unwrap()[ground_state_idx];
             let p_info = context
                 .rotamer_library
-                .get_placement_info_for(res_type)
+                .get_placement_info_for(residue_type)
                 .unwrap();
             place_rotamer_on_system(&mut working_system, residue_id, rotamer, p_info)?;
             initial_rotamers.insert(residue_id, ground_state_idx);
@@ -234,7 +238,7 @@ fn resolve_clashes_iteratively<'a>(
             .system
             .residue(res_a_id)
             .unwrap()
-            .res_type
+            .residue_type
             .unwrap();
         let rotamer_a = &context
             .rotamer_library
@@ -260,7 +264,7 @@ fn resolve_clashes_iteratively<'a>(
             .system
             .residue(res_b_id)
             .unwrap()
-            .res_type
+            .residue_type
             .unwrap();
         let rotamer_b = &context
             .rotamer_library
@@ -345,17 +349,20 @@ fn final_refinement<'a>(
         residues_to_process.shuffle(&mut thread_rng());
 
         for &residue_id in &residues_to_process {
-            let res_type = state
+            let residue_type = state
                 .working_state
                 .system
                 .residue(residue_id)
                 .unwrap()
-                .res_type
+                .residue_type
                 .unwrap();
-            let rotamers = context.rotamer_library.get_rotamers_for(res_type).unwrap();
+            let rotamers = context
+                .rotamer_library
+                .get_rotamers_for(residue_type)
+                .unwrap();
             let p_info = context
                 .rotamer_library
-                .get_placement_info_for(res_type)
+                .get_placement_info_for(residue_type)
                 .unwrap();
 
             let current_rot_idx = *state.working_state.rotamers.get(&residue_id).unwrap();
@@ -474,17 +481,20 @@ fn run_simulated_annealing<'a>(
         for _step in 0..steps_per_temperature {
             let residue_to_perturb_id = *active_residues_vec.choose(&mut rng).unwrap();
 
-            let res_type = state
+            let residue_type = state
                 .working_state
                 .system
                 .residue(residue_to_perturb_id)
                 .unwrap()
-                .res_type
+                .residue_type
                 .unwrap();
-            let rotamers = context.rotamer_library.get_rotamers_for(res_type).unwrap();
+            let rotamers = context
+                .rotamer_library
+                .get_rotamers_for(residue_type)
+                .unwrap();
             let p_info = context
                 .rotamer_library
-                .get_placement_info_for(res_type)
+                .get_placement_info_for(residue_type)
                 .unwrap();
 
             if rotamers.len() <= 1 {
