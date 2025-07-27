@@ -182,7 +182,7 @@ impl MolecularSystem {
         }
 
         // 3. Remove from residue maps
-        self.residue_id_map.remove(&(residue.chain_id, residue.id));
+        self.residue_id_map.remove(&(residue.chain_id, residue.res_seq));
 
         // 4. Finally, remove the residue itself
         self.residues.remove(residue_id)
@@ -257,7 +257,7 @@ mod tests {
         assert!(system.bonds.iter().any(|b| b.contains(atom_n_id)));
         assert!(system.atom(atom_n_id).is_some());
         let residue_id = system.atom(atom_n_id).unwrap().residue_id;
-        assert_eq!(system.residue(residue_id).unwrap().id, 1);
+        assert_eq!(system.residue(residue_id).unwrap().res_seq, 1);
 
         let removed_atom = system.remove_atom(atom_n_id).unwrap();
         assert_eq!(removed_atom.name, "N");
