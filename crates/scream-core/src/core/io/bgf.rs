@@ -108,7 +108,7 @@ impl MolecularFile for BgfFile {
             let res_seq = atom_info.res_seq;
             let mut new_residue = false;
             if let Some(id) = current_residue_id {
-                if system.residue(id).unwrap().res_seq != res_seq {
+                if system.residue(id).unwrap().residue_number != res_seq {
                     new_residue = true;
                 }
             } else {
@@ -354,7 +354,7 @@ fn format_atom_line(
         atom.name,
         residue.name,
         chain.id,
-        residue.res_seq,
+        residue.residue_number,
         atom.position.x,
         atom.position.y,
         atom.position.z,
