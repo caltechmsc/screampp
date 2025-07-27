@@ -138,7 +138,7 @@ mod tests {
         let res1_id = system
             .add_residue(chain_a, 1, "ALA", Some(ResidueType::Alanine))
             .unwrap();
-        let mut atom1 = Atom::new(1, "CA", res1_id, Point3::new(0.0, 0.0, 0.0));
+        let mut atom1 = Atom::new("CA", res1_id, Point3::new(0.0, 0.0, 0.0));
         atom1.force_field_type = "C".to_string();
         atom1.vdw_param = CachedVdwParam::LennardJones {
             radius: 1.7,
@@ -149,7 +149,7 @@ mod tests {
         let res2_id = system
             .add_residue(chain_a, 2, "LEU", Some(ResidueType::Leucine))
             .unwrap();
-        let mut atom2 = Atom::new(2, "CA", res2_id, Point3::new(10.0, 0.0, 0.0));
+        let mut atom2 = Atom::new("CA", res2_id, Point3::new(10.0, 0.0, 0.0));
         atom2.force_field_type = "C".to_string();
         atom2.vdw_param = CachedVdwParam::LennardJones {
             radius: 1.7,
@@ -226,7 +226,7 @@ mod tests {
         let res3_id = system
             .add_residue(chain_a, 3, "LEU", Some(ResidueType::Leucine))
             .unwrap();
-        let mut atom3 = Atom::new(3, "CA", res3_id, Point3::new(1.5, 0.0, 0.0));
+        let mut atom3 = Atom::new("CA", res3_id, Point3::new(1.5, 0.0, 0.0));
         atom3.force_field_type = "C".to_string();
         atom3.vdw_param = CachedVdwParam::LennardJones {
             radius: 1.7,
