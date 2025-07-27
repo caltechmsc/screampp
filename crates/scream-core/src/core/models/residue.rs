@@ -124,7 +124,7 @@ impl ResidueType {
 pub struct Residue {
     pub residue_number: isize, // Residue sequence number from source file
     pub name: String,          // Name of the residue (e.g., "ALA", "GLY")
-    pub res_type: Option<ResidueType>, // Optional residue type (e.g., Alanine, Glycine)
+    pub residue_type: Option<ResidueType>, // Optional residue type (e.g., Alanine, Glycine)
     pub chain_id: ChainId,     // ID of the parent chain
     pub(crate) atoms: Vec<AtomId>, // Indices of atoms belonging to this residue
     atom_name_map: HashMap<String, AtomId>, // Map from atom name to its stable ID
@@ -134,13 +134,13 @@ impl Residue {
     pub(crate) fn new(
         residue_number: isize,
         name: &str,
-        res_type: Option<ResidueType>,
+        residue_type: Option<ResidueType>,
         chain_id: ChainId,
     ) -> Self {
         Self {
             residue_number,
             name: name.to_string(),
-            res_type,
+            residue_type: residue_type,
             chain_id,
             atoms: Vec::new(),
             atom_name_map: HashMap::new(),
