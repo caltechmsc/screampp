@@ -140,7 +140,7 @@ impl Residue {
         Self {
             residue_number,
             name: name.to_string(),
-            residue_type: residue_type,
+            residue_type,
             chain_id,
             atoms: Vec::new(),
             atom_name_map: HashMap::new(),
