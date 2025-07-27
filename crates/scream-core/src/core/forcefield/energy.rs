@@ -91,7 +91,7 @@ impl EnergyCalculator {
 }
 
 #[cfg(test)]
-mod energy_calculator_tests {
+mod tests {
     use super::*;
     use crate::core::models::atom::Atom;
     use crate::core::models::ids::ResidueId;
@@ -103,13 +103,13 @@ mod energy_calculator_tests {
     }
 
     fn atom_with_params(
-        serial: usize,
+        name: &str,
         pos: [f64; 3],
         charge: f64,
         delta: f64,
         residue_id: ResidueId,
     ) -> Atom {
-        let mut atom = Atom::new(serial, "X", residue_id, Point3::new(pos[0], pos[1], pos[2]));
+        let mut atom = Atom::new(name, residue_id, Point3::new(pos[0], pos[1], pos[2]));
         atom.partial_charge = charge;
         atom.delta = delta;
         atom.vdw_param = CachedVdwParam::LennardJones {
@@ -121,7 +121,7 @@ mod energy_calculator_tests {
 
     #[test]
     fn calculate_vdw_returns_finite_for_identical_atoms() {
-        let atom = atom_with_params(1, [0.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(1));
+        let atom = atom_with_params("X", [0.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(1));
         let energy =
             EnergyCalculator::calculate_vdw(&atom, &atom).expect("vdw calculation should succeed");
         assert!(energy.is_finite());
@@ -129,8 +129,8 @@ mod energy_calculator_tests {
 
     #[test]
     fn calculate_vdw_combines_lj_and_buckingham_correctly() {
-        let atom1 = atom_with_params(1, [0.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(1));
-        let mut atom2 = atom_with_params(2, [2.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(2));
+        let atom1 = atom_with_params("X1", [0.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(1));
+        let mut atom2 = atom_with_params("X2", [2.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(2));
         atom2.vdw_param = CachedVdwParam::Buckingham {
             radius: 2.0,
             well_depth: 1.0,
@@ -143,8 +143,8 @@ mod energy_calculator_tests {
 
     #[test]
     fn calculate_vdw_with_nonzero_delta_applies_flat_bottom() {
-        let atom1 = atom_with_params(1, [0.0, 0.0, 0.0], 0.0, 1.0, residue_id_from_usize(1));
-        let atom2 = atom_with_params(2, [0.5, 0.0, 0.0], 0.0, 1.0, residue_id_from_usize(2));
+        let atom1 = atom_with_params("X1", [0.0, 0.0, 0.0], 0.0, 1.0, residue_id_from_usize(1));
+        let atom2 = atom_with_params("X2", [0.5, 0.0, 0.0], 0.0, 1.0, residue_id_from_usize(2));
         let energy = EnergyCalculator::calculate_vdw(&atom1, &atom2)
             .expect("vdw calculation should succeed");
         assert!(energy.is_finite());
@@ -152,64 +152,71 @@ mod energy_calculator_tests {
 
     #[test]
     fn calculate_coulomb_returns_zero_for_zero_charges() {
-        let atom1 = atom_with_params(1, [0.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(1));
-        let atom2 = atom_with_params(2, [1.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(2));
+        let atom1 = atom_with_params("X1", [0.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(1));
+        let atom2 = atom_with_params("X2", [1.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(2));
         let energy = EnergyCalculator::calculate_coulomb(&atom1, &atom2, 80.0);
         assert_eq!(energy, 0.0);
     }
 
     #[test]
     fn calculate_coulomb_returns_positive_for_like_charges() {
-        let atom1 = atom_with_params(1, [0.0, 0.0, 0.0], 1.0, 0.0, residue_id_from_usize(1));
-        let atom2 = atom_with_params(2, [1.0, 0.0, 0.0], 1.0, 0.0, residue_id_from_usize(2));
+        let atom1 = atom_with_params("X1", [0.0, 0.0, 0.0], 1.0, 0.0, residue_id_from_usize(1));
+        let atom2 = atom_with_params("X2", [1.0, 0.0, 0.0], 1.0, 0.0, residue_id_from_usize(2));
         let energy = EnergyCalculator::calculate_coulomb(&atom1, &atom2, 80.0);
         assert!(energy > 0.0);
     }
 
     #[test]
     fn calculate_coulomb_returns_negative_for_opposite_charges() {
-        let atom1 = atom_with_params(1, [0.0, 0.0, 0.0], 1.0, 0.0, residue_id_from_usize(1));
-        let atom2 = atom_with_params(2, [1.0, 0.0, 0.0], -1.0, 0.0, residue_id_from_usize(2));
+        let atom1 = atom_with_params("X1", [0.0, 0.0, 0.0], 1.0, 0.0, residue_id_from_usize(1));
+        let atom2 = atom_with_params("X2", [1.0, 0.0, 0.0], -1.0, 0.0, residue_id_from_usize(2));
         let energy = EnergyCalculator::calculate_coulomb(&atom1, &atom2, 80.0);
         assert!(energy < 0.0);
     }
 
     #[test]
     fn calculate_hbond_returns_zero_for_angle_below_90() {
-        let acceptor = atom_with_params(1, [0.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(1));
-        let hydrogen = atom_with_params(2, [1.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(1));
-        let donor = atom_with_params(3, [0.5, 0.5, 0.0], 0.0, 0.0, residue_id_from_usize(2));
+        let acceptor = atom_with_params("A", [0.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(1));
+        let hydrogen = atom_with_params("H", [1.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(1));
+        let donor = atom_with_params("D", [0.5, 0.5, 0.0], 0.0, 0.0, residue_id_from_usize(2));
         let energy = EnergyCalculator::calculate_hbond(&acceptor, &hydrogen, &donor, 2.0, 1.0);
         assert_eq!(energy, 0.0);
     }
 
     #[test]
     fn calculate_hbond_returns_nonzero_for_angle_above_90() {
-        let acceptor = atom_with_params(1, [0.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(1));
-        let hydrogen = atom_with_params(2, [1.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(1));
-        let donor = atom_with_params(3, [1.0, 1.0, 0.0], 0.0, 0.0, residue_id_from_usize(2));
+        let acceptor = atom_with_params("A", [0.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(1));
+        let hydrogen = atom_with_params("H", [1.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(1));
+        let donor = atom_with_params("D", [1.0, 1.0, 0.0], 0.0, 0.0, residue_id_from_usize(2));
         let energy = EnergyCalculator::calculate_hbond(&acceptor, &hydrogen, &donor, 2.0, 1.0);
         assert!(energy.is_finite());
     }
 
     #[test]
     fn calculate_hbond_with_nonzero_delta_applies_flat_bottom() {
-        let acceptor = atom_with_params(1, [0.0, 0.0, 0.0], 0.0, 1.0, residue_id_from_usize(1));
-        let hydrogen = atom_with_params(2, [1.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(1));
-        let donor = atom_with_params(3, [1.0, 1.0, 0.0], 0.0, 1.0, residue_id_from_usize(2));
+        let acceptor = atom_with_params("A", [0.0, 0.0, 0.0], 0.0, 1.0, residue_id_from_usize(1));
+        let hydrogen = atom_with_params("H", [1.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(1));
+        let donor = atom_with_params("D", [1.0, 1.0, 0.0], 0.0, 1.0, residue_id_from_usize(2));
         let energy = EnergyCalculator::calculate_hbond(&acceptor, &hydrogen, &donor, 2.0, 1.0);
         assert!(energy.is_finite());
     }
 
     #[test]
     fn calculate_vdw_returns_error_for_unparameterized_atom() {
-        let mut atom1 = atom_with_params(1, [0.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(1));
-        let atom2 = atom_with_params(2, [1.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(2));
+        let residue_id = residue_id_from_usize(1);
+        let mut atom1 = atom_with_params("X1", [0.0, 0.0, 0.0], 0.0, 0.0, residue_id);
+        let atom2 = atom_with_params("X2", [1.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(2));
         atom1.vdw_param = CachedVdwParam::None;
         let result = EnergyCalculator::calculate_vdw(&atom1, &atom2);
-        assert!(matches!(
-            result,
-            Err(EnergyCalculationError::UnparameterizedAtom(1))
-        ));
+        match result {
+            Err(EnergyCalculationError::UnparameterizedAtom {
+                atom_name,
+                residue_id: res_id,
+            }) => {
+                assert_eq!(atom_name, "X1");
+                assert_eq!(res_id, residue_id);
+            }
+            _ => panic!("Expected UnparameterizedAtom error"),
+        }
     }
 }
