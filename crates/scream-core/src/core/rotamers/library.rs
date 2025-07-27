@@ -280,7 +280,7 @@ mod tests {
             r#"
 ALA = [
     { atoms = [
-        { atom_name = "CA", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" }
+        { serial = 1, atom_name = "CA", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" }
     ] }
 ]
 "#,
@@ -325,7 +325,7 @@ ALA = { sidechain_atoms = ["CA"], anchor_atoms = [], connection_points = [], exa
             r#"
 ALA = [
     { atoms = [
-        { atom_name = "CA", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" }
+        { serial = 1, atom_name = "CA", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" }
     ] }
 ]
 "#,
@@ -391,7 +391,7 @@ UNK = [ { atoms = [] } ]
         write_file(
             &rotamer_path,
             r#"
-ALA = [ { atoms = [ { atom_name = "CA", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "UnknownType" } ] } ]
+ALA = [ { atoms = [ { serial = 1, atom_name = "CA", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "UnknownType" } ] } ]
 "#,
         );
         write_file(
