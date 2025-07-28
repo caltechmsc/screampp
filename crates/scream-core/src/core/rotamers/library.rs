@@ -7,8 +7,7 @@ use crate::core::models::ids::ResidueId;
 use crate::core::models::residue::ResidueType;
 use crate::core::models::system::MolecularSystem;
 use nalgebra::Point3;
-use std::collections::HashMap;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::str::FromStr;
 use thiserror::Error;
@@ -47,6 +46,14 @@ pub enum LibraryLoadError {
         residue_type: String,
         source: ParameterizationError,
     },
+    #[error(
+        "Invalid bond definition in rotamer library for residue '{residue_type}': bond references non-existent atom serial '{serial}'"
+    )]
+    InvalidBondSerial { residue_type: String, serial: usize },
+    #[error(
+        "Duplicate atom serial '{serial}' found in rotamer definition for residue '{residue_type}'"
+    )]
+    DuplicateAtomSerial { residue_type: String, serial: usize },
 }
 
 impl RotamerLibrary {
