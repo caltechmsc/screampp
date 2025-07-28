@@ -353,3 +353,203 @@ fn format_atom_line(
         atom.partial_charge
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::models::chain::ChainType;
+    use crate::core::models::residue::ResidueType;
+    use std::io::Cursor;
+
+    const CANONICAL_BGF_DATA: &str = r#"BIOGRF 332
+REMARK A standard, clean BGF file
+ATOM       1 N     GLY A     1  -0.41600  -0.53500   0.00000 N_R    1 3 -0.35000
+ATOM       2 CA    GLY A     1   0.00000   0.00000   1.00000 C_3    1 4  0.07000
+ATOM       3 C     GLY A     1   1.00000   0.00000   0.00000 C_R    1 3  0.51000
+ATOM       4 O     GLY A     1   1.50000   1.00000   0.00000 O_2    1 1 -0.51000
+ATOM       5 N     ALA B     2   2.00000   0.00000   0.00000 N_R    1 3 -0.35000
+ATOM       6 CA    ALA B     2   3.00000   0.00000   1.00000 C_3    1 4  0.07000
+ATOM       7 CB    ALA B     2   3.50000   1.50000   1.00000 C_3    1 4 -0.18000
+REMARK End of atoms
+CONECT     1     2
+CONECT     2     3
+CONECT     3     4
+CONECT     3     5
+CONECT     5     6
+CONECT     6     7
+END
+"#;
+
+    const DISORDERED_BGF_DATA: &str = r#"BIOGRF 332
+REMARK A messy BGF file with non-sequential serials and disordered records.
+HETATM   999 O     HOH W     3      10.0      10.0      10.0 O_3    0 2   -0.834
+ATOM      10 CA    ALA A     2       1.0       1.0       1.0 C_3    0 0    0.070
+ATOM       5 N     ALA A     2       0.0       0.0       0.0 N_R    0 0   -0.350
+ATOM     150 C     GLY A     1       3.0       3.0       3.0 C_R    0 0    0.510
+ATOM       1 N     GLY A     1       2.0       2.0       2.0 N_R    0 0   -0.350
+CONECT    10     5
+CONECT     1   150
+END
+"#;
+
+    #[test]
+    fn read_from_parses_canonical_file_correctly() {
+        let mut reader = Cursor::new(CANONICAL_BGF_DATA);
+        let result = BgfFile::read_from(&mut reader);
+        assert!(
+            result.is_ok(),
+            "Parsing a canonical BGF file should succeed"
+        );
+
+        let (system, metadata) = result.unwrap();
+
+        assert_eq!(metadata.header_lines.len(), 2);
+        assert_eq!(
+            metadata.header_lines[1],
+            "REMARK A standard, clean BGF file"
+        );
+        assert_eq!(metadata.footer_lines.len(), 1);
+
+        assert_eq!(system.atoms_iter().count(), 7);
+        assert_eq!(system.chains_iter().count(), 2);
+        assert_eq!(system.residues_iter().count(), 2);
+        assert_eq!(system.bonds().len(), 6);
+
+        let chain_a_id = system.find_chain_by_id('A').unwrap();
+        let gly_res_id = system.find_residue_by_id(chain_a_id, 1).unwrap();
+        let gly = system.residue(gly_res_id).unwrap();
+
+        assert_eq!(gly.name, "GLY");
+        assert_eq!(gly.residue_type, Some(ResidueType::Glycine));
+        assert_eq!(gly.atoms().len(), 4);
+
+        let n_atom_id = gly.get_atom_id_by_name("N").unwrap();
+        let ca_atom_id = gly.get_atom_id_by_name("CA").unwrap();
+        assert!(
+            system
+                .bonds()
+                .iter()
+                .any(|b| b.contains(n_atom_id) && b.contains(ca_atom_id))
+        );
+    }
+
+    #[test]
+    fn read_from_handles_disordered_file_and_discards_serials() {
+        let mut reader = Cursor::new(DISORDERED_BGF_DATA);
+        let result = BgfFile::read_from(&mut reader);
+        assert!(
+            result.is_ok(),
+            "Parsing a disordered BGF file should succeed"
+        );
+
+        let (system, _) = result.unwrap();
+
+        assert_eq!(system.atoms_iter().count(), 5);
+        assert_eq!(system.chains_iter().count(), 2);
+        assert_eq!(system.residues_iter().count(), 3);
+
+        let chain_a_id = system.find_chain_by_id('A').unwrap();
+        let ala_res_id = system.find_residue_by_id(chain_a_id, 2).unwrap();
+        let ala = system.residue(ala_res_id).unwrap();
+
+        let ala_n_id = ala.get_atom_id_by_name("N").unwrap();
+        let ala_ca_id = ala.get_atom_id_by_name("CA").unwrap();
+
+        assert_eq!(system.bonds().len(), 2);
+        assert!(
+            system
+                .bonds()
+                .iter()
+                .any(|b| b.contains(ala_n_id) && b.contains(ala_ca_id))
+        );
+
+        let any_atom = system.atom(ala_n_id).unwrap();
+
+        assert!(any_atom.name == "N");
+    }
+
+    #[test]
+    fn read_from_fails_on_conect_with_unknown_serial() {
+        let bad_data = "ATOM       1 N     GLY A     1       0.0       0.0       0.0 N_R    1 3 -0.35000\nCONECT     1    99\nEND\n";
+        let mut reader = Cursor::new(bad_data);
+        let result = BgfFile::read_from(&mut reader);
+
+        assert!(matches!(result, Err(BgfError::Parse { line_num: 2, .. })));
+    }
+
+    #[test]
+    fn write_to_produces_canonically_sorted_and_numbered_output() {
+        let mut reader = Cursor::new(DISORDERED_BGF_DATA);
+        let (system, metadata) = BgfFile::read_from(&mut reader).unwrap();
+
+        let mut buffer = Vec::new();
+        let result = BgfFile::write_to(&system, &metadata, &mut buffer);
+        assert!(result.is_ok());
+
+        let output = String::from_utf8(buffer).unwrap();
+        let output_lines: Vec<_> = output.lines().collect();
+
+        assert_eq!(output_lines[0], "BIOGRF 332");
+        assert_eq!(
+            output_lines[1],
+            "REMARK A messy BGF file with non-sequential serials and disordered records."
+        );
+
+        let atom_lines: Vec<_> = output_lines
+            .iter()
+            .filter(|l| l.starts_with("ATOM") || l.starts_with("HETATM"))
+            .collect();
+        assert_eq!(atom_lines.len(), 5);
+
+        for (i, line) in atom_lines.iter().enumerate() {
+            let serial_str = line.get(7..12).unwrap().trim();
+            assert_eq!(
+                serial_str.parse::<usize>().unwrap(),
+                i + 1,
+                "Serials should be sequential"
+            );
+        }
+
+        assert!(atom_lines[0].contains(" N     GLY A     1"));
+        assert!(atom_lines[1].contains(" C     GLY A     1"));
+        assert!(atom_lines[2].contains(" N     ALA A     2"));
+        assert!(atom_lines[3].contains(" CA    ALA A     2"));
+        assert!(atom_lines[4].contains(" O     HOH W     3"));
+
+        let conect_lines: Vec<_> = output_lines
+            .iter()
+            .filter(|l| l.starts_with("CONECT"))
+            .collect();
+        assert_eq!(conect_lines.len(), 2);
+
+        let bond1_found = conect_lines
+            .iter()
+            .any(|l| l.contains("    1") && l.contains("    2"));
+        assert!(
+            bond1_found,
+            "CONECT record for bond between new serials 1 and 2 not found"
+        );
+
+        let bond2_found = conect_lines
+            .iter()
+            .any(|l| l.contains("    3") && l.contains("    4"));
+        assert!(
+            bond2_found,
+            "CONECT record for bond between new serials 3 and 4 not found"
+        );
+    }
+
+    #[test]
+    fn write_system_to_produces_correct_default_header() {
+        let mut system = MolecularSystem::new();
+        system.add_chain('A', ChainType::Protein);
+
+        let mut buffer = Vec::new();
+        BgfFile::write_system_to(&system, &mut buffer).unwrap();
+        let output = String::from_utf8(buffer).unwrap();
+
+        assert!(output.contains("BIOGRF  332"));
+        assert!(output.contains("FORCEFIELD DREIDING"));
+        assert!(output.contains("FORMAT ATOM"));
+    }
+}
