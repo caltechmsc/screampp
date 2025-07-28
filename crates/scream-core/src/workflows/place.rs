@@ -17,6 +17,7 @@ use std::collections::{HashMap, HashSet};
 use tracing::{info, instrument, warn};
 
 const CLASH_THRESHOLD: f64 = 25.0; // Clash threshold (kcal/mol)
+const RMS_THRESHOLD: f64 = 0.1; // RMSD threshold for duplicate rotamers (in Angstroms)
 
 #[instrument(skip_all, name = "placement_workflow")]
 pub fn run(
@@ -93,7 +94,11 @@ fn setup<'a>(
 
     if config.optimization.include_input_conformation {
         info!("Including original side-chain conformations in the rotamer library.");
-        rotamer_library.include_system_conformations(initial_system, &active_residues, 0.1);
+        rotamer_library.include_system_conformations(
+            initial_system,
+            &active_residues,
+            RMS_THRESHOLD,
+        );
     }
 
     reporter.report(Progress::PhaseFinish);
