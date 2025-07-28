@@ -192,7 +192,7 @@ impl MolecularFile for BgfFile {
             let atoms_connected = system
                 .get_bonded_neighbors(canonical_atom.id)
                 .map_or(0, |n| n.len() as u8);
-            let lone_pairs = 0;
+            let lone_pairs = 0; // TODO: Replace with actual logic (placeholder)
 
             let atom_line = format_atom_line(
                 record_type,
