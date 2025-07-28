@@ -245,33 +245,20 @@ mod tests {
             let mut atoms = Vec::new();
             let mut n = Atom::new("N", residue_id, Point3::new(0.0, 1.0, 0.0));
             n.force_field_type = "BB".to_string();
-            n.vdw_param = CachedVdwParam::LennardJones {
-                radius: 1.0,
-                well_depth: 0.0,
-            };
             atoms.push(n);
             let mut ca = Atom::new("CA", residue_id, Point3::new(0.0, 0.0, 0.0));
             ca.force_field_type = "BB".to_string();
-            ca.vdw_param = CachedVdwParam::LennardJones {
-                radius: 1.0,
-                well_depth: 0.0,
-            };
             atoms.push(ca);
             let mut c = Atom::new("C", residue_id, Point3::new(1.0, 0.0, 0.0));
             c.force_field_type = "BB".to_string();
-            c.vdw_param = CachedVdwParam::LennardJones {
-                radius: 1.0,
-                well_depth: 0.0,
-            };
             atoms.push(c);
             let mut cb = Atom::new("CB", residue_id, cb_pos);
             cb.force_field_type = "C_SC".to_string();
-            cb.vdw_param = CachedVdwParam::LennardJones {
-                radius: 3.8,
-                well_depth: 0.1,
-            };
             atoms.push(cb);
-            Rotamer { atoms }
+
+            let bonds = vec![(0, 1), (1, 2), (1, 3)];
+
+            Rotamer { atoms, bonds }
         };
 
         let rotamer_a0 = create_rotamer(res_a_id, Point3::new(-0.5, -0.8, 0.0));
