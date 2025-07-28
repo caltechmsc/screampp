@@ -330,94 +330,45 @@ mod tests {
         let dir = tempdir().unwrap();
         let rotamer_path = dir.path().join("rotamer.toml");
         let placement_path = dir.path().join("placement.toml");
+
         write_file(
             &rotamer_path,
             r#"
-[ALA]
-rotamers = [
-    {
-        atoms = [
-            { serial = 1, atom_name = "N", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" },
-            { serial = 2, atom_name = "CA", position = [1.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" },
-            { serial = 5, atom_name = "CB", position = [2.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" },
-            { serial = 8, atom_name = "C", position = [1.0, 1.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" },
-        ],
-        bonds = [
-            [1, 2], # N-CA
-            [2, 5], # CA-CB
-            [2, 8]  # CA-C
-        ]
-    }
+[[ALA]]
+atoms = [
+    { serial = 1, atom_name = "N", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" },
+    { serial = 2, atom_name = "CA", position = [1.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" },
 ]
-"#,
-        );
-        write_file(
-            &rotamer_path,
-            r#"
-ALA = [
-    {
-        atoms = [
-            { serial = 1, atom_name = "N", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" },
-            { serial = 2, atom_name = "CA", position = [1.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" },
-            { serial = 5, atom_name = "CB", position = [2.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" },
-            { serial = 8, atom_name = "C", position = [1.0, 1.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" },
-        ],
-        bonds = [ [1, 2], [2, 5], [2, 8] ]
-    }
+bonds = [ [1, 2] ]
+
+[[ALA]]
+atoms = [
+    { serial = 10, atom_name = "N", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" },
+    { serial = 20, atom_name = "CA", position = [1.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" },
 ]
+bonds = [ [10, 20] ]
 "#,
         );
 
         write_file(
             &placement_path,
-            r#"
-ALA = { sidechain_atoms = ["CB"], anchor_atoms = ["N", "CA", "C"], connection_points = [], exact_match_atoms = [] }
-"#,
+            r#"ALA = { sidechain_atoms = ["CB"], anchor_atoms = ["N", "CA", "C"], connection_points = [], exact_match_atoms = [] }"#,
         );
         let ff = dummy_forcefield();
         let lib = RotamerLibrary::load(&rotamer_path, &placement_path, &ff, 0.0).unwrap();
 
         let rots = lib.get_rotamers_for(ResidueType::Alanine).unwrap();
-        assert_eq!(rots.len(), 1);
-        let rotamer = &rots[0];
-        assert_eq!(rotamer.atoms.len(), 4);
-        assert_eq!(rotamer.bonds.len(), 3);
+        assert_eq!(rots.len(), 2, "Should load two rotamers for ALA");
 
-        let serial_to_idx: HashMap<usize, usize> = rotamer
-            .atoms
-            .iter()
-            .enumerate()
-            .map(|(idx, atom)| {
-                (
-                    if atom.name == "N" {
-                        1
-                    } else if atom.name == "CA" {
-                        2
-                    } else if atom.name == "CB" {
-                        5
-                    } else {
-                        8
-                    },
-                    idx,
-                )
-            })
-            .collect();
-        let expected_bonds: HashSet<(usize, usize)> = [
-            (serial_to_idx[&1], serial_to_idx[&2]),
-            (serial_to_idx[&2], serial_to_idx[&5]),
-            (serial_to_idx[&2], serial_to_idx[&8]),
-        ]
-        .iter()
-        .map(|&(a, b)| if a < b { (a, b) } else { (b, a) })
-        .collect();
+        let rotamer1 = &rots[0];
+        assert_eq!(rotamer1.atoms.len(), 2);
+        assert_eq!(rotamer1.bonds.len(), 1);
+        assert_eq!(rotamer1.bonds[0], (0, 1));
 
-        let actual_bonds: HashSet<(usize, usize)> = rotamer
-            .bonds
-            .iter()
-            .map(|&(a, b)| if a < b { (a, b) } else { (b, a) })
-            .collect();
-
-        assert_eq!(actual_bonds, expected_bonds);
+        let rotamer2 = &rots[1];
+        assert_eq!(rotamer2.atoms.len(), 2);
+        assert_eq!(rotamer2.bonds.len(), 1);
+        assert_eq!(rotamer2.bonds[0], (0, 1));
     }
 
     #[test]
@@ -427,15 +378,12 @@ ALA = { sidechain_atoms = ["CB"], anchor_atoms = ["N", "CA", "C"], connection_po
         write_file(
             &rotamer_path,
             r#"
-ALA = [
-    {
-        atoms = [
-            { serial = 1, atom_name = "N", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" },
-            { serial = 1, atom_name = "CA", position = [1.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" },
-        ],
-        bonds = []
-    }
+[[ALA]]
+atoms = [
+    { serial = 1, atom_name = "N", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" },
+    { serial = 1, atom_name = "CA", position = [1.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" },
 ]
+bonds = []
 "#,
         );
         let placement_path = dir.path().join("placement.toml");
@@ -459,12 +407,9 @@ ALA = [
         write_file(
             &rotamer_path,
             r#"
-ALA = [
-    {
-        atoms = [ { serial = 1, atom_name = "N", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" } ],
-        bonds = [ [1, 99] ]
-    }
-]
+[[ALA]]
+atoms = [ { serial = 1, atom_name = "N", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" } ]
+bonds = [ [1, 99] ]
 "#,
         );
         let placement_path = dir.path().join("placement.toml");
@@ -517,7 +462,7 @@ ALA = [
         let mut active = HashSet::new();
         active.insert(res_id);
 
-        lib.include_system_conformations(&system, &active, 0.1);
+        lib.include_system_conformations(&system, &active);
 
         let rots = lib.get_rotamers_for(ResidueType::Alanine).unwrap();
         assert_eq!(rots.len(), 1);
@@ -555,93 +500,27 @@ ALA = [
     }
 
     #[test]
-    fn include_system_conformations_skips_duplicate_based_on_sidechain_rmsd() {
+    fn include_system_conformations_always_adds_extracted_rotamer() {
         let mut lib = RotamerLibrary::default();
         let placement_info = ala_placement_info();
         lib.placement_info
             .insert(ResidueType::Alanine, placement_info.clone());
+        lib.rotamers.insert(ResidueType::Alanine, vec![]);
 
         let (system, res_id) = create_test_system_for_extraction();
-        let atoms_for_existing_rotamer = ["N", "CA", "C", "CB"]
-            .iter()
-            .map(|name| {
-                let atom_id = system
-                    .residue(res_id)
-                    .unwrap()
-                    .get_atom_id_by_name(name)
-                    .unwrap();
-                system.atom(atom_id).unwrap().clone()
-            })
-            .collect();
-        let existing_rotamer = Rotamer {
-            atoms: atoms_for_existing_rotamer,
-            bonds: vec![],
-        };
-
-        lib.rotamers
-            .insert(ResidueType::Alanine, vec![existing_rotamer]);
-
         let mut active = HashSet::new();
         active.insert(res_id);
 
-        let original_count = lib.get_rotamers_for(ResidueType::Alanine).unwrap().len();
-        lib.include_system_conformations(&system, &active, 0.1);
-        let new_count = lib.get_rotamers_for(ResidueType::Alanine).unwrap().len();
+        lib.include_system_conformations(&system, &active);
+        let rots = lib.get_rotamers_for(ResidueType::Alanine).unwrap();
+        assert_eq!(rots.len(), 1, "Should add the rotamer the first time");
 
-        assert_eq!(original_count, 1);
-        assert_eq!(new_count, 1, "Duplicate rotamer should not have been added");
-    }
-
-    #[test]
-    fn include_system_conformations_adds_different_conformation() {
-        let mut lib = RotamerLibrary::default();
-        let placement_info = ala_placement_info();
-        lib.placement_info
-            .insert(ResidueType::Alanine, placement_info);
-
-        let (system, res_id) = create_test_system_for_extraction();
-        let mut atoms_for_existing_rotamer: Vec<_> = ["N", "CA", "C"]
-            .iter()
-            .map(|name| {
-                let atom_id = system
-                    .residue(res_id)
-                    .unwrap()
-                    .get_atom_id_by_name(name)
-                    .unwrap();
-                system.atom(atom_id).unwrap().clone()
-            })
-            .collect();
-        let mut different_cb = system
-            .atom(
-                system
-                    .residue(res_id)
-                    .unwrap()
-                    .get_atom_id_by_name("CB")
-                    .unwrap(),
-            )
-            .unwrap()
-            .clone();
-        different_cb.position = Point3::new(99.0, 99.0, 99.0);
-        atoms_for_existing_rotamer.push(different_cb);
-
-        let existing_rotamer = Rotamer {
-            atoms: atoms_for_existing_rotamer,
-            bonds: vec![],
-        };
-        lib.rotamers
-            .insert(ResidueType::Alanine, vec![existing_rotamer]);
-
-        let mut active = HashSet::new();
-        active.insert(res_id);
-
-        let original_count = lib.get_rotamers_for(ResidueType::Alanine).unwrap().len();
-        lib.include_system_conformations(&system, &active, 0.1);
-        let new_count = lib.get_rotamers_for(ResidueType::Alanine).unwrap().len();
-
-        assert_eq!(original_count, 1);
+        lib.include_system_conformations(&system, &active);
+        let rots_after_second_call = lib.get_rotamers_for(ResidueType::Alanine).unwrap();
         assert_eq!(
-            new_count, 2,
-            "A new, non-duplicate rotamer should have been added"
+            rots_after_second_call.len(),
+            2,
+            "Should add the rotamer again as de-duplication is disabled"
         );
     }
 }
