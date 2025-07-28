@@ -198,10 +198,7 @@ impl RotamerLibrary {
         &mut self,
         system: &MolecularSystem,
         active_residues: &HashSet<ResidueId>,
-        rmsd_threshold: f64,
     ) {
-        let mut new_rotamers_to_add: HashMap<ResidueType, Rotamer> = HashMap::new();
-
         for &residue_id in active_residues {
             let residue = match system.residue(residue_id) {
                 Some(r) => r,
@@ -213,15 +210,12 @@ impl RotamerLibrary {
                 None => continue,
             };
 
-            let (existing_rotamers, placement_info) = match (
-                self.rotamers.get(&residue_type),
-                self.placement_info.get(&residue_type),
-            ) {
-                (Some(rots), Some(info)) => (rots, info),
-                _ => continue,
+            let placement_info = match self.placement_info.get(&residue_type) {
+                Some(info) => info,
+                None => continue,
             };
 
-            // --- 1. Extract atoms and topology from the system ---
+            // --- 1. Extract atoms and build a map for topology extraction ---
             let all_rotamer_atom_names: HashSet<_> = placement_info
                 .anchor_atoms
                 .iter()
@@ -231,7 +225,6 @@ impl RotamerLibrary {
 
             let mut extracted_atoms = Vec::new();
             let mut global_id_to_local_index = HashMap::new();
-            let mut name_to_local_index = HashMap::new();
 
             for atom_name in &all_rotamer_atom_names {
                 if let Some(atom_id) = residue.get_atom_id_by_name(atom_name) {
@@ -239,11 +232,11 @@ impl RotamerLibrary {
                         let local_index = extracted_atoms.len();
                         extracted_atoms.push(atom.clone());
                         global_id_to_local_index.insert(atom_id, local_index);
-                        name_to_local_index.insert(atom.name.clone(), local_index);
                     }
                 }
             }
 
+            // --- 2. Extract topology (bonds) for the extracted atoms ---
             let mut extracted_bonds = Vec::new();
             for (atom_id_a, &local_index_a) in &global_id_to_local_index {
                 if let Some(neighbors) = system.get_bonded_neighbors(*atom_id_a) {
@@ -262,62 +255,13 @@ impl RotamerLibrary {
                 bonds: extracted_bonds,
             };
 
-            // --- 2. Check for duplicates using a robust RMSD calculation ---
-            let is_duplicate = existing_rotamers.iter().any(|existing| {
-                // a. Prepare sorted coordinates from the newly extracted rotamer
-                let mut coords1_to_sort: Vec<_> = extracted_rotamer
-                    .atoms
-                    .iter()
-                    .filter(|a| placement_info.sidechain_atoms.contains(&a.name))
-                    .map(|a| (a.name.as_str(), a.position))
-                    .collect();
-                coords1_to_sort.sort_unstable_by_key(|(name, _)| *name);
-                let coords1: Vec<_> = coords1_to_sort.into_iter().map(|(_, pos)| pos).collect();
-
-                // b. Prepare sorted coordinates from the existing rotamer in the library
-                let mut coords2_to_sort: Vec<_> = existing
-                    .atoms
-                    .iter()
-                    .filter(|a| placement_info.sidechain_atoms.contains(&a.name))
-                    .map(|a| (a.name.as_str(), a.position))
-                    .collect();
-                coords2_to_sort.sort_unstable_by_key(|(name, _)| *name);
-                let coords2: Vec<_> = coords2_to_sort.into_iter().map(|(_, pos)| pos).collect();
-
-                // c. Now that coordinates are aligned, calculate RMSD
-                if let Some(rmsd) = calculate_rmsd(&coords1, &coords2) {
-                    rmsd < rmsd_threshold
-                } else {
-                    false
-                }
-            });
-
-            if !is_duplicate {
-                new_rotamers_to_add
-                    .entry(residue_type)
-                    .or_insert(extracted_rotamer);
-            }
-        }
-
-        for (residue_type, new_rotamer) in new_rotamers_to_add {
-            if let Some(rotamers) = self.rotamers.get_mut(&residue_type) {
-                rotamers.push(new_rotamer);
-            }
+            // --- 3. Add the extracted rotamer to the library ---
+            self.rotamers
+                .entry(residue_type)
+                .or_default()
+                .push(extracted_rotamer);
         }
     }
-}
-
-fn calculate_rmsd(coords1: &[Point3<f64>], coords2: &[Point3<f64>]) -> Option<f64> {
-    if coords1.len() != coords2.len() || coords1.is_empty() {
-        return None;
-    }
-    let n = coords1.len() as f64;
-    let squared_dist_sum: f64 = coords1
-        .iter()
-        .zip(coords2.iter())
-        .map(|(p1, p2)| (p1 - p2).norm_squared())
-        .sum();
-    Some((squared_dist_sum / n).sqrt())
 }
 
 #[cfg(test)]
