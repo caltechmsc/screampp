@@ -113,7 +113,10 @@ impl MolecularFile for BgfFile {
             let active_residue_id = current_residue_id
                 .ok_or_else(|| BgfError::Logic("Failed to create or find residue".to_string()))?;
 
-            let atom = Atom::new(&atom_info.name, active_residue_id, atom_info.pos);
+            let mut atom = Atom::new(&atom_info.name, active_residue_id, atom_info.pos);
+
+            atom.partial_charge = atom_info.charge;
+            atom.force_field_type = atom_info.ff_type;
 
             let atom_id = system
                 .add_atom_to_residue(active_residue_id, atom)
