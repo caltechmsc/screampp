@@ -221,31 +221,29 @@ impl RotamerLibrary {
                 _ => continue,
             };
 
-            // 1. Extract atoms and build a global_id -> local_index map for topology extraction.
-            let mut extracted_atoms = Vec::new();
-            let mut global_id_to_local_index = HashMap::new();
-            let mut sidechain_atom_ids = HashSet::new();
-
-            let all_rotamer_atoms: Vec<_> = placement_info
+            // --- 1. Extract atoms and topology from the system ---
+            let all_rotamer_atom_names: HashSet<_> = placement_info
                 .anchor_atoms
                 .iter()
                 .chain(&placement_info.sidechain_atoms)
+                .cloned()
                 .collect();
 
-            for atom_name in all_rotamer_atoms {
+            let mut extracted_atoms = Vec::new();
+            let mut global_id_to_local_index = HashMap::new();
+            let mut name_to_local_index = HashMap::new();
+
+            for atom_name in &all_rotamer_atom_names {
                 if let Some(atom_id) = residue.get_atom_id_by_name(atom_name) {
                     if let Some(atom) = system.atom(atom_id) {
                         let local_index = extracted_atoms.len();
                         extracted_atoms.push(atom.clone());
                         global_id_to_local_index.insert(atom_id, local_index);
-                        if placement_info.sidechain_atoms.contains(atom_name) {
-                            sidechain_atom_ids.insert(atom_id);
-                        }
+                        name_to_local_index.insert(atom.name.clone(), local_index);
                     }
                 }
             }
 
-            // 2. Extract topology (bonds) for the extracted atoms.
             let mut extracted_bonds = Vec::new();
             for (atom_id_a, &local_index_a) in &global_id_to_local_index {
                 if let Some(neighbors) = system.get_bonded_neighbors(*atom_id_a) {
@@ -264,40 +262,29 @@ impl RotamerLibrary {
                 bonds: extracted_bonds,
             };
 
-            // 3. Check for duplicates based on RMSD of side-chain atoms only.
+            // --- 2. Check for duplicates using a robust RMSD calculation ---
             let is_duplicate = existing_rotamers.iter().any(|existing| {
-                let name_to_pos1: HashMap<_, _> = extracted_rotamer
-                    .atoms
-                    .iter()
-                    .filter(|a| {
-                        sidechain_atom_ids.contains(
-                            &system
-                                .residue(a.residue_id)
-                                .unwrap()
-                                .get_atom_id_by_name(&a.name)
-                                .unwrap(),
-                        )
-                    })
-                    .map(|a| (&a.name, a.position))
-                    .collect();
-
-                let name_to_pos2: HashMap<_, _> = existing
+                // a. Prepare sorted coordinates from the newly extracted rotamer
+                let mut coords1_to_sort: Vec<_> = extracted_rotamer
                     .atoms
                     .iter()
                     .filter(|a| placement_info.sidechain_atoms.contains(&a.name))
-                    .map(|a| (&a.name, a.position))
+                    .map(|a| (a.name.as_str(), a.position))
                     .collect();
+                coords1_to_sort.sort_unstable_by_key(|(name, _)| *name);
+                let coords1: Vec<_> = coords1_to_sort.into_iter().map(|(_, pos)| pos).collect();
 
-                let mut coords1 = Vec::new();
-                let mut coords2 = Vec::new();
+                // b. Prepare sorted coordinates from the existing rotamer in the library
+                let mut coords2_to_sort: Vec<_> = existing
+                    .atoms
+                    .iter()
+                    .filter(|a| placement_info.sidechain_atoms.contains(&a.name))
+                    .map(|a| (a.name.as_str(), a.position))
+                    .collect();
+                coords2_to_sort.sort_unstable_by_key(|(name, _)| *name);
+                let coords2: Vec<_> = coords2_to_sort.into_iter().map(|(_, pos)| pos).collect();
 
-                for (name, pos1) in &name_to_pos1 {
-                    if let Some(pos2) = name_to_pos2.get(name) {
-                        coords1.push(*pos1);
-                        coords2.push(*pos2);
-                    }
-                }
-
+                // c. Now that coordinates are aligned, calculate RMSD
                 if let Some(rmsd) = calculate_rmsd(&coords1, &coords2) {
                     rmsd < rmsd_threshold
                 } else {
