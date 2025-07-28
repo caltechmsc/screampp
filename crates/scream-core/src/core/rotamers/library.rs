@@ -6,7 +6,6 @@ use crate::core::models::atom::Atom;
 use crate::core::models::ids::ResidueId;
 use crate::core::models::residue::ResidueType;
 use crate::core::models::system::MolecularSystem;
-use crate::core::utils::geometry::calculate_rmsd;
 use nalgebra::Point3;
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -207,6 +206,19 @@ impl RotamerLibrary {
             }
         }
     }
+}
+
+pub fn calculate_rmsd(coords1: &[Point3<f64>], coords2: &[Point3<f64>]) -> Option<f64> {
+    if coords1.len() != coords2.len() || coords1.is_empty() {
+        return None;
+    }
+    let n = coords1.len() as f64;
+    let squared_dist_sum: f64 = coords1
+        .iter()
+        .zip(coords2.iter())
+        .map(|(p1, p2)| (p1 - p2).norm_squared())
+        .sum();
+    Some((squared_dist_sum / n).sqrt())
 }
 
 #[cfg(test)]
