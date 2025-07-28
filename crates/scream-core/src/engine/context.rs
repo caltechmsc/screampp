@@ -169,7 +169,7 @@ pub fn resolve_selection_to_ids(
             if let Some(ligand_res) = system.residue(ligand_res_id) {
                 for atom_id in ligand_res.atoms() {
                     if let Some(atom) = system.atom(*atom_id) {
-                        if crate::core::utils::identifiers::is_heavy_atom(&atom.name) {
+                        if is_heavy_atom(&atom.name) {
                             ligand_heavy_atom_positions.push([
                                 atom.position.x,
                                 atom.position.y,
@@ -213,7 +213,7 @@ pub fn resolve_selection_to_ids(
                 let mut is_in_binding_site = false;
                 for protein_atom_id in residue.atoms() {
                     if let Some(protein_atom) = system.atom(*protein_atom_id) {
-                        if crate::core::utils::identifiers::is_heavy_atom(&protein_atom.name) {
+                        if is_heavy_atom(&protein_atom.name) {
                             let protein_pos = [
                                 protein_atom.position.x,
                                 protein_atom.position.y,
@@ -250,6 +250,15 @@ pub fn resolve_selection_to_ids(
         .collect();
 
     Ok(final_active_residues)
+}
+
+pub fn is_heavy_atom(atom_name: &str) -> bool {
+    let first_char = atom_name
+        .trim()
+        .chars()
+        .next()
+        .map(|c| c.to_ascii_uppercase());
+    !matches!(first_char, Some('H') | Some('D'))
 }
 
 #[cfg(test)]
