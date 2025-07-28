@@ -4,15 +4,17 @@ use crate::core::{
         atom::Atom,
         ids::{AtomId, ResidueId},
         system::MolecularSystem,
+        topology::BondOrder,
     },
     rotamers::{placement::PlacementInfo, rotamer::Rotamer},
 };
 use nalgebra::{Matrix3, Point3, Rotation3, Vector3};
+use std::collections::HashMap;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum PlacementError {
-    #[error("Anchor atom '{atom_name}' not found in the target residue")]
+    #[error("Anchor atom '{atom_name}' not found in the target residue in the system")]
     AnchorAtomNotFoundInSystem { atom_name: String },
 
     #[error("Anchor atom '{atom_name}' not found in the rotamer template")]
@@ -23,78 +25,55 @@ pub enum PlacementError {
     )]
     InsufficientAnchors { found: usize },
 
-    #[error(
-        "Side-chain atom '{atom_name}' is defined in PlacementInfo but not found in the rotamer template"
-    )]
-    SideChainAtomNotFoundInRotamer { atom_name: String },
+    #[error("Could not find rotamer atom with name '{atom_name}' to build the index map")]
+    RotamerAtomNameNotFound { atom_name: String },
 }
 
+#[inline]
 pub fn place_rotamer_on_system(
     system: &mut MolecularSystem,
     target_residue_id: ResidueId,
     rotamer: &Rotamer,
     placement_info: &PlacementInfo,
 ) -> Result<(), EngineError> {
-    // --- 1. Gather and validate anchor points ---
-    let (system_anchors, rotamer_anchors) =
-        gather_anchor_points(system, target_residue_id, rotamer, placement_info).map_err(|e| {
-            EngineError::Placement {
-                residue_id: target_residue_id,
-                message: e.to_string(),
-            }
-        })?;
+    let result = || -> Result<(), PlacementError> {
+        // --- Phase 1: Preparation ---
+        let (rotation, translation) =
+            calculate_alignment_transform(system, target_residue_id, rotamer, placement_info)?;
 
-    // --- 2. Calculate the rigid body transformation ---
-    let (rotation, translation) = calculate_transformation(&rotamer_anchors, &system_anchors)
-        .map_err(|e| EngineError::Placement {
-            residue_id: target_residue_id,
-            message: e.to_string(),
-        })?;
+        remove_old_sidechain(system, target_residue_id, placement_info);
 
-    // --- 3. Prepare new side-chain atoms ---
-    let new_atoms_to_add = prepare_new_sidechain_atoms(
-        rotamer,
-        placement_info,
-        target_residue_id,
-        rotation,
-        translation,
-    )
-    .map_err(|e| EngineError::Placement {
+        // --- Phase 2: Atom Placement & Mapping ---
+        let index_to_id_map = add_new_sidechain_atoms_and_map(
+            system,
+            target_residue_id,
+            rotamer,
+            placement_info,
+            rotation,
+            translation,
+        )?;
+
+        // --- Phase 3: Topology Reconstruction ---
+        rebuild_topology(system, rotamer, &index_to_id_map)?;
+
+        Ok(())
+    }();
+
+    result.map_err(|e| EngineError::Placement {
         residue_id: target_residue_id,
         message: e.to_string(),
-    })?;
-
-    // --- 4. Remove old side-chain atoms ---
-    let old_atom_ids_to_remove: Vec<AtomId> = {
-        let target_residue = system.residue(target_residue_id).unwrap();
-        placement_info
-            .sidechain_atoms
-            .iter()
-            .filter_map(|atom_name| target_residue.get_atom_id_by_name(atom_name))
-            .collect()
-    };
-
-    for atom_id in old_atom_ids_to_remove {
-        system.remove_atom(atom_id);
-    }
-
-    // --- 5. Add new side-chain atoms ---
-    for atom in new_atoms_to_add {
-        system.add_atom_to_residue(target_residue_id, atom);
-    }
-
-    Ok(())
+    })
 }
 
-fn gather_anchor_points(
+fn calculate_alignment_transform(
     system: &MolecularSystem,
     target_residue_id: ResidueId,
     rotamer: &Rotamer,
     placement_info: &PlacementInfo,
-) -> Result<(Vec<Point3<f64>>, Vec<Point3<f64>>), PlacementError> {
+) -> Result<(Rotation3<f64>, Vector3<f64>), PlacementError> {
+    let target_residue = system.residue(target_residue_id).unwrap();
     let mut system_points = Vec::with_capacity(placement_info.anchor_atoms.len());
     let mut rotamer_points = Vec::with_capacity(placement_info.anchor_atoms.len());
-    let target_residue = system.residue(target_residue_id).unwrap();
 
     for atom_name in &placement_info.anchor_atoms {
         let system_atom_id = target_residue
@@ -102,8 +81,7 @@ fn gather_anchor_points(
             .ok_or_else(|| PlacementError::AnchorAtomNotFoundInSystem {
                 atom_name: atom_name.clone(),
             })?;
-        let system_atom = system.atom(system_atom_id).unwrap();
-        system_points.push(system_atom.position);
+        system_points.push(system.atom(system_atom_id).unwrap().position);
 
         let rotamer_atom = rotamer
             .atoms
@@ -121,40 +99,106 @@ fn gather_anchor_points(
         });
     }
 
-    Ok((system_points, rotamer_points))
+    calculate_transformation(&rotamer_points, &system_points)
+}
+
+fn remove_old_sidechain(
+    system: &mut MolecularSystem,
+    target_residue_id: ResidueId,
+    placement_info: &PlacementInfo,
+) {
+    let old_atom_ids_to_remove: Vec<AtomId> = {
+        let target_residue = system.residue(target_residue_id).unwrap();
+        placement_info
+            .sidechain_atoms
+            .iter()
+            .filter_map(|atom_name| target_residue.get_atom_id_by_name(atom_name))
+            .collect()
+    };
+
+    for atom_id in old_atom_ids_to_remove {
+        system.remove_atom(atom_id);
+    }
+}
+
+fn add_new_sidechain_atoms_and_map(
+    system: &mut MolecularSystem,
+    target_residue_id: ResidueId,
+    rotamer: &Rotamer,
+    placement_info: &PlacementInfo,
+    rotation: Rotation3<f64>,
+    translation: Vector3<f64>,
+) -> Result<HashMap<usize, AtomId>, PlacementError> {
+    let mut index_to_id_map = HashMap::new();
+    let target_residue = system.residue(target_residue_id).unwrap();
+
+    // 1. Pre-populate the map with anchor atoms already in the system.
+    for atom_name in &placement_info.anchor_atoms {
+        let rotamer_atom_index = rotamer
+            .atoms
+            .iter()
+            .position(|a| &a.name == atom_name)
+            .ok_or_else(|| PlacementError::RotamerAtomNameNotFound {
+                atom_name: atom_name.clone(),
+            })?;
+
+        let system_atom_id = target_residue.get_atom_id_by_name(atom_name).unwrap();
+        index_to_id_map.insert(rotamer_atom_index, system_atom_id);
+    }
+
+    // 2. Add new side-chain atoms and populate the map.
+    for (index, rotamer_atom) in rotamer.atoms.iter().enumerate() {
+        if placement_info.sidechain_atoms.contains(&rotamer_atom.name) {
+            let mut new_atom = rotamer_atom.clone();
+            new_atom.residue_id = target_residue_id;
+            new_atom.position = rotation * rotamer_atom.position + translation;
+
+            let new_atom_id = system
+                .add_atom_to_residue(target_residue_id, new_atom)
+                .unwrap();
+            index_to_id_map.insert(index, new_atom_id);
+        }
+    }
+
+    Ok(index_to_id_map)
+}
+
+fn rebuild_topology(
+    system: &mut MolecularSystem,
+    rotamer: &Rotamer,
+    index_to_id_map: &HashMap<usize, AtomId>,
+) -> Result<(), PlacementError> {
+    for &(index1, index2) in &rotamer.bonds {
+        if let (Some(&id1), Some(&id2)) =
+            (index_to_id_map.get(&index1), index_to_id_map.get(&index2))
+        {
+            system.add_bond(id1, id2, BondOrder::Single);
+        }
+    }
+    Ok(())
 }
 
 fn calculate_transformation(
     from_points: &[Point3<f64>],
     to_points: &[Point3<f64>],
 ) -> Result<(Rotation3<f64>, Vector3<f64>), PlacementError> {
-    // 1. Calculate centroids using fold for robust summation
-    let from_centroid_sum: Vector3<f64> = from_points
-        .iter()
-        .fold(Vector3::zeros(), |acc, p| acc + p.coords);
+    let from_centroid_sum: Vector3<f64> = from_points.iter().map(|p| p.coords).sum();
     let from_centroid = Point3::from(from_centroid_sum / from_points.len() as f64);
-
-    let to_centroid_sum: Vector3<f64> = to_points
-        .iter()
-        .fold(Vector3::zeros(), |acc, p| acc + p.coords);
+    let to_centroid_sum: Vector3<f64> = to_points.iter().map(|p| p.coords).sum();
     let to_centroid = Point3::from(to_centroid_sum / to_points.len() as f64);
 
-    // 2. Center the points
     let centered_from: Vec<_> = from_points.iter().map(|p| p - from_centroid).collect();
     let centered_to: Vec<_> = to_points.iter().map(|p| p - to_centroid).collect();
 
-    // 3. Build the covariance matrix H
     let h = centered_from
         .iter()
         .zip(centered_to.iter())
         .fold(Matrix3::zeros(), |acc, (f, t)| acc + t * f.transpose());
 
-    // 4. Perform SVD
     let svd = h.svd(true, true);
     let u = svd.u.unwrap();
     let v_t = svd.v_t.unwrap();
 
-    // 5. Calculate the rotation matrix, handling reflections
     let d = (u * v_t.transpose()).determinant();
     let mut correction = Matrix3::identity();
     if d < 0.0 {
@@ -163,37 +207,9 @@ fn calculate_transformation(
 
     let rotation_matrix = u * correction * v_t;
     let rotation = Rotation3::from_matrix(&rotation_matrix);
-
-    // 6. Calculate the translation vector
     let translation = to_centroid.coords - rotation * from_centroid.coords;
 
     Ok((rotation, translation))
-}
-
-fn prepare_new_sidechain_atoms(
-    rotamer: &Rotamer,
-    placement_info: &PlacementInfo,
-    target_residue_id: ResidueId,
-    rotation: Rotation3<f64>,
-    translation: Vector3<f64>,
-) -> Result<Vec<Atom>, PlacementError> {
-    let mut new_atoms = Vec::with_capacity(placement_info.sidechain_atoms.len());
-
-    for atom_name in &placement_info.sidechain_atoms {
-        let rotamer_atom = rotamer
-            .atoms
-            .iter()
-            .find(|a| &a.name == atom_name)
-            .ok_or_else(|| PlacementError::SideChainAtomNotFoundInRotamer {
-                atom_name: atom_name.clone(),
-            })?;
-
-        let mut new_atom = rotamer_atom.clone();
-        new_atom.residue_id = target_residue_id;
-        new_atom.position = rotation * rotamer_atom.position + translation;
-        new_atoms.push(new_atom);
-    }
-    Ok(new_atoms)
 }
 
 #[cfg(test)]
