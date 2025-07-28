@@ -7,7 +7,7 @@ use crate::core::models::residue::{Residue, ResidueType};
 use crate::core::models::system::MolecularSystem;
 use crate::core::models::topology::BondOrder;
 use nalgebra::Point3;
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::io::{self, BufRead, Write};
 use thiserror::Error;
 
@@ -208,32 +208,26 @@ impl MolecularFile for BgfFile {
         }
 
         // --- Phase 4: Write CONECT records using the new serial numbers ---
-        let mut adjacency_list = HashMap::<usize, Vec<usize>>::new();
+        let mut bond_pairs = BTreeSet::new();
         for bond in system.bonds() {
             if let (Some(&serial1), Some(&serial2)) = (
                 atom_id_to_new_serial.get(&bond.atom1_id),
                 atom_id_to_new_serial.get(&bond.atom2_id),
             ) {
-                adjacency_list.entry(serial1).or_default().push(serial2);
-                adjacency_list.entry(serial2).or_default().push(serial1);
+                let bond_pair = if serial1 < serial2 {
+                    (serial1, serial2)
+                } else {
+                    (serial2, serial1)
+                };
+                bond_pairs.insert(bond_pair);
             }
         }
 
-        let mut sorted_base_serials: Vec<_> = adjacency_list.keys().copied().collect();
-        sorted_base_serials.sort_unstable();
-
-        for base_serial in sorted_base_serials {
-            let neighbors = adjacency_list.get_mut(&base_serial).unwrap();
-            neighbors.sort_unstable();
-            for chunk in neighbors.chunks(14) {
-                let mut connect_line = format!("CONECT {:>5}", base_serial);
-                for &neighbor_serial in chunk {
-                    connect_line.push_str(&format!("{:>6}", neighbor_serial));
-                }
-                writeln!(writer, "{}", connect_line)?;
-            }
+        for (s1, s2) in bond_pairs {
+            writeln!(writer, "CONECT {:>5} {:>6}", s1, s2)?;
         }
 
+        // --- Phase 5: Write remaining metadata ---
         for line in &metadata.order_lines {
             writeln!(writer, "{}", line)?;
         }
