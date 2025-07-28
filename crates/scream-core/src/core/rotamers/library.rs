@@ -63,6 +63,7 @@ impl RotamerLibrary {
         forcefield: &Forcefield,
         delta_s_factor: f64,
     ) -> Result<Self, LibraryLoadError> {
+        // --- Phase 1: Load auxiliary placement info ---
         let placement_content =
             std::fs::read_to_string(placement_registry_path).map_err(|e| LibraryLoadError::Io {
                 path: placement_registry_path.to_string_lossy().to_string(),
@@ -76,6 +77,7 @@ impl RotamerLibrary {
                 }
             })?;
 
+        // --- Phase 2: Load raw rotamer data from TOML ---
         let content =
             std::fs::read_to_string(rotamer_toml_path).map_err(|e| LibraryLoadError::Io {
                 path: rotamer_toml_path.to_string_lossy().to_string(),
@@ -87,6 +89,7 @@ impl RotamerLibrary {
                 source: e,
             })?;
 
+        // --- Phase 3: Process raw data into functional Rotamer objects ---
         let parameterizer = Parameterizer::new(forcefield.clone(), delta_s_factor);
         let mut final_rotamers_map = HashMap::new();
         let mut final_placement_map = HashMap::new();
@@ -101,34 +104,18 @@ impl RotamerLibrary {
                 .clone();
             final_placement_map.insert(residue_type, placement_data);
 
-            let mut parameterized_rotamers = Vec::with_capacity(raw_rotamer_list.len());
-            let placeholder_residue_id = ResidueId::default();
+            let mut processed_rotamers = Vec::with_capacity(raw_rotamer_list.len());
 
-            for raw_rotamer in raw_rotamer_list {
-                let mut atoms = Vec::with_capacity(raw_rotamer.atoms.len());
-                for atom_data in raw_rotamer.atoms {
-                    let mut atom = Atom::new(
-                        &atom_data.atom_name,
-                        placeholder_residue_id,
-                        Point3::from(atom_data.position),
-                    );
-                    atom.partial_charge = atom_data.partial_charge;
-                    atom.force_field_type = atom_data.force_field_type;
-
-                    parameterizer
-                        .parameterize_atom(&mut atom, &res_name)
-                        .map_err(|e| LibraryLoadError::Parameterization {
-                            path: rotamer_toml_path.to_string_lossy().to_string(),
-                            residue_type: res_name.clone(),
-                            source: e,
-                        })?;
-
-                    atoms.push(atom);
-                }
-                parameterized_rotamers.push(Rotamer { atoms });
+            for raw_rotamer_data in raw_rotamer_list {
+                processed_rotamers.push(Self::process_raw_rotamer(
+                    &raw_rotamer_data,
+                    &parameterizer,
+                    &res_name,
+                    rotamer_toml_path,
+                )?);
             }
 
-            final_rotamers_map.insert(residue_type, parameterized_rotamers);
+            final_rotamers_map.insert(residue_type, processed_rotamers);
         }
 
         Ok(Self {
@@ -172,26 +159,82 @@ impl RotamerLibrary {
                 _ => continue,
             };
 
+            // 1. Extract atoms and build a global_id -> local_index map for topology extraction.
             let mut extracted_atoms = Vec::new();
-            for atom_name in &placement_info.sidechain_atoms {
+            let mut global_id_to_local_index = HashMap::new();
+            let mut sidechain_atom_ids = HashSet::new();
+
+            let all_rotamer_atoms: Vec<_> = placement_info
+                .anchor_atoms
+                .iter()
+                .chain(&placement_info.sidechain_atoms)
+                .collect();
+
+            for atom_name in all_rotamer_atoms {
                 if let Some(atom_id) = residue.get_atom_id_by_name(atom_name) {
                     if let Some(atom) = system.atom(atom_id) {
+                        let local_index = extracted_atoms.len();
                         extracted_atoms.push(atom.clone());
+                        global_id_to_local_index.insert(atom_id, local_index);
+                        if placement_info.sidechain_atoms.contains(atom_name) {
+                            sidechain_atom_ids.insert(atom_id);
+                        }
                     }
                 }
             }
 
-            if extracted_atoms.len() != placement_info.sidechain_atoms.len() {
-                continue;
+            // 2. Extract topology (bonds) for the extracted atoms.
+            let mut extracted_bonds = Vec::new();
+            for (atom_id_a, &local_index_a) in &global_id_to_local_index {
+                if let Some(neighbors) = system.get_bonded_neighbors(*atom_id_a) {
+                    for &atom_id_b in neighbors {
+                        if let Some(&local_index_b) = global_id_to_local_index.get(&atom_id_b) {
+                            if local_index_a < local_index_b {
+                                extracted_bonds.push((local_index_a, local_index_b));
+                            }
+                        }
+                    }
+                }
             }
 
             let extracted_rotamer = Rotamer {
                 atoms: extracted_atoms,
+                bonds: extracted_bonds,
             };
 
+            // 3. Check for duplicates based on RMSD of side-chain atoms only.
             let is_duplicate = existing_rotamers.iter().any(|existing| {
-                let coords1: Vec<_> = extracted_rotamer.atoms.iter().map(|a| a.position).collect();
-                let coords2: Vec<_> = existing.atoms.iter().map(|a| a.position).collect();
+                let name_to_pos1: HashMap<_, _> = extracted_rotamer
+                    .atoms
+                    .iter()
+                    .filter(|a| {
+                        sidechain_atom_ids.contains(
+                            &system
+                                .residue(a.residue_id)
+                                .unwrap()
+                                .get_atom_id_by_name(&a.name)
+                                .unwrap(),
+                        )
+                    })
+                    .map(|a| (&a.name, a.position))
+                    .collect();
+
+                let name_to_pos2: HashMap<_, _> = existing
+                    .atoms
+                    .iter()
+                    .filter(|a| placement_info.sidechain_atoms.contains(&a.name))
+                    .map(|a| (&a.name, a.position))
+                    .collect();
+
+                let mut coords1 = Vec::new();
+                let mut coords2 = Vec::new();
+
+                for (name, pos1) in &name_to_pos1 {
+                    if let Some(pos2) = name_to_pos2.get(name) {
+                        coords1.push(*pos1);
+                        coords2.push(*pos2);
+                    }
+                }
 
                 if let Some(rmsd) = calculate_rmsd(&coords1, &coords2) {
                     rmsd < rmsd_threshold
