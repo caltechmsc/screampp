@@ -252,7 +252,7 @@ pub fn resolve_selection_to_ids(
     Ok(final_active_residues)
 }
 
-pub fn is_heavy_atom(atom_name: &str) -> bool {
+fn is_heavy_atom(atom_name: &str) -> bool {
     let first_char = atom_name
         .trim()
         .chars()
