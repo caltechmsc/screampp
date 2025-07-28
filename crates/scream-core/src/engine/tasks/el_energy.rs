@@ -254,7 +254,11 @@ mod tests {
         cb.force_field_type = "C_SC".to_string();
         atoms.push(cb);
 
-        let ala_rotamer = Rotamer { atoms };
+        let ala_bonds = vec![(0, 1), (1, 2), (1, 3)];
+        let ala_rotamer = Rotamer {
+            atoms,
+            bonds: ala_bonds,
+        };
 
         let mut rotamers = HashMap::new();
         rotamers.insert(ResidueType::Alanine, vec![ala_rotamer.clone()]);
