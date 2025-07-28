@@ -208,7 +208,7 @@ impl RotamerLibrary {
     }
 }
 
-pub fn calculate_rmsd(coords1: &[Point3<f64>], coords2: &[Point3<f64>]) -> Option<f64> {
+fn calculate_rmsd(coords1: &[Point3<f64>], coords2: &[Point3<f64>]) -> Option<f64> {
     if coords1.len() != coords2.len() || coords1.is_empty() {
         return None;
     }
