@@ -301,12 +301,16 @@ mod tests {
         system.add_atom_to_residue(res_lig_id, atom_lig).unwrap();
 
         let mut library = RotamerLibrary::default();
+        let empty_rotamer = Rotamer {
+            atoms: vec![],
+            bonds: vec![],
+        };
         library
             .rotamers
-            .insert(ResidueType::Alanine, vec![Rotamer { atoms: vec![] }]);
+            .insert(ResidueType::Alanine, vec![empty_rotamer.clone()]);
         library
             .rotamers
-            .insert(ResidueType::Lysine, vec![Rotamer { atoms: vec![] }]);
+            .insert(ResidueType::Lysine, vec![empty_rotamer]);
 
         let mut ids = HashMap::new();
         ids.insert("GLY".to_string(), res_gly_id);
