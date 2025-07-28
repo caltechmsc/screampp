@@ -124,6 +124,68 @@ impl RotamerLibrary {
         })
     }
 
+    fn process_raw_rotamer(
+        raw_rotamer_data: &RotamerData,
+        parameterizer: &Parameterizer,
+        res_name: &str,
+        path_for_error: &Path,
+    ) -> Result<Rotamer, LibraryLoadError> {
+        let mut atoms = Vec::with_capacity(raw_rotamer_data.atoms.len());
+        let mut serial_to_index_map = HashMap::with_capacity(raw_rotamer_data.atoms.len());
+        let placeholder_residue_id = ResidueId::default();
+
+        // 1. Process atoms and build serial-to-index map
+        for (index, atom_data) in raw_rotamer_data.atoms.iter().enumerate() {
+            if serial_to_index_map
+                .insert(atom_data.serial, index)
+                .is_some()
+            {
+                return Err(LibraryLoadError::DuplicateAtomSerial {
+                    residue_type: res_name.to_string(),
+                    serial: atom_data.serial,
+                });
+            }
+
+            let mut atom = Atom::new(
+                &atom_data.atom_name,
+                placeholder_residue_id,
+                Point3::from(atom_data.position),
+            );
+            atom.partial_charge = atom_data.partial_charge;
+            atom.force_field_type = atom_data.force_field_type.clone();
+
+            parameterizer
+                .parameterize_atom(&mut atom, res_name)
+                .map_err(|e| LibraryLoadError::Parameterization {
+                    path: path_for_error.to_string_lossy().to_string(),
+                    residue_type: res_name.to_string(),
+                    source: e,
+                })?;
+
+            atoms.push(atom);
+        }
+
+        // 2. Process bonds using the map
+        let mut bonds = Vec::with_capacity(raw_rotamer_data.bonds.len());
+        for bond_serials in &raw_rotamer_data.bonds {
+            let index1 = *serial_to_index_map.get(&bond_serials[0]).ok_or_else(|| {
+                LibraryLoadError::InvalidBondSerial {
+                    residue_type: res_name.to_string(),
+                    serial: bond_serials[0],
+                }
+            })?;
+            let index2 = *serial_to_index_map.get(&bond_serials[1]).ok_or_else(|| {
+                LibraryLoadError::InvalidBondSerial {
+                    residue_type: res_name.to_string(),
+                    serial: bond_serials[1],
+                }
+            })?;
+            bonds.push((index1, index2));
+        }
+
+        Ok(Rotamer { atoms, bonds })
+    }
+
     pub fn get_rotamers_for(&self, residue_type: ResidueType) -> Option<&Vec<Rotamer>> {
         self.rotamers.get(&residue_type)
     }
