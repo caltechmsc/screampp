@@ -1,7 +1,6 @@
 use super::error::EngineError;
 use crate::core::{
     models::{
-        atom::Atom,
         ids::{AtomId, ResidueId},
         system::MolecularSystem,
         topology::BondOrder,
@@ -216,7 +215,7 @@ fn calculate_transformation(
 mod tests {
     use super::*;
     use crate::core::{
-        models::{chain::ChainType, residue::ResidueType, topology::BondOrder},
+        models::{atom::Atom, chain::ChainType, residue::ResidueType, topology::BondOrder},
         rotamers::placement::PlacementInfo,
     };
     use nalgebra::{Point3, Vector3};
