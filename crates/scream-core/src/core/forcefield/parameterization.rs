@@ -367,8 +367,6 @@ mod tests {
 
     #[test]
     fn parameterize_atom_handles_hbond_donor_hydrogen() {
-        let ff = create_dummy_forcefield_for_atom_test();
-        let parameterizer = Parameterizer::new(ff, 1.0);
         let residue_id = crate::core::models::ids::ResidueId::default();
 
         let mut atom = Atom::new("HN", residue_id, Point3::origin());
