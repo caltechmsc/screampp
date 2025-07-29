@@ -178,8 +178,8 @@ impl PlacementConfigBuilder {
         self.convergence_config = Some(config);
         self
     }
-    pub fn simulated_annealing_config(mut self, config: SimulatedAnnealingConfig) -> Self {
-        self.simulated_annealing_config = Some(config);
+    pub fn simulated_annealing_config(mut self, config: Option<SimulatedAnnealingConfig>) -> Self {
+        self.simulated_annealing_config = config;
         self
     }
     pub fn final_refinement_iterations(mut self, iterations: usize) -> Self {
@@ -464,7 +464,7 @@ mod tests {
             .num_solutions(10)
             .include_input_conformation(true)
             .convergence_config(convergence.clone())
-            .simulated_annealing_config(simulated_annealing.clone())
+            .simulated_annealing_config(Some(simulated_annealing.clone()))
             .final_refinement_iterations(5)
             .residues_to_optimize(ResidueSelection::All);
 
