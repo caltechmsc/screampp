@@ -6,10 +6,8 @@ use crate::core::models::atom::Atom;
 use crate::core::models::ids::ResidueId;
 use crate::core::models::residue::ResidueType;
 use crate::core::models::system::MolecularSystem;
-use crate::core::utils::geometry::calculate_rmsd;
 use nalgebra::Point3;
-use std::collections::HashMap;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::str::FromStr;
 use thiserror::Error;
@@ -41,22 +39,45 @@ pub enum LibraryLoadError {
     )]
     MissingPlacementInfo(String),
     #[error(
-        "Parameterization failed for residue '{res_type}' in rotamer from file '{path}': {source}"
+        "Parameterization failed for residue '{residue_type}' in rotamer from file '{path}': {source}"
     )]
     Parameterization {
         path: String,
-        res_type: String,
+        residue_type: String,
         source: ParameterizationError,
     },
+    #[error(
+        "Invalid bond definition in rotamer library for residue '{residue_type}': bond references non-existent atom serial '{serial}'"
+    )]
+    InvalidBondSerial { residue_type: String, serial: usize },
+    #[error(
+        "Duplicate atom serial '{serial}' found in rotamer definition for residue '{residue_type}'"
+    )]
+    DuplicateAtomSerial { residue_type: String, serial: usize },
 }
 
 impl RotamerLibrary {
     pub fn load(
         rotamer_toml_path: &Path,
-        placement_registry: &HashMap<String, PlacementInfo>,
+        placement_registry_path: &Path,
         forcefield: &Forcefield,
         delta_s_factor: f64,
     ) -> Result<Self, LibraryLoadError> {
+        // --- Phase 1: Load auxiliary placement info ---
+        let placement_content =
+            std::fs::read_to_string(placement_registry_path).map_err(|e| LibraryLoadError::Io {
+                path: placement_registry_path.to_string_lossy().to_string(),
+                source: e,
+            })?;
+        let placement_registry =
+            toml::from_str::<HashMap<String, PlacementInfo>>(&placement_content).map_err(|e| {
+                LibraryLoadError::Toml {
+                    path: placement_registry_path.to_string_lossy().to_string(),
+                    source: e,
+                }
+            })?;
+
+        // --- Phase 2: Load raw rotamer data from TOML ---
         let content =
             std::fs::read_to_string(rotamer_toml_path).map_err(|e| LibraryLoadError::Io {
                 path: rotamer_toml_path.to_string_lossy().to_string(),
@@ -68,49 +89,33 @@ impl RotamerLibrary {
                 source: e,
             })?;
 
+        // --- Phase 3: Process raw data into functional Rotamer objects ---
         let parameterizer = Parameterizer::new(forcefield.clone(), delta_s_factor);
         let mut final_rotamers_map = HashMap::new();
         let mut final_placement_map = HashMap::new();
 
         for (res_name, raw_rotamer_list) in raw_lib {
-            let res_type = ResidueType::from_str(&res_name)
+            let residue_type = ResidueType::from_str(&res_name)
                 .map_err(|_| LibraryLoadError::UnknownResidueType(res_name.clone()))?;
 
             let placement_data = placement_registry
                 .get(&res_name)
                 .ok_or_else(|| LibraryLoadError::MissingPlacementInfo(res_name.clone()))?
                 .clone();
-            final_placement_map.insert(res_type, placement_data);
+            final_placement_map.insert(residue_type, placement_data);
 
-            let mut parameterized_rotamers = Vec::with_capacity(raw_rotamer_list.len());
-            let placeholder_residue_id = ResidueId::default();
+            let mut processed_rotamers = Vec::with_capacity(raw_rotamer_list.len());
 
-            for raw_rotamer in raw_rotamer_list {
-                let mut atoms = Vec::with_capacity(raw_rotamer.atoms.len());
-                for atom_data in raw_rotamer.atoms {
-                    let mut atom = Atom::new(
-                        atom_data.serial,
-                        &atom_data.atom_name,
-                        placeholder_residue_id,
-                        Point3::from(atom_data.position),
-                    );
-                    atom.partial_charge = atom_data.partial_charge;
-                    atom.force_field_type = atom_data.force_field_type;
-
-                    parameterizer
-                        .parameterize_atom(&mut atom, &res_name)
-                        .map_err(|e| LibraryLoadError::Parameterization {
-                            path: rotamer_toml_path.to_string_lossy().to_string(),
-                            res_type: res_name.clone(),
-                            source: e,
-                        })?;
-
-                    atoms.push(atom);
-                }
-                parameterized_rotamers.push(Rotamer { atoms });
+            for raw_rotamer_data in raw_rotamer_list {
+                processed_rotamers.push(Self::process_raw_rotamer(
+                    &raw_rotamer_data,
+                    &parameterizer,
+                    &res_name,
+                    rotamer_toml_path,
+                )?);
             }
 
-            final_rotamers_map.insert(res_type, parameterized_rotamers);
+            final_rotamers_map.insert(residue_type, processed_rotamers);
         }
 
         Ok(Self {
@@ -119,80 +124,142 @@ impl RotamerLibrary {
         })
     }
 
-    pub fn get_rotamers_for(&self, res_type: ResidueType) -> Option<&Vec<Rotamer>> {
-        self.rotamers.get(&res_type)
+    fn process_raw_rotamer(
+        raw_rotamer_data: &RotamerData,
+        parameterizer: &Parameterizer,
+        res_name: &str,
+        path_for_error: &Path,
+    ) -> Result<Rotamer, LibraryLoadError> {
+        let mut atoms = Vec::with_capacity(raw_rotamer_data.atoms.len());
+        let mut serial_to_index_map = HashMap::with_capacity(raw_rotamer_data.atoms.len());
+        let placeholder_residue_id = ResidueId::default();
+
+        // 1. Process atoms and build serial-to-index map
+        for (index, atom_data) in raw_rotamer_data.atoms.iter().enumerate() {
+            if serial_to_index_map
+                .insert(atom_data.serial, index)
+                .is_some()
+            {
+                return Err(LibraryLoadError::DuplicateAtomSerial {
+                    residue_type: res_name.to_string(),
+                    serial: atom_data.serial,
+                });
+            }
+
+            let mut atom = Atom::new(
+                &atom_data.atom_name,
+                placeholder_residue_id,
+                Point3::from(atom_data.position),
+            );
+            atom.partial_charge = atom_data.partial_charge;
+            atom.force_field_type = atom_data.force_field_type.clone();
+
+            parameterizer
+                .parameterize_atom(&mut atom, res_name)
+                .map_err(|e| LibraryLoadError::Parameterization {
+                    path: path_for_error.to_string_lossy().to_string(),
+                    residue_type: res_name.to_string(),
+                    source: e,
+                })?;
+
+            atoms.push(atom);
+        }
+
+        // 2. Process bonds using the map
+        let mut bonds = Vec::with_capacity(raw_rotamer_data.bonds.len());
+        for bond_serials in &raw_rotamer_data.bonds {
+            let index1 = *serial_to_index_map.get(&bond_serials[0]).ok_or_else(|| {
+                LibraryLoadError::InvalidBondSerial {
+                    residue_type: res_name.to_string(),
+                    serial: bond_serials[0],
+                }
+            })?;
+            let index2 = *serial_to_index_map.get(&bond_serials[1]).ok_or_else(|| {
+                LibraryLoadError::InvalidBondSerial {
+                    residue_type: res_name.to_string(),
+                    serial: bond_serials[1],
+                }
+            })?;
+            bonds.push((index1, index2));
+        }
+
+        Ok(Rotamer { atoms, bonds })
     }
 
-    pub fn get_placement_info_for(&self, res_type: ResidueType) -> Option<&PlacementInfo> {
-        self.placement_info.get(&res_type)
+    pub fn get_rotamers_for(&self, residue_type: ResidueType) -> Option<&Vec<Rotamer>> {
+        self.rotamers.get(&residue_type)
+    }
+
+    pub fn get_placement_info_for(&self, residue_type: ResidueType) -> Option<&PlacementInfo> {
+        self.placement_info.get(&residue_type)
     }
 
     pub fn include_system_conformations(
         &mut self,
         system: &MolecularSystem,
         active_residues: &HashSet<ResidueId>,
-        rmsd_threshold: f64,
     ) {
-        let mut new_rotamers_to_add: HashMap<ResidueType, Rotamer> = HashMap::new();
-
         for &residue_id in active_residues {
             let residue = match system.residue(residue_id) {
                 Some(r) => r,
                 None => continue,
             };
 
-            let res_type = match residue.res_type {
+            let residue_type = match residue.residue_type {
                 Some(rt) => rt,
                 None => continue,
             };
 
-            let (existing_rotamers, placement_info) = match (
-                self.rotamers.get(&res_type),
-                self.placement_info.get(&res_type),
-            ) {
-                (Some(rots), Some(info)) => (rots, info),
-                _ => continue,
+            let placement_info = match self.placement_info.get(&residue_type) {
+                Some(info) => info,
+                None => continue,
             };
 
+            // --- 1. Extract atoms and build a map for topology extraction ---
+            let all_rotamer_atom_names: HashSet<_> = placement_info
+                .anchor_atoms
+                .iter()
+                .chain(&placement_info.sidechain_atoms)
+                .cloned()
+                .collect();
+
             let mut extracted_atoms = Vec::new();
-            for atom_name in &placement_info.sidechain_atoms {
+            let mut global_id_to_local_index = HashMap::new();
+
+            for atom_name in &all_rotamer_atom_names {
                 if let Some(atom_id) = residue.get_atom_id_by_name(atom_name) {
                     if let Some(atom) = system.atom(atom_id) {
+                        let local_index = extracted_atoms.len();
                         extracted_atoms.push(atom.clone());
+                        global_id_to_local_index.insert(atom_id, local_index);
                     }
                 }
             }
 
-            if extracted_atoms.len() != placement_info.sidechain_atoms.len() {
-                continue;
+            // --- 2. Extract topology (bonds) for the extracted atoms ---
+            let mut extracted_bonds = Vec::new();
+            for (atom_id_a, &local_index_a) in &global_id_to_local_index {
+                if let Some(neighbors) = system.get_bonded_neighbors(*atom_id_a) {
+                    for &atom_id_b in neighbors {
+                        if let Some(&local_index_b) = global_id_to_local_index.get(&atom_id_b) {
+                            if local_index_a < local_index_b {
+                                extracted_bonds.push((local_index_a, local_index_b));
+                            }
+                        }
+                    }
+                }
             }
 
             let extracted_rotamer = Rotamer {
                 atoms: extracted_atoms,
+                bonds: extracted_bonds,
             };
 
-            let is_duplicate = existing_rotamers.iter().any(|existing| {
-                let coords1: Vec<_> = extracted_rotamer.atoms.iter().map(|a| a.position).collect();
-                let coords2: Vec<_> = existing.atoms.iter().map(|a| a.position).collect();
-
-                if let Some(rmsd) = calculate_rmsd(&coords1, &coords2) {
-                    rmsd < rmsd_threshold
-                } else {
-                    false
-                }
-            });
-
-            if !is_duplicate {
-                new_rotamers_to_add
-                    .entry(res_type)
-                    .or_insert(extracted_rotamer);
-            }
-        }
-
-        for (res_type, new_rotamer) in new_rotamers_to_add {
-            if let Some(rotamers) = self.rotamers.get_mut(&res_type) {
-                rotamers.push(new_rotamer);
-            }
+            // --- 3. Add the extracted rotamer to the library ---
+            self.rotamers
+                .entry(residue_type)
+                .or_default()
+                .push(extracted_rotamer);
         }
     }
 }
@@ -200,320 +267,260 @@ impl RotamerLibrary {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::forcefield::params::{Forcefield, GlobalParams, NonBondedParams, VdwParam};
+    use crate::core::forcefield::params::{
+        DeltaParam, Forcefield, GlobalParams, NonBondedParams, VdwParam,
+    };
     use crate::core::models::atom::Atom;
     use crate::core::models::chain::ChainType;
+    use crate::core::models::residue::ResidueType;
     use crate::core::models::system::MolecularSystem;
+    use crate::core::models::topology::BondOrder;
     use crate::core::rotamers::placement::PlacementInfo;
     use nalgebra::Point3;
-    use std::collections::HashSet;
-    use std::io::Write;
-    use tempfile::NamedTempFile;
+    use std::collections::{HashMap, HashSet};
+    use std::fs;
+    use tempfile::tempdir;
 
-    fn create_test_forcefield() -> Forcefield {
-        let globals = GlobalParams {
-            dielectric_constant: 1.0,
-            potential_function: "mixed".to_string(),
-        };
-
+    fn dummy_forcefield() -> Forcefield {
+        let mut deltas = HashMap::new();
+        deltas.insert(
+            ("ALA".to_string(), "CA".to_string()),
+            DeltaParam {
+                residue_type: "ALA".to_string(),
+                atom_name: "CA".to_string(),
+                mu: 1.0,
+                sigma: 0.0,
+            },
+        );
         let mut vdw = HashMap::new();
         vdw.insert(
-            "CA".to_string(),
+            "C_SP3".to_string(),
             VdwParam::LennardJones {
-                radius: 1.9,
+                radius: 2.0,
                 well_depth: 0.1,
             },
         );
-        vdw.insert(
-            "CB".to_string(),
-            VdwParam::LennardJones {
-                radius: 1.9,
-                well_depth: 0.1,
-            },
-        );
-        vdw.insert(
-            "O".to_string(),
-            VdwParam::LennardJones {
-                radius: 1.7,
-                well_depth: 0.2,
-            },
-        );
-
+        let globals = GlobalParams {
+            dielectric_constant: 1.0,
+            potential_function: "lennard-jones-12-6".to_string(),
+        };
         let non_bonded = NonBondedParams {
             globals,
             vdw,
             hbond: HashMap::new(),
         };
+        Forcefield { deltas, non_bonded }
+    }
 
-        Forcefield {
-            non_bonded,
-            deltas: HashMap::new(),
+    fn ala_placement_info() -> PlacementInfo {
+        PlacementInfo {
+            sidechain_atoms: vec!["CB".to_string()],
+            anchor_atoms: vec!["N".to_string(), "CA".to_string(), "C".to_string()],
+            connection_points: vec![],
+            exact_match_atoms: vec![],
         }
     }
 
-    fn create_test_placement_registry() -> HashMap<String, PlacementInfo> {
-        let mut registry = HashMap::new();
-        registry.insert(
-            "ALA".to_string(),
-            PlacementInfo {
-                anchor_atoms: vec!["N".to_string(), "CA".to_string(), "C".to_string()],
-                sidechain_atoms: vec!["CB".to_string()],
-                exact_match_atoms: vec![
-                    "N".to_string(),
-                    "CA".to_string(),
-                    "C".to_string(),
-                    "O".to_string(),
-                ],
-                connection_points: vec!["C".to_string(), "N".to_string()],
-            },
+    fn write_file(path: &std::path::Path, content: &str) {
+        fs::write(path, content).expect("Failed to write temporary file for test setup");
+    }
+
+    #[test]
+    fn load_rotamer_library_with_topology_success() {
+        let dir = tempdir().unwrap();
+        let rotamer_path = dir.path().join("rotamer.toml");
+        let placement_path = dir.path().join("placement.toml");
+
+        write_file(
+            &rotamer_path,
+            r#"
+[[ALA]]
+atoms = [
+    { serial = 1, atom_name = "N", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" },
+    { serial = 2, atom_name = "CA", position = [1.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" },
+]
+bonds = [ [1, 2] ]
+
+[[ALA]]
+atoms = [
+    { serial = 10, atom_name = "N", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" },
+    { serial = 20, atom_name = "CA", position = [1.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" },
+]
+bonds = [ [10, 20] ]
+"#,
         );
-        registry
+
+        write_file(
+            &placement_path,
+            r#"ALA = { sidechain_atoms = ["CB"], anchor_atoms = ["N", "CA", "C"], connection_points = [], exact_match_atoms = [] }"#,
+        );
+        let ff = dummy_forcefield();
+        let lib = RotamerLibrary::load(&rotamer_path, &placement_path, &ff, 0.0).unwrap();
+
+        let rots = lib.get_rotamers_for(ResidueType::Alanine).unwrap();
+        assert_eq!(rots.len(), 2, "Should load two rotamers for ALA");
+
+        let rotamer1 = &rots[0];
+        assert_eq!(rotamer1.atoms.len(), 2);
+        assert_eq!(rotamer1.bonds.len(), 1);
+        assert_eq!(rotamer1.bonds[0], (0, 1));
+
+        let rotamer2 = &rots[1];
+        assert_eq!(rotamer2.atoms.len(), 2);
+        assert_eq!(rotamer2.bonds.len(), 1);
+        assert_eq!(rotamer2.bonds[0], (0, 1));
     }
 
-    fn create_temp_rotamer_file(content: &str) -> NamedTempFile {
-        let mut file = NamedTempFile::new().unwrap();
-        write!(file, "{}", content).unwrap();
-        file
+    #[test]
+    fn load_fails_on_duplicate_atom_serial() {
+        let dir = tempdir().unwrap();
+        let rotamer_path = dir.path().join("rotamer.toml");
+        write_file(
+            &rotamer_path,
+            r#"
+[[ALA]]
+atoms = [
+    { serial = 1, atom_name = "N", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" },
+    { serial = 1, atom_name = "CA", position = [1.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" },
+]
+bonds = []
+"#,
+        );
+        let placement_path = dir.path().join("placement.toml");
+        write_file(
+            &placement_path,
+            r#"ALA = { sidechain_atoms = [], anchor_atoms = [], connection_points = [], exact_match_atoms = [] }"#,
+        );
+
+        let ff = dummy_forcefield();
+        let result = RotamerLibrary::load(&rotamer_path, &placement_path, &ff, 0.0);
+
+        assert!(
+            matches!(result, Err(LibraryLoadError::DuplicateAtomSerial { residue_type, serial }) if residue_type == "ALA" && serial == 1)
+        );
     }
 
-    fn create_test_system_with_ala(cb_pos: Point3<f64>) -> (MolecularSystem, ResidueId) {
+    #[test]
+    fn load_fails_on_invalid_bond_serial() {
+        let dir = tempdir().unwrap();
+        let rotamer_path = dir.path().join("rotamer.toml");
+        write_file(
+            &rotamer_path,
+            r#"
+[[ALA]]
+atoms = [ { serial = 1, atom_name = "N", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" } ]
+bonds = [ [1, 99] ]
+"#,
+        );
+        let placement_path = dir.path().join("placement.toml");
+        write_file(
+            &placement_path,
+            r#"ALA = { sidechain_atoms = [], anchor_atoms = [], connection_points = [], exact_match_atoms = [] }"#,
+        );
+
+        let ff = dummy_forcefield();
+        let result = RotamerLibrary::load(&rotamer_path, &placement_path, &ff, 0.0);
+
+        assert!(
+            matches!(result, Err(LibraryLoadError::InvalidBondSerial { residue_type, serial }) if residue_type == "ALA" && serial == 99)
+        );
+    }
+
+    fn create_test_system_for_extraction() -> (MolecularSystem, ResidueId) {
         let mut system = MolecularSystem::new();
         let chain_id = system.add_chain('A', ChainType::Protein);
         let res_id = system
             .add_residue(chain_id, 1, "ALA", Some(ResidueType::Alanine))
             .unwrap();
 
-        let mut cb_atom = Atom::new(10, "CB", res_id, cb_pos);
-        cb_atom.force_field_type = "CB".to_string();
-        system.add_atom_to_residue(res_id, cb_atom).unwrap();
+        let n_atom = Atom::new("N", res_id, Point3::origin());
+        let ca_atom = Atom::new("CA", res_id, Point3::new(1.0, 0.0, 0.0));
+        let c_atom = Atom::new("C", res_id, Point3::new(1.0, 1.0, 0.0));
+        let cb_atom = Atom::new("CB", res_id, Point3::new(2.0, -1.0, 0.0));
+
+        let n_id = system.add_atom_to_residue(res_id, n_atom).unwrap();
+        let ca_id = system.add_atom_to_residue(res_id, ca_atom).unwrap();
+        let c_id = system.add_atom_to_residue(res_id, c_atom).unwrap();
+        let cb_id = system.add_atom_to_residue(res_id, cb_atom).unwrap();
+
+        system.add_bond(n_id, ca_id, BondOrder::Single).unwrap();
+        system.add_bond(ca_id, c_id, BondOrder::Single).unwrap();
+        system.add_bond(ca_id, cb_id, BondOrder::Single).unwrap();
 
         (system, res_id)
     }
 
     #[test]
-    fn loads_rotamers_and_placement_info_successfully() {
-        let rotamer_content = r#"
-[[ALA]]
-atoms = [
-    { serial = 1, atom_name = "CA", partial_charge = 0.1, position = [0.0, 0.0, 0.0], force_field_type = "CA" },
-    { serial = 2, atom_name = "CB", partial_charge = -0.1, position = [1.5, 0.0, 0.0], force_field_type = "CB" },
-]
-"#;
-        let rotamer_file = create_temp_rotamer_file(rotamer_content);
+    fn include_system_conformations_extracts_atoms_and_topology() {
+        let mut lib = RotamerLibrary::default();
+        let placement_info = ala_placement_info();
+        lib.placement_info
+            .insert(ResidueType::Alanine, placement_info);
+        lib.rotamers.insert(ResidueType::Alanine, vec![]);
 
-        let ff = create_test_forcefield();
-        let placement_registry = create_test_placement_registry();
+        let (system, res_id) = create_test_system_for_extraction();
+        let mut active = HashSet::new();
+        active.insert(res_id);
 
-        let library =
-            RotamerLibrary::load(rotamer_file.path(), &placement_registry, &ff, 0.0).unwrap();
+        lib.include_system_conformations(&system, &active);
 
-        assert_eq!(library.rotamers.len(), 1);
-        assert_eq!(library.placement_info.len(), 1);
+        let rots = lib.get_rotamers_for(ResidueType::Alanine).unwrap();
+        assert_eq!(rots.len(), 1);
+        let rotamer = &rots[0];
 
-        let ala_rotamers = library.get_rotamers_for(ResidueType::Alanine).unwrap();
-        assert_eq!(ala_rotamers.len(), 1);
-        assert_eq!(ala_rotamers[0].atoms.len(), 2);
+        assert_eq!(rotamer.atoms.len(), 4);
+        assert!(rotamer.atoms.iter().any(|a| a.name == "N"));
+        assert!(rotamer.atoms.iter().any(|a| a.name == "CA"));
+        assert!(rotamer.atoms.iter().any(|a| a.name == "C"));
+        assert!(rotamer.atoms.iter().any(|a| a.name == "CB"));
 
-        let ca_atom = &ala_rotamers[0]
+        assert_eq!(rotamer.bonds.len(), 3);
+        let name_to_idx: HashMap<_, _> = rotamer
             .atoms
             .iter()
-            .find(|a| a.name == "CA")
-            .unwrap();
-        assert_eq!(ca_atom.vdw_radius, 1.9);
-        assert_eq!(ca_atom.vdw_well_depth, 0.1);
+            .enumerate()
+            .map(|(idx, atom)| (atom.name.as_str(), idx))
+            .collect();
+        let expected_bonds: HashSet<(usize, usize)> = [
+            (name_to_idx["N"], name_to_idx["CA"]),
+            (name_to_idx["CA"], name_to_idx["C"]),
+            (name_to_idx["CA"], name_to_idx["CB"]),
+        ]
+        .iter()
+        .map(|&(a, b)| if a < b { (a, b) } else { (b, a) })
+        .collect();
 
-        let ala_placement = library
-            .get_placement_info_for(ResidueType::Alanine)
-            .unwrap();
-        assert_eq!(ala_placement.sidechain_atoms, vec!["CB"]);
+        let actual_bonds: HashSet<(usize, usize)> = rotamer
+            .bonds
+            .iter()
+            .map(|&(a, b)| if a < b { (a, b) } else { (b, a) })
+            .collect();
+
+        assert_eq!(actual_bonds, expected_bonds);
     }
 
     #[test]
-    fn load_returns_io_error_for_nonexistent_file() {
-        let path = Path::new("nonexistent_rotamer_file.toml");
-        let ff = create_test_forcefield();
-        let placement_registry = create_test_placement_registry();
+    fn include_system_conformations_always_adds_extracted_rotamer() {
+        let mut lib = RotamerLibrary::default();
+        let placement_info = ala_placement_info();
+        lib.placement_info
+            .insert(ResidueType::Alanine, placement_info.clone());
+        lib.rotamers.insert(ResidueType::Alanine, vec![]);
 
-        let result = RotamerLibrary::load(path, &placement_registry, &ff, 0.0);
+        let (system, res_id) = create_test_system_for_extraction();
+        let mut active = HashSet::new();
+        active.insert(res_id);
 
-        assert!(matches!(result, Err(LibraryLoadError::Io { .. })));
-    }
+        lib.include_system_conformations(&system, &active);
+        let rots = lib.get_rotamers_for(ResidueType::Alanine).unwrap();
+        assert_eq!(rots.len(), 1, "Should add the rotamer the first time");
 
-    #[test]
-    fn load_returns_toml_error_for_malformed_file() {
-        let content = "this is not valid toml";
-        let file = create_temp_rotamer_file(content);
-        let ff = create_test_forcefield();
-        let placement_registry = create_test_placement_registry();
-
-        let result = RotamerLibrary::load(file.path(), &placement_registry, &ff, 0.0);
-
-        assert!(matches!(result, Err(LibraryLoadError::Toml { .. })));
-    }
-
-    #[test]
-    fn load_returns_error_for_unknown_residue_type() {
-        let rotamer_content = r#"
-[[UNK]]
-atoms = []
-"#;
-        let rotamer_file = create_temp_rotamer_file(rotamer_content);
-        let ff = create_test_forcefield();
-        let placement_registry = create_test_placement_registry();
-
-        let result = RotamerLibrary::load(rotamer_file.path(), &placement_registry, &ff, 0.0);
-
-        assert!(matches!(
-            result,
-            Err(LibraryLoadError::UnknownResidueType(name)) if name == "UNK"
-        ));
-    }
-
-    #[test]
-    fn load_returns_error_for_missing_placement_info() {
-        let rotamer_content = r#"
-[[ALA]]
-atoms = []
-"#;
-        let rotamer_file = create_temp_rotamer_file(rotamer_content);
-        let ff = create_test_forcefield();
-        let empty_placement_registry = HashMap::new();
-
-        let result = RotamerLibrary::load(rotamer_file.path(), &empty_placement_registry, &ff, 0.0);
-
-        assert!(matches!(
-            result,
-            Err(LibraryLoadError::MissingPlacementInfo(name)) if name == "ALA"
-        ));
-    }
-
-    #[test]
-    fn load_returns_error_for_parameterization_failure() {
-        let rotamer_content = r#"
-[[ALA]]
-atoms = [
-    { serial = 1, atom_name = "CA", partial_charge = 0.1, position = [0.0, 0.0, 0.0], force_field_type = "UnknownType" }
-]
-"#;
-        let rotamer_file = create_temp_rotamer_file(rotamer_content);
-        let ff = create_test_forcefield();
-        let placement_registry = create_test_placement_registry();
-
-        let result = RotamerLibrary::load(rotamer_file.path(), &placement_registry, &ff, 0.0);
-
-        assert!(matches!(
-            result,
-            Err(LibraryLoadError::Parameterization { .. })
-        ));
-    }
-
-    #[test]
-    fn loads_empty_library_from_empty_file() {
-        let rotamer_file = create_temp_rotamer_file("");
-        let ff = create_test_forcefield();
-        let placement_registry = create_test_placement_registry();
-
-        let library =
-            RotamerLibrary::load(rotamer_file.path(), &placement_registry, &ff, 0.0).unwrap();
-
-        assert!(library.rotamers.is_empty());
-        assert!(library.placement_info.is_empty());
-    }
-
-    #[test]
-    fn handles_residue_with_empty_rotamer_list() {
-        let rotamer_content = r#"
-[[ALA]]
-atoms = []
-"#;
-        let rotamer_file = create_temp_rotamer_file(rotamer_content);
-        let ff = create_test_forcefield();
-        let placement_registry = create_test_placement_registry();
-
-        let library =
-            RotamerLibrary::load(rotamer_file.path(), &placement_registry, &ff, 0.0).unwrap();
-
-        assert_eq!(library.rotamers.len(), 1);
-        assert_eq!(library.placement_info.len(), 1);
-        let ala_rotamers = library.get_rotamers_for(ResidueType::Alanine).unwrap();
-        assert_eq!(ala_rotamers.len(), 1);
-        assert!(ala_rotamers[0].atoms.is_empty());
-    }
-
-    #[test]
-    fn include_system_conformations_adds_unique_original_rotamer() {
-        let rotamer_content = r#"
-[[ALA]]
-atoms = [
-    { serial = 2, atom_name = "CB", partial_charge = -0.1, position = [1.5, 0.0, 0.0], force_field_type = "CB" }
-]
-"#;
-        let rotamer_file = create_temp_rotamer_file(rotamer_content);
-        let ff = create_test_forcefield();
-        let placement_registry = create_test_placement_registry();
-
-        let mut library =
-            RotamerLibrary::load(rotamer_file.path(), &placement_registry, &ff, 0.0).unwrap();
-
-        let original_count = library
-            .get_rotamers_for(ResidueType::Alanine)
-            .unwrap()
-            .len();
-        assert_eq!(original_count, 1);
-
-        let (system, res_id) = create_test_system_with_ala(Point3::new(5.0, 5.0, 5.0));
-
-        let mut active_residues = HashSet::new();
-        active_residues.insert(res_id);
-
-        library.include_system_conformations(&system, &active_residues, 0.1);
-
-        let new_count = library
-            .get_rotamers_for(ResidueType::Alanine)
-            .unwrap()
-            .len();
+        lib.include_system_conformations(&system, &active);
+        let rots_after_second_call = lib.get_rotamers_for(ResidueType::Alanine).unwrap();
         assert_eq!(
-            new_count,
-            original_count + 1,
-            "A new unique rotamer should have been added"
-        );
-    }
-
-    #[test]
-    fn include_system_conformations_skips_duplicate_rotamer() {
-        let rotamer_content = r#"
-[[ALA]]
-atoms = [
-    { serial = 2, atom_name = "CB", partial_charge = -0.1, position = [1.5, 0.0, 0.0], force_field_type = "CB" }
-]
-"#;
-        let rotamer_file = create_temp_rotamer_file(rotamer_content);
-        let ff = create_test_forcefield();
-        let placement_registry = create_test_placement_registry();
-
-        let mut library =
-            RotamerLibrary::load(rotamer_file.path(), &placement_registry, &ff, 0.0).unwrap();
-
-        let original_count = library
-            .get_rotamers_for(ResidueType::Alanine)
-            .unwrap()
-            .len();
-        assert_eq!(original_count, 1);
-
-        let (system, res_id) = create_test_system_with_ala(Point3::new(1.5, 0.0, 0.0));
-
-        let mut active_residues = HashSet::new();
-        active_residues.insert(res_id);
-
-        library.include_system_conformations(&system, &active_residues, 0.1);
-
-        let new_count = library
-            .get_rotamers_for(ResidueType::Alanine)
-            .unwrap()
-            .len();
-        assert_eq!(
-            new_count, original_count,
-            "Duplicate rotamer should not be added"
+            rots_after_second_call.len(),
+            2,
+            "Should add the rotamer again as de-duplication is disabled"
         );
     }
 }

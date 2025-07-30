@@ -19,7 +19,7 @@ pub enum VdwParam {
 
 #[derive(Debug, Deserialize, Clone, PartialEq)]
 pub struct HBondParam {
-    pub equilibrium_dist: f64,
+    pub equilibrium_distance: f64,
     pub well_depth: f64,
 }
 
@@ -38,7 +38,7 @@ pub struct NonBondedParams {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct DeltaParam {
-    pub res_type: String,
+    pub residue_type: String,
     pub atom_name: String,
     pub mu: f64,
     pub sigma: f64,
@@ -99,7 +99,10 @@ impl Forcefield {
                 path: path.to_string_lossy().to_string(),
                 source: e,
             })?;
-            lib_deltas.insert((record.res_type.clone(), record.atom_name.clone()), record);
+            lib_deltas.insert(
+                (record.residue_type.clone(), record.atom_name.clone()),
+                record,
+            );
         }
         Ok(lib_deltas)
     }
@@ -134,7 +137,7 @@ mod tests {
             well_depth = 0.05
 
             [hbond.N_H]
-            equilibrium_dist = 2.7
+            equilibrium_distance = 2.7
             well_depth = 5.0
             "#
         )
@@ -160,7 +163,7 @@ mod tests {
         assert_eq!(
             params.hbond.get("N_H"),
             Some(&HBondParam {
-                equilibrium_dist: 2.7,
+                equilibrium_distance: 2.7,
                 well_depth: 5.0
             })
         );
@@ -187,7 +190,11 @@ mod tests {
     fn load_delta_csv_succeeds_with_valid_csv() {
         let dir = tempdir().unwrap();
         let file_path = dir.path().join("test_lib.csv");
-        fs::write(&file_path, "res_type,atom_name,mu,sigma\nALA,CA,1.0,0.5").unwrap();
+        fs::write(
+            &file_path,
+            "residue_type,atom_name,mu,sigma\nALA,CA,1.0,0.5",
+        )
+        .unwrap();
 
         let deltas = Forcefield::load_delta_csv(&file_path).unwrap();
         let param = deltas.get(&("ALA".to_string(), "CA".to_string())).unwrap();
@@ -218,13 +225,17 @@ mod tests {
             radius = 1.0
             well_depth = 1.0
             [hbond.N]
-            equilibrium_dist = 1.0
+            equilibrium_distance = 1.0
             well_depth = 1.0"#,
         )
         .unwrap();
 
         let delta_path = dir.path().join("delta.csv");
-        fs::write(&delta_path, "res_type,atom_name,mu,sigma\nALA,CA,1.0,0.5").unwrap();
+        fs::write(
+            &delta_path,
+            "residue_type,atom_name,mu,sigma\nALA,CA,1.0,0.5",
+        )
+        .unwrap();
 
         let ff = Forcefield::load(&non_bonded_path, &delta_path).unwrap();
 

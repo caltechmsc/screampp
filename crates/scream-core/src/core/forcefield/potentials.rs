@@ -47,17 +47,6 @@ pub fn dreiding_hbond_12_10(dist_ad: f64, r_hb: f64, d_hb: f64) -> f64 {
 }
 
 #[inline]
-pub fn dreiding_hbond(dist_ad: f64, angle_ahd_deg: f64, r_hb: f64, d_hb: f64) -> f64 {
-    if angle_ahd_deg < 90.0 {
-        return 0.0;
-    }
-    let cos_theta = (angle_ahd_deg * PI / 180.0).cos();
-    let angular_term = cos_theta.powi(4);
-    let distance_term = dreiding_hbond_12_10(dist_ad, r_hb, d_hb);
-    distance_term * angular_term
-}
-
-#[inline]
 pub fn apply_flat_bottom_vdw<F>(dist: f64, ideal_dist: f64, delta: f64, potential_fn: F) -> f64
 where
     F: Fn(f64) -> f64,
@@ -158,24 +147,6 @@ mod tests {
     fn dreiding_hbond_12_10_at_very_small_distance_returns_large_positive_energy() {
         let energy = dreiding_hbond_12_10(1e-7, 2.7, 5.0);
         assert!(f64_approx_equal(energy, 1e10));
-    }
-
-    #[test]
-    fn dreiding_hbond_is_zero_for_angles_less_than_90_degrees() {
-        let energy = dreiding_hbond(3.0, 89.9, 2.7, 5.0);
-        assert!(f64_approx_equal(energy, 0.0));
-    }
-
-    #[test]
-    fn dreiding_hbond_at_ideal_distance_and_180_degrees() {
-        let energy = dreiding_hbond(2.7, 180.0, 2.7, 5.0);
-        assert!(f64_approx_equal(energy, -5.0));
-    }
-
-    #[test]
-    fn dreiding_hbond_at_90_degrees_is_zero() {
-        let energy = dreiding_hbond(2.7, 90.0, 2.7, 5.0);
-        assert!(f64_approx_equal(energy, 0.0));
     }
 
     #[test]

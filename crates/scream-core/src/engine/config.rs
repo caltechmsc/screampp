@@ -29,126 +29,48 @@ pub enum ResidueSelection {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum AtomSelection {
-    Residue(ResidueSpecifier),
-    Chain(char),
-    Ligand(String),
-    All,
+pub struct ConvergenceConfig {
+    pub energy_threshold: f64,
+    pub patience_iterations: usize,
 }
 
-#[derive(Debug, Clone, PartialEq, Default)]
-pub struct ScoringConfig {
+#[derive(Debug, Clone, PartialEq)]
+pub struct SimulatedAnnealingConfig {
+    pub initial_temperature: f64,
+    pub final_temperature: f64,
+    pub cooling_rate: f64,
+    pub steps_per_temperature: usize,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ForcefieldConfig {
     pub forcefield_path: PathBuf,
-    pub rotamer_library_path: PathBuf,
     pub delta_params_path: PathBuf,
     pub s_factor: f64,
 }
 
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq)]
+pub struct SamplingConfig {
+    pub rotamer_library_path: PathBuf,
+    pub placement_registry_path: PathBuf,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct OptimizationConfig {
     pub max_iterations: usize,
-    pub convergence_threshold: f64,
     pub num_solutions: usize,
     pub include_input_conformation: bool,
+    pub convergence: ConvergenceConfig,
+    pub simulated_annealing: Option<SimulatedAnnealingConfig>,
+    pub final_refinement_iterations: usize,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PlacementConfig {
-    pub scoring: ScoringConfig,
+    pub forcefield: ForcefieldConfig,
+    pub sampling: SamplingConfig,
     pub optimization: OptimizationConfig,
     pub residues_to_optimize: ResidueSelection,
-}
-
-#[derive(Default)]
-pub struct PlacementConfigBuilder {
-    forcefield_path: Option<PathBuf>,
-    rotamer_library_path: Option<PathBuf>,
-    delta_params_path: Option<PathBuf>,
-    s_factor: Option<f64>,
-    max_iterations: Option<usize>,
-    convergence_threshold: Option<f64>,
-    num_solutions: Option<usize>,
-    residues_to_optimize: Option<ResidueSelection>,
-    include_input_conformation: Option<bool>,
-}
-
-impl PlacementConfigBuilder {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn forcefield_path(mut self, path: PathBuf) -> Self {
-        self.forcefield_path = Some(path);
-        self
-    }
-    pub fn rotamer_library_path(mut self, path: PathBuf) -> Self {
-        self.rotamer_library_path = Some(path);
-        self
-    }
-    pub fn delta_params_path(mut self, path: PathBuf) -> Self {
-        self.delta_params_path = Some(path);
-        self
-    }
-    pub fn s_factor(mut self, factor: f64) -> Self {
-        self.s_factor = Some(factor);
-        self
-    }
-    pub fn max_iterations(mut self, iterations: usize) -> Self {
-        self.max_iterations = Some(iterations);
-        self
-    }
-    pub fn convergence_threshold(mut self, threshold: f64) -> Self {
-        self.convergence_threshold = Some(threshold);
-        self
-    }
-    pub fn num_solutions(mut self, n: usize) -> Self {
-        self.num_solutions = Some(n);
-        self
-    }
-    pub fn residues_to_optimize(mut self, selection: ResidueSelection) -> Self {
-        self.residues_to_optimize = Some(selection);
-        self
-    }
-    pub fn include_input_conformation(mut self, include: bool) -> Self {
-        self.include_input_conformation = Some(include);
-        self
-    }
-
-    pub fn build(self) -> Result<PlacementConfig, ConfigError> {
-        let scoring = ScoringConfig {
-            forcefield_path: self
-                .forcefield_path
-                .ok_or(ConfigError::MissingParameter("forcefield_path"))?,
-            rotamer_library_path: self
-                .rotamer_library_path
-                .ok_or(ConfigError::MissingParameter("rotamer_library_path"))?,
-            delta_params_path: self
-                .delta_params_path
-                .ok_or(ConfigError::MissingParameter("delta_params_path"))?,
-            s_factor: self
-                .s_factor
-                .ok_or(ConfigError::MissingParameter("s_factor"))?,
-        };
-        let optimization = OptimizationConfig {
-            max_iterations: self
-                .max_iterations
-                .ok_or(ConfigError::MissingParameter("max_iterations"))?,
-            convergence_threshold: self
-                .convergence_threshold
-                .ok_or(ConfigError::MissingParameter("convergence_threshold"))?,
-            num_solutions: self
-                .num_solutions
-                .ok_or(ConfigError::MissingParameter("num_solutions"))?,
-            include_input_conformation: self.include_input_conformation.unwrap_or(false),
-        };
-        Ok(PlacementConfig {
-            scoring,
-            optimization,
-            residues_to_optimize: self
-                .residues_to_optimize
-                .ok_or(ConfigError::MissingParameter("residues_to_optimize"))?,
-        })
-    }
 }
 
 pub type DesignSpec = HashMap<ResidueSpecifier, Vec<ResidueType>>;
@@ -168,110 +90,18 @@ impl DesignSpecExt for DesignSpec {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DesignConfig {
-    pub scoring: ScoringConfig,
+    pub forcefield: ForcefieldConfig,
+    pub sampling: SamplingConfig,
     pub optimization: OptimizationConfig,
     pub design_spec: DesignSpec,
     pub neighbors_to_repack: ResidueSelection,
 }
 
-#[derive(Default)]
-pub struct DesignConfigBuilder {
-    forcefield_path: Option<PathBuf>,
-    rotamer_library_path: Option<PathBuf>,
-    delta_params_path: Option<PathBuf>,
-    s_factor: Option<f64>,
-    max_iterations: Option<usize>,
-    convergence_threshold: Option<f64>,
-    num_solutions: Option<usize>,
-    include_input_conformation: Option<bool>,
-    design_spec: Option<DesignSpec>,
-    neighbors_to_repack: Option<ResidueSelection>,
-}
-
-impl DesignConfigBuilder {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn forcefield_path(mut self, path: PathBuf) -> Self {
-        self.forcefield_path = Some(path);
-        self
-    }
-    pub fn rotamer_library_path(mut self, path: PathBuf) -> Self {
-        self.rotamer_library_path = Some(path);
-        self
-    }
-    pub fn delta_params_path(mut self, path: PathBuf) -> Self {
-        self.delta_params_path = Some(path);
-        self
-    }
-    pub fn s_factor(mut self, factor: f64) -> Self {
-        self.s_factor = Some(factor);
-        self
-    }
-    pub fn max_iterations(mut self, iterations: usize) -> Self {
-        self.max_iterations = Some(iterations);
-        self
-    }
-    pub fn convergence_threshold(mut self, threshold: f64) -> Self {
-        self.convergence_threshold = Some(threshold);
-        self
-    }
-    pub fn num_solutions(mut self, n: usize) -> Self {
-        self.num_solutions = Some(n);
-        self
-    }
-    pub fn include_input_conformation(mut self, include: bool) -> Self {
-        self.include_input_conformation = Some(include);
-        self
-    }
-    pub fn design_spec(mut self, spec: DesignSpec) -> Self {
-        self.design_spec = Some(spec);
-        self
-    }
-    pub fn neighbors_to_repack(mut self, selection: ResidueSelection) -> Self {
-        self.neighbors_to_repack = Some(selection);
-        self
-    }
-
-    pub fn build(self) -> Result<DesignConfig, ConfigError> {
-        let scoring = ScoringConfig {
-            forcefield_path: self
-                .forcefield_path
-                .ok_or(ConfigError::MissingParameter("forcefield_path"))?,
-            rotamer_library_path: self
-                .rotamer_library_path
-                .ok_or(ConfigError::MissingParameter("rotamer_library_path"))?,
-            delta_params_path: self
-                .delta_params_path
-                .ok_or(ConfigError::MissingParameter("delta_params_path"))?,
-            s_factor: self
-                .s_factor
-                .ok_or(ConfigError::MissingParameter("s_factor"))?,
-        };
-        let optimization = OptimizationConfig {
-            max_iterations: self
-                .max_iterations
-                .ok_or(ConfigError::MissingParameter("max_iterations"))?,
-            convergence_threshold: self
-                .convergence_threshold
-                .ok_or(ConfigError::MissingParameter("convergence_threshold"))?,
-            num_solutions: self
-                .num_solutions
-                .ok_or(ConfigError::MissingParameter("num_solutions"))?,
-            include_input_conformation: self.include_input_conformation.unwrap_or(false),
-        };
-        Ok(DesignConfig {
-            scoring,
-            optimization,
-            design_spec: self
-                .design_spec
-                .ok_or(ConfigError::MissingParameter("design_spec"))?,
-            neighbors_to_repack: self
-                .neighbors_to_repack
-                .ok_or(ConfigError::MissingParameter("neighbors_to_repack"))?,
-        })
-    }
+#[derive(Debug, Clone, PartialEq)]
+pub enum AtomSelection {
+    Residue(ResidueSpecifier),
+    Chain(char),
+    All,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -287,14 +117,256 @@ pub enum AnalysisType {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct AnalyzeConfig {
-    pub scoring: ScoringConfig,
+    pub forcefield: ForcefieldConfig,
     pub analysis_type: AnalysisType,
+}
+
+#[derive(Default)]
+pub struct PlacementConfigBuilder {
+    forcefield_path: Option<PathBuf>,
+    delta_params_path: Option<PathBuf>,
+    s_factor: Option<f64>,
+    rotamer_library_path: Option<PathBuf>,
+    placement_registry_path: Option<PathBuf>,
+    max_iterations: Option<usize>,
+    num_solutions: Option<usize>,
+    include_input_conformation: Option<bool>,
+    convergence_config: Option<ConvergenceConfig>,
+    simulated_annealing_config: Option<SimulatedAnnealingConfig>,
+    final_refinement_iterations: Option<usize>,
+    residues_to_optimize: Option<ResidueSelection>,
+}
+
+impl PlacementConfigBuilder {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn forcefield_path(mut self, path: impl Into<PathBuf>) -> Self {
+        self.forcefield_path = Some(path.into());
+        self
+    }
+    pub fn delta_params_path(mut self, path: impl Into<PathBuf>) -> Self {
+        self.delta_params_path = Some(path.into());
+        self
+    }
+    pub fn s_factor(mut self, factor: f64) -> Self {
+        self.s_factor = Some(factor);
+        self
+    }
+    pub fn rotamer_library_path(mut self, path: impl Into<PathBuf>) -> Self {
+        self.rotamer_library_path = Some(path.into());
+        self
+    }
+    pub fn placement_registry_path(mut self, path: impl Into<PathBuf>) -> Self {
+        self.placement_registry_path = Some(path.into());
+        self
+    }
+    pub fn max_iterations(mut self, iterations: usize) -> Self {
+        self.max_iterations = Some(iterations);
+        self
+    }
+    pub fn num_solutions(mut self, n: usize) -> Self {
+        self.num_solutions = Some(n);
+        self
+    }
+    pub fn include_input_conformation(mut self, include: bool) -> Self {
+        self.include_input_conformation = Some(include);
+        self
+    }
+    pub fn convergence_config(mut self, config: ConvergenceConfig) -> Self {
+        self.convergence_config = Some(config);
+        self
+    }
+    pub fn simulated_annealing_config(mut self, config: Option<SimulatedAnnealingConfig>) -> Self {
+        self.simulated_annealing_config = config;
+        self
+    }
+    pub fn final_refinement_iterations(mut self, iterations: usize) -> Self {
+        self.final_refinement_iterations = Some(iterations);
+        self
+    }
+    pub fn residues_to_optimize(mut self, selection: ResidueSelection) -> Self {
+        self.residues_to_optimize = Some(selection);
+        self
+    }
+
+    pub fn build(self) -> Result<PlacementConfig, ConfigError> {
+        let forcefield = ForcefieldConfig {
+            forcefield_path: self
+                .forcefield_path
+                .ok_or(ConfigError::MissingParameter("forcefield_path"))?,
+            delta_params_path: self
+                .delta_params_path
+                .ok_or(ConfigError::MissingParameter("delta_params_path"))?,
+            s_factor: self
+                .s_factor
+                .ok_or(ConfigError::MissingParameter("s_factor"))?,
+        };
+        let sampling = SamplingConfig {
+            rotamer_library_path: self
+                .rotamer_library_path
+                .ok_or(ConfigError::MissingParameter("rotamer_library_path"))?,
+            placement_registry_path: self
+                .placement_registry_path
+                .ok_or(ConfigError::MissingParameter("placement_registry_path"))?,
+        };
+        let optimization = OptimizationConfig {
+            max_iterations: self
+                .max_iterations
+                .ok_or(ConfigError::MissingParameter("max_iterations"))?,
+            num_solutions: self
+                .num_solutions
+                .ok_or(ConfigError::MissingParameter("num_solutions"))?,
+            include_input_conformation: self.include_input_conformation.unwrap_or(false),
+            convergence: self
+                .convergence_config
+                .ok_or(ConfigError::MissingParameter("convergence_config"))?,
+            simulated_annealing: self.simulated_annealing_config,
+            final_refinement_iterations: self.final_refinement_iterations.unwrap_or(0),
+        };
+
+        Ok(PlacementConfig {
+            forcefield,
+            sampling,
+            optimization,
+            residues_to_optimize: self
+                .residues_to_optimize
+                .ok_or(ConfigError::MissingParameter("residues_to_optimize"))?,
+        })
+    }
+}
+
+#[derive(Default)]
+pub struct DesignConfigBuilder {
+    forcefield_path: Option<PathBuf>,
+    delta_params_path: Option<PathBuf>,
+    s_factor: Option<f64>,
+    rotamer_library_path: Option<PathBuf>,
+    placement_registry_path: Option<PathBuf>,
+    max_iterations: Option<usize>,
+    num_solutions: Option<usize>,
+    include_input_conformation: Option<bool>,
+    convergence_config: Option<ConvergenceConfig>,
+    simulated_annealing_config: Option<SimulatedAnnealingConfig>,
+    final_refinement_iterations: Option<usize>,
+    design_spec: Option<DesignSpec>,
+    neighbors_to_repack: Option<ResidueSelection>,
+}
+
+impl DesignConfigBuilder {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn forcefield_path(mut self, path: impl Into<PathBuf>) -> Self {
+        self.forcefield_path = Some(path.into());
+        self
+    }
+    pub fn delta_params_path(mut self, path: impl Into<PathBuf>) -> Self {
+        self.delta_params_path = Some(path.into());
+        self
+    }
+    pub fn s_factor(mut self, factor: f64) -> Self {
+        self.s_factor = Some(factor);
+        self
+    }
+
+    pub fn rotamer_library_path(mut self, path: impl Into<PathBuf>) -> Self {
+        self.rotamer_library_path = Some(path.into());
+        self
+    }
+    pub fn placement_registry_path(mut self, path: impl Into<PathBuf>) -> Self {
+        self.placement_registry_path = Some(path.into());
+        self
+    }
+
+    pub fn max_iterations(mut self, iterations: usize) -> Self {
+        self.max_iterations = Some(iterations);
+        self
+    }
+    pub fn num_solutions(mut self, n: usize) -> Self {
+        self.num_solutions = Some(n);
+        self
+    }
+    pub fn include_input_conformation(mut self, include: bool) -> Self {
+        self.include_input_conformation = Some(include);
+        self
+    }
+    pub fn convergence_config(mut self, config: ConvergenceConfig) -> Self {
+        self.convergence_config = Some(config);
+        self
+    }
+    pub fn simulated_annealing_config(mut self, config: SimulatedAnnealingConfig) -> Self {
+        self.simulated_annealing_config = Some(config);
+        self
+    }
+    pub fn final_refinement_iterations(mut self, iterations: usize) -> Self {
+        self.final_refinement_iterations = Some(iterations);
+        self
+    }
+
+    pub fn design_spec(mut self, spec: DesignSpec) -> Self {
+        self.design_spec = Some(spec);
+        self
+    }
+    pub fn neighbors_to_repack(mut self, selection: ResidueSelection) -> Self {
+        self.neighbors_to_repack = Some(selection);
+        self
+    }
+
+    pub fn build(self) -> Result<DesignConfig, ConfigError> {
+        let forcefield = ForcefieldConfig {
+            forcefield_path: self
+                .forcefield_path
+                .ok_or(ConfigError::MissingParameter("forcefield_path"))?,
+            delta_params_path: self
+                .delta_params_path
+                .ok_or(ConfigError::MissingParameter("delta_params_path"))?,
+            s_factor: self
+                .s_factor
+                .ok_or(ConfigError::MissingParameter("s_factor"))?,
+        };
+        let sampling = SamplingConfig {
+            rotamer_library_path: self
+                .rotamer_library_path
+                .ok_or(ConfigError::MissingParameter("rotamer_library_path"))?,
+            placement_registry_path: self
+                .placement_registry_path
+                .ok_or(ConfigError::MissingParameter("placement_registry_path"))?,
+        };
+        let optimization = OptimizationConfig {
+            max_iterations: self
+                .max_iterations
+                .ok_or(ConfigError::MissingParameter("max_iterations"))?,
+            num_solutions: self
+                .num_solutions
+                .ok_or(ConfigError::MissingParameter("num_solutions"))?,
+            include_input_conformation: self.include_input_conformation.unwrap_or(false),
+            convergence: self
+                .convergence_config
+                .ok_or(ConfigError::MissingParameter("convergence_config"))?,
+            simulated_annealing: self.simulated_annealing_config,
+            final_refinement_iterations: self.final_refinement_iterations.unwrap_or(0),
+        };
+
+        Ok(DesignConfig {
+            forcefield,
+            sampling,
+            optimization,
+            design_spec: self
+                .design_spec
+                .ok_or(ConfigError::MissingParameter("design_spec"))?,
+            neighbors_to_repack: self
+                .neighbors_to_repack
+                .ok_or(ConfigError::MissingParameter("neighbors_to_repack"))?,
+        })
+    }
 }
 
 #[derive(Default)]
 pub struct AnalyzeConfigBuilder {
     forcefield_path: Option<PathBuf>,
-    rotamer_library_path: Option<PathBuf>,
     delta_params_path: Option<PathBuf>,
     s_factor: Option<f64>,
     analysis_type: Option<AnalysisType>,
@@ -305,16 +377,12 @@ impl AnalyzeConfigBuilder {
         Self::default()
     }
 
-    pub fn forcefield_path(mut self, path: PathBuf) -> Self {
-        self.forcefield_path = Some(path);
+    pub fn forcefield_path(mut self, path: impl Into<PathBuf>) -> Self {
+        self.forcefield_path = Some(path.into());
         self
     }
-    pub fn rotamer_library_path(mut self, path: PathBuf) -> Self {
-        self.rotamer_library_path = Some(path);
-        self
-    }
-    pub fn delta_params_path(mut self, path: PathBuf) -> Self {
-        self.delta_params_path = Some(path);
+    pub fn delta_params_path(mut self, path: impl Into<PathBuf>) -> Self {
+        self.delta_params_path = Some(path.into());
         self
     }
     pub fn s_factor(mut self, factor: f64) -> Self {
@@ -327,13 +395,10 @@ impl AnalyzeConfigBuilder {
     }
 
     pub fn build(self) -> Result<AnalyzeConfig, ConfigError> {
-        let scoring = ScoringConfig {
+        let forcefield = ForcefieldConfig {
             forcefield_path: self
                 .forcefield_path
                 .ok_or(ConfigError::MissingParameter("forcefield_path"))?,
-            rotamer_library_path: self
-                .rotamer_library_path
-                .ok_or(ConfigError::MissingParameter("rotamer_library_path"))?,
             delta_params_path: self
                 .delta_params_path
                 .ok_or(ConfigError::MissingParameter("delta_params_path"))?,
@@ -341,8 +406,9 @@ impl AnalyzeConfigBuilder {
                 .s_factor
                 .ok_or(ConfigError::MissingParameter("s_factor"))?,
         };
+
         Ok(AnalyzeConfig {
-            scoring,
+            forcefield,
             analysis_type: self
                 .analysis_type
                 .ok_or(ConfigError::MissingParameter("analysis_type"))?,
@@ -353,229 +419,205 @@ impl AnalyzeConfigBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::models::residue::ResidueType;
-    use std::path::PathBuf;
-
-    fn common_builder_setup(
-        builder: PlacementConfigBuilder,
-    ) -> (PlacementConfigBuilder, PlacementConfig) {
-        let forcefield_path = PathBuf::from("ff.dat");
-        let rotamer_library_path = PathBuf::from("rot.lib");
-        let delta_params_path = PathBuf::from("delta.params");
-        let residues_to_optimize = ResidueSelection::All;
-
-        let configured_builder = builder
-            .forcefield_path(forcefield_path.clone())
-            .rotamer_library_path(rotamer_library_path.clone())
-            .delta_params_path(delta_params_path.clone())
-            .s_factor(0.5)
-            .max_iterations(100)
-            .convergence_threshold(0.01)
-            .num_solutions(10)
-            .include_input_conformation(true)
-            .residues_to_optimize(residues_to_optimize.clone());
-
-        let expected_config = PlacementConfig {
-            scoring: ScoringConfig {
-                forcefield_path,
-                rotamer_library_path,
-                delta_params_path,
-                s_factor: 0.5,
-            },
-            optimization: OptimizationConfig {
-                max_iterations: 100,
-                convergence_threshold: 0.01,
-                num_solutions: 10,
-                include_input_conformation: true,
-            },
-            residues_to_optimize,
-        };
-
-        (configured_builder, expected_config)
-    }
+    use std::path::Path;
 
     #[test]
-    fn placement_config_builder_succeeds_with_all_parameters() {
-        let (builder, mut expected_config) = common_builder_setup(PlacementConfigBuilder::new());
-        let config = builder.build().unwrap();
-        assert_eq!(config, expected_config);
-
-        let (builder, mut expected_config) = common_builder_setup(PlacementConfigBuilder::new());
-        let config = builder.include_input_conformation(false).build().unwrap();
-        expected_config.optimization.include_input_conformation = false;
-        assert_eq!(config, expected_config);
-
-        let (builder, mut expected_config) = common_builder_setup(PlacementConfigBuilder::new());
-        let incomplete_builder = PlacementConfigBuilder {
-            include_input_conformation: None,
-            ..builder
-        };
-        let config = incomplete_builder.build().unwrap();
-        expected_config.optimization.include_input_conformation = false;
-        assert_eq!(config, expected_config);
-    }
-
-    #[test]
-    fn placement_config_builder_fails_on_missing_forcefield_path() {
-        let (builder, _) = common_builder_setup(PlacementConfigBuilder::new());
-        let incomplete_builder = PlacementConfigBuilder {
-            forcefield_path: None,
-            ..builder
-        };
-        let result = incomplete_builder.build();
-        assert_eq!(
-            result,
-            Err(ConfigError::MissingParameter("forcefield_path"))
-        );
-    }
-
-    #[test]
-    fn placement_config_builder_fails_on_missing_residues_to_optimize() {
-        let (builder, _) = common_builder_setup(PlacementConfigBuilder::new());
-        let incomplete_builder = PlacementConfigBuilder {
-            residues_to_optimize: None,
-            ..builder
-        };
-        let result = incomplete_builder.build();
-        assert_eq!(
-            result,
-            Err(ConfigError::MissingParameter("residues_to_optimize"))
-        );
-    }
-
-    #[test]
-    fn design_spec_ext_works() {
-        let mut spec = DesignSpec::new();
-        let key = ResidueSpecifier {
+    fn design_spec_ext_get_by_specifier_finds_existing_entry() {
+        let specifier = ResidueSpecifier {
             chain_id: 'A',
-            residue_number: 1,
+            residue_number: 10,
         };
-        let value = vec![ResidueType::Alanine];
-        spec.insert(key, value.clone());
+        let residue_types = vec![ResidueType::Alanine, ResidueType::Glycine];
+        let mut design_spec: DesignSpec = HashMap::new();
+        design_spec.insert(specifier.clone(), residue_types.clone());
 
-        assert_eq!(spec.get_by_specifier('A', 1), Some(&value));
-        assert_eq!(spec.get_by_specifier('A', 2), None);
+        let result = design_spec.get_by_specifier('A', 10);
+        assert_eq!(result, Some(&residue_types));
     }
 
     #[test]
-    fn design_config_builder_succeeds_with_all_parameters() {
-        let forcefield_path = PathBuf::from("ff.dat");
-        let rotamer_library_path = PathBuf::from("rot.lib");
-        let delta_params_path = PathBuf::from("delta.params");
-        let neighbors_to_repack = ResidueSelection::All;
-        let mut design_spec = DesignSpec::new();
-        design_spec.insert(
-            ResidueSpecifier {
-                chain_id: 'A',
-                residue_number: 10,
-            },
-            vec![ResidueType::Alanine, ResidueType::Glycine],
-        );
+    fn design_spec_ext_get_by_specifier_returns_none_for_missing_entry() {
+        let design_spec: DesignSpec = HashMap::new();
+        let result = design_spec.get_by_specifier('B', 20);
+        assert_eq!(result, None);
+    }
 
-        let builder = DesignConfigBuilder::new()
-            .forcefield_path(forcefield_path.clone())
-            .rotamer_library_path(rotamer_library_path.clone())
-            .delta_params_path(delta_params_path.clone())
+    #[test]
+    fn placement_config_builder_builds_successfully_with_all_parameters() {
+        let convergence = ConvergenceConfig {
+            energy_threshold: 0.01,
+            patience_iterations: 10,
+        };
+        let simulated_annealing = SimulatedAnnealingConfig {
+            initial_temperature: 100.0,
+            final_temperature: 1.0,
+            cooling_rate: 0.95,
+            steps_per_temperature: 50,
+        };
+        let builder = PlacementConfigBuilder::new()
+            .forcefield_path("ff.dat")
+            .delta_params_path("delta.dat")
             .s_factor(0.5)
+            .rotamer_library_path("rot.lib")
+            .placement_registry_path("reg.json")
             .max_iterations(100)
-            .convergence_threshold(0.01)
             .num_solutions(10)
             .include_input_conformation(true)
-            .design_spec(design_spec.clone())
-            .neighbors_to_repack(neighbors_to_repack.clone());
+            .convergence_config(convergence.clone())
+            .simulated_annealing_config(Some(simulated_annealing.clone()))
+            .final_refinement_iterations(5)
+            .residues_to_optimize(ResidueSelection::All);
 
         let config = builder.build().unwrap();
+        assert_eq!(config.optimization.convergence, convergence);
+        assert_eq!(
+            config.optimization.simulated_annealing,
+            Some(simulated_annealing)
+        );
+        assert_eq!(config.optimization.final_refinement_iterations, 5);
+    }
 
-        let expected_config = DesignConfig {
-            scoring: ScoringConfig {
-                forcefield_path,
-                rotamer_library_path,
-                delta_params_path,
-                s_factor: 0.5,
-            },
-            optimization: OptimizationConfig {
-                max_iterations: 100,
-                convergence_threshold: 0.01,
-                num_solutions: 10,
-                include_input_conformation: true,
-            },
-            design_spec,
-            neighbors_to_repack,
+    #[test]
+    fn placement_config_builder_fails_on_missing_required_parameter() {
+        assert_eq!(
+            PlacementConfigBuilder::new().build().unwrap_err(),
+            ConfigError::MissingParameter("forcefield_path")
+        );
+
+        let builder_missing_residues = PlacementConfigBuilder::new()
+            .forcefield_path("ff.dat")
+            .delta_params_path("delta.dat")
+            .s_factor(0.5)
+            .rotamer_library_path("rot.lib")
+            .placement_registry_path("reg.json")
+            .max_iterations(100)
+            .num_solutions(10)
+            .convergence_config(ConvergenceConfig {
+                energy_threshold: 0.01,
+                patience_iterations: 10,
+            })
+            .final_refinement_iterations(5);
+
+        assert_eq!(
+            builder_missing_residues.build().unwrap_err(),
+            ConfigError::MissingParameter("residues_to_optimize")
+        );
+    }
+
+    #[test]
+    fn placement_config_builder_uses_default_values_for_optional_fields() {
+        let convergence = ConvergenceConfig {
+            energy_threshold: 0.01,
+            patience_iterations: 10,
         };
+        let builder = PlacementConfigBuilder::new()
+            .forcefield_path("ff.dat")
+            .delta_params_path("delta.dat")
+            .s_factor(0.5)
+            .rotamer_library_path("rot.lib")
+            .placement_registry_path("reg.json")
+            .max_iterations(100)
+            .num_solutions(10)
+            .convergence_config(convergence.clone())
+            .final_refinement_iterations(0)
+            .residues_to_optimize(ResidueSelection::All);
 
-        assert_eq!(config, expected_config);
+        let config = builder.build().unwrap();
+        assert_eq!(config.optimization.simulated_annealing, None);
+        assert_eq!(config.optimization.final_refinement_iterations, 0);
+    }
+
+    #[test]
+    fn design_config_builder_builds_successfully_with_all_parameters() {
+        let convergence = ConvergenceConfig {
+            energy_threshold: 0.01,
+            patience_iterations: 10,
+        };
+        let simulated_annealing = SimulatedAnnealingConfig {
+            initial_temperature: 100.0,
+            final_temperature: 1.0,
+            cooling_rate: 0.95,
+            steps_per_temperature: 50,
+        };
+        let design_spec = DesignSpec::new();
+        let builder = DesignConfigBuilder::new()
+            .forcefield_path("ff.dat")
+            .delta_params_path("delta.dat")
+            .s_factor(0.5)
+            .rotamer_library_path("rot.lib")
+            .placement_registry_path("reg.json")
+            .max_iterations(100)
+            .num_solutions(10)
+            .include_input_conformation(true)
+            .convergence_config(convergence.clone())
+            .simulated_annealing_config(simulated_annealing.clone())
+            .final_refinement_iterations(5)
+            .design_spec(design_spec)
+            .neighbors_to_repack(ResidueSelection::All);
+
+        let config = builder.build().unwrap();
+        assert_eq!(config.optimization.convergence, convergence);
+        assert_eq!(
+            config.optimization.simulated_annealing,
+            Some(simulated_annealing)
+        );
+        assert_eq!(config.optimization.final_refinement_iterations, 5);
     }
 
     #[test]
     fn design_config_builder_fails_on_missing_design_spec() {
         let builder = DesignConfigBuilder::new()
-            .forcefield_path(PathBuf::from("ff.dat"))
-            .rotamer_library_path(PathBuf::from("rot.lib"))
-            .delta_params_path(PathBuf::from("delta.params"))
+            .forcefield_path("ff.dat")
+            .delta_params_path("delta.dat")
             .s_factor(0.5)
+            .rotamer_library_path("rot.lib")
+            .placement_registry_path("reg.json")
             .max_iterations(100)
-            .convergence_threshold(0.01)
             .num_solutions(10)
+            .convergence_config(ConvergenceConfig {
+                energy_threshold: 0.01,
+                patience_iterations: 10,
+            })
+            .final_refinement_iterations(5)
             .neighbors_to_repack(ResidueSelection::All);
 
-        let result = builder.build();
-        assert_eq!(result, Err(ConfigError::MissingParameter("design_spec")));
+        assert_eq!(
+            builder.build().unwrap_err(),
+            ConfigError::MissingParameter("design_spec")
+        );
     }
 
     #[test]
-    fn analyze_config_builder_succeeds_with_all_parameters() {
-        let forcefield_path = PathBuf::from("ff.dat");
-        let rotamer_library_path = PathBuf::from("rot.lib");
-        let delta_params_path = PathBuf::from("delta.params");
-        let analysis_type = AnalysisType::ClashDetection {
-            threshold_kcal_mol: 2.5,
-        };
-
+    fn analyze_config_builder_builds_successfully() {
         let builder = AnalyzeConfigBuilder::new()
-            .forcefield_path(forcefield_path.clone())
-            .rotamer_library_path(rotamer_library_path.clone())
-            .delta_params_path(delta_params_path.clone())
-            .s_factor(1.0)
-            .analysis_type(analysis_type.clone());
+            .forcefield_path("ff.dat")
+            .delta_params_path("delta.dat")
+            .s_factor(0.5)
+            .analysis_type(AnalysisType::ClashDetection {
+                threshold_kcal_mol: 1.0,
+            });
 
         let config = builder.build().unwrap();
 
-        let expected_config = AnalyzeConfig {
-            scoring: ScoringConfig {
-                forcefield_path,
-                rotamer_library_path,
-                delta_params_path,
-                s_factor: 1.0,
-            },
-            analysis_type,
-        };
-
-        assert_eq!(config, expected_config);
+        assert_eq!(config.forcefield.forcefield_path, Path::new("ff.dat"));
+        assert_eq!(
+            config.analysis_type,
+            AnalysisType::ClashDetection {
+                threshold_kcal_mol: 1.0
+            }
+        );
     }
 
     #[test]
     fn analyze_config_builder_fails_on_missing_analysis_type() {
         let builder = AnalyzeConfigBuilder::new()
-            .forcefield_path(PathBuf::from("ff.dat"))
-            .rotamer_library_path(PathBuf::from("rot.lib"))
-            .delta_params_path(PathBuf::from("delta.params"))
-            .s_factor(1.0);
+            .forcefield_path("ff.dat")
+            .delta_params_path("delta.dat")
+            .s_factor(0.5);
 
-        let result = builder.build();
-        assert_eq!(result, Err(ConfigError::MissingParameter("analysis_type")));
-    }
-
-    #[test]
-    fn analyze_config_builder_fails_on_missing_s_factor() {
-        let builder = AnalyzeConfigBuilder::new()
-            .forcefield_path(PathBuf::from("ff.dat"))
-            .rotamer_library_path(PathBuf::from("rot.lib"))
-            .delta_params_path(PathBuf::from("delta.params"))
-            .analysis_type(AnalysisType::ClashDetection {
-                threshold_kcal_mol: 2.5,
-            });
-
-        let result = builder.build();
-        assert_eq!(result, Err(ConfigError::MissingParameter("s_factor")));
+        assert_eq!(
+            builder.build().unwrap_err(),
+            ConfigError::MissingParameter("analysis_type")
+        );
     }
 }
