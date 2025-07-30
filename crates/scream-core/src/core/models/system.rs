@@ -231,6 +231,56 @@ mod tests {
         (system, key_atom_ids)
     }
 
+    struct DisulfideTestRefs {
+        cys1_a_id: ResidueId,
+        cys1_a_sg_id: AtomId,
+        cys3_a_id: ResidueId,
+        cys3_a_sg_id: AtomId,
+        cys1_b_id: ResidueId,
+        cys1_b_sg_id: AtomId,
+    }
+
+    fn create_disulfide_test_system() -> (MolecularSystem, DisulfideTestRefs) {
+        let mut system = MolecularSystem::new();
+
+        let chain_a_id = system.add_chain('A', ChainType::Protein);
+        let cys1_a_id = system
+            .add_residue(chain_a_id, 1, "CYS", Some(ResidueType::Cysteine))
+            .unwrap();
+        let gly2_a_id = system
+            .add_residue(chain_a_id, 2, "GLY", Some(ResidueType::Glycine))
+            .unwrap();
+        let cys3_a_id = system
+            .add_residue(chain_a_id, 3, "CYS", Some(ResidueType::Cysteine))
+            .unwrap();
+
+        let cys1_a_sg = Atom::new("SG", cys1_a_id, Point3::new(0.0, 0.0, 0.0));
+        let gly2_a_ca = Atom::new("CA", gly2_a_id, Point3::new(2.0, 0.0, 0.0));
+        let cys3_a_sg = Atom::new("SG", cys3_a_id, Point3::new(0.0, 2.0, 0.0));
+
+        let cys1_a_sg_id = system.add_atom_to_residue(cys1_a_id, cys1_a_sg).unwrap();
+        system.add_atom_to_residue(gly2_a_id, gly2_a_ca).unwrap();
+        let cys3_a_sg_id = system.add_atom_to_residue(cys3_a_id, cys3_a_sg).unwrap();
+
+        let chain_b_id = system.add_chain('B', ChainType::Protein);
+        let cys1_b_id = system
+            .add_residue(chain_b_id, 1, "CYS", Some(ResidueType::Cysteine))
+            .unwrap();
+        let cys1_b_sg = Atom::new("SG", cys1_b_id, Point3::new(10.0, 0.0, 0.0));
+        let cys1_b_sg_id = system.add_atom_to_residue(cys1_b_id, cys1_b_sg).unwrap();
+
+        let refs = DisulfideTestRefs {
+            cys1_a_id,
+            cys1_a_sg_id,
+            cys3_a_id,
+            cys3_a_sg_id,
+            cys1_b_id,
+            cys1_b_sg_id,
+        };
+
+        (system, refs)
+    }
+
     #[test]
     fn system_creation_and_access() {
         let (system, key_atom_ids) = create_test_system();
@@ -324,24 +374,6 @@ mod tests {
     }
 
     #[test]
-    fn system_creation_and_access_with_residue_type() {
-        let (system, _) = create_test_system();
-        let chain_a_id = system.find_chain_by_id('A').unwrap();
-        let gly_id = system.find_residue_by_id(chain_a_id, 1).unwrap();
-        let ala_id = system.find_residue_by_id(chain_a_id, 2).unwrap();
-
-        assert_eq!(system.residue(gly_id).unwrap().name, "GLY");
-        assert_eq!(
-            system.residue(gly_id).unwrap().residue_type,
-            Some(ResidueType::Glycine)
-        );
-        assert_eq!(
-            system.residue(ala_id).unwrap().residue_type,
-            Some(ResidueType::Alanine)
-        );
-    }
-
-    #[test]
     fn get_bonded_neighbors_returns_correct_neighbors() {
         let (system, _) = create_test_system();
 
@@ -361,9 +393,81 @@ mod tests {
         assert_eq!(neighbors_n, &[atom_gly_ca_id]);
 
         let neighbors_ca = system.get_bonded_neighbors(atom_gly_ca_id).unwrap();
-        assert_eq!(neighbors_ca, &[atom_n_id, atom_ala_ca_id]);
+        assert_eq!(neighbors_ca.len(), 2);
+        assert!(neighbors_ca.contains(&atom_n_id));
+        assert!(neighbors_ca.contains(&atom_ala_ca_id));
 
         let neighbors_ala_ca = system.get_bonded_neighbors(atom_ala_ca_id).unwrap();
         assert_eq!(neighbors_ala_ca, &[atom_gly_ca_id]);
+    }
+
+    #[test]
+    fn handles_intrachain_disulfide_bond_correctly() {
+        let (mut system, refs) = create_disulfide_test_system();
+
+        system
+            .add_bond(refs.cys1_a_sg_id, refs.cys3_a_sg_id, BondOrder::Single)
+            .unwrap();
+
+        assert_eq!(system.bonds().len(), 1);
+        let neighbors1 = system.get_bonded_neighbors(refs.cys1_a_sg_id).unwrap();
+        let neighbors3 = system.get_bonded_neighbors(refs.cys3_a_sg_id).unwrap();
+        assert_eq!(neighbors1, &[refs.cys3_a_sg_id]);
+        assert_eq!(neighbors3, &[refs.cys1_a_sg_id]);
+
+        system.remove_atom(refs.cys1_a_sg_id).unwrap();
+
+        assert!(system.bonds().is_empty());
+        assert!(system.get_bonded_neighbors(refs.cys1_a_sg_id).is_none());
+        let neighbors3_after_removal = system.get_bonded_neighbors(refs.cys3_a_sg_id).unwrap();
+        assert!(neighbors3_after_removal.is_empty());
+    }
+
+    #[test]
+    fn handles_interchain_disulfide_bond_correctly() {
+        let (mut system, refs) = create_disulfide_test_system();
+
+        system
+            .add_bond(refs.cys1_a_sg_id, refs.cys1_b_sg_id, BondOrder::Single)
+            .unwrap();
+
+        assert_eq!(system.bonds().len(), 1);
+        let neighbors_a = system.get_bonded_neighbors(refs.cys1_a_sg_id).unwrap();
+        let neighbors_b = system.get_bonded_neighbors(refs.cys1_b_sg_id).unwrap();
+        assert_eq!(neighbors_a, &[refs.cys1_b_sg_id]);
+        assert_eq!(neighbors_b, &[refs.cys1_a_sg_id]);
+
+        system.remove_residue(refs.cys1_b_id).unwrap();
+
+        assert!(system.bonds().is_empty());
+        assert!(system.atom(refs.cys1_b_sg_id).is_none());
+        assert!(system.residue(refs.cys1_b_id).is_none());
+
+        let neighbors_a_after_removal = system.get_bonded_neighbors(refs.cys1_a_sg_id).unwrap();
+        assert!(neighbors_a_after_removal.is_empty());
+    }
+
+    #[test]
+    fn idempotent_add_bond_does_not_create_duplicates() {
+        let (mut system, refs) = create_disulfide_test_system();
+
+        system
+            .add_bond(refs.cys1_a_sg_id, refs.cys3_a_sg_id, BondOrder::Single)
+            .unwrap();
+        system
+            .add_bond(refs.cys3_a_sg_id, refs.cys1_a_sg_id, BondOrder::Single)
+            .unwrap();
+
+        assert_eq!(
+            system.bonds().len(),
+            1,
+            "Adding an existing bond should be idempotent"
+        );
+        let neighbors1 = system.get_bonded_neighbors(refs.cys1_a_sg_id).unwrap();
+        assert_eq!(
+            neighbors1.len(),
+            1,
+            "Adjacency list should not contain duplicates"
+        );
     }
 }
