@@ -47,17 +47,6 @@ pub fn dreiding_hbond_12_10(dist_ad: f64, r_hb: f64, d_hb: f64) -> f64 {
 }
 
 #[inline]
-pub fn dreiding_hbond(dist_ad: f64, angle_ahd_deg: f64, r_hb: f64, d_hb: f64) -> f64 {
-    if angle_ahd_deg < 90.0 {
-        return 0.0;
-    }
-    let cos_theta = (angle_ahd_deg * PI / 180.0).cos();
-    let angular_term = cos_theta.powi(4);
-    let distance_term = dreiding_hbond_12_10(dist_ad, r_hb, d_hb);
-    distance_term * angular_term
-}
-
-#[inline]
 pub fn apply_flat_bottom_vdw<F>(dist: f64, ideal_dist: f64, delta: f64, potential_fn: F) -> f64
 where
     F: Fn(f64) -> f64,
