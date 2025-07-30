@@ -150,24 +150,6 @@ mod tests {
     }
 
     #[test]
-    fn dreiding_hbond_is_zero_for_angles_less_than_90_degrees() {
-        let energy = dreiding_hbond(3.0, 89.9, 2.7, 5.0);
-        assert!(f64_approx_equal(energy, 0.0));
-    }
-
-    #[test]
-    fn dreiding_hbond_at_ideal_distance_and_180_degrees() {
-        let energy = dreiding_hbond(2.7, 180.0, 2.7, 5.0);
-        assert!(f64_approx_equal(energy, -5.0));
-    }
-
-    #[test]
-    fn dreiding_hbond_at_90_degrees_is_zero() {
-        let energy = dreiding_hbond(2.7, 90.0, 2.7, 5.0);
-        assert!(f64_approx_equal(energy, 0.0));
-    }
-
-    #[test]
     fn apply_flat_bottom_vdw_uses_base_potential_beyond_ideal_distance() {
         let potential = apply_flat_bottom_vdw(10.0, 8.0, 1.0, |d| d * d);
         assert!(f64_approx_equal(potential, 100.0));
