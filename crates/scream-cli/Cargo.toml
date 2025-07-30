@@ -14,7 +14,7 @@ path = "src/main.rs"
 [dependencies]
 thiserror = "2.0.12"
 anyhow = "1.0.98"
-clap = "4.5.42"
+clap = { version = "4.5.40", features = ["derive"] }
 indicatif = "0.18.0"
 reqwest = "0.12.22"
 tar = "0.4.38"
