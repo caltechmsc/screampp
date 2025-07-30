@@ -67,22 +67,21 @@ impl EnergyCalculator {
         d_hb: f64,
     ) -> f64 {
         let dist_ad = (acceptor.position - donor.position).norm();
-
         let v_ha = acceptor.position - hydrogen.position;
         let v_hd = donor.position - hydrogen.position;
-        let angle_ahd_deg = (v_ha.angle(&v_hd)).to_degrees();
+        let angle_ahd_deg = v_ha.angle(&v_hd).to_degrees();
+
+        if angle_ahd_deg <= 90.0 {
+            return 0.0;
+        }
 
         let total_delta = (acceptor.delta.powi(2) + donor.delta.powi(2)).sqrt();
-
         let distance_potential_fn =
             |d: f64| -> f64 { potentials::dreiding_hbond_12_10(d, r_hb, d_hb) };
 
         let flat_bottom_distance_energy =
             potentials::apply_flat_bottom_hbond(dist_ad, r_hb, total_delta, distance_potential_fn);
 
-        if angle_ahd_deg < 90.0 {
-            return 0.0;
-        }
         let cos_theta = (angle_ahd_deg * PI / 180.0).cos();
         let angular_term = cos_theta.powi(4);
 
