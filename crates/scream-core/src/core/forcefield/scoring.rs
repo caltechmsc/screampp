@@ -123,6 +123,7 @@ impl<'a> Scorer<'a> {
                         let is_env_h = environment_atom_ids.contains(&h_id);
                         let is_query_a = query_atom_ids.contains(&a_id);
 
+                        // Skip if the hydrogen and acceptor are not in the same group
                         if !((is_query_h && is_env_a) || (is_env_h && is_query_a)) {
                             continue;
                         }
