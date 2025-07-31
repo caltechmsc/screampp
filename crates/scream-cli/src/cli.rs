@@ -1,6 +1,9 @@
 use clap::{Args, Parser, Subcommand};
 use std::path::PathBuf;
 
+const AUTHORS: &str = "Tony Kan, Ted Yu, William A. Goddard III, Victor Wai Tak Kam";
+const ABOUT: &str = "SCREAM++ CLI - A command-line interface for SCREAM++, an advanced computational framework for automated protein side-chain placement and structural redesign.";
+const COPYRIGHT: &str = "Copyright (c) 2025 California Institute of Technology, Materials and Process Simulation Center (MSC)";
 const HELP_TEMPLATE: &str = "\
 {before-help}{name} {version}
 {author-with-newline}{about-with-newline}
@@ -11,9 +14,10 @@ const HELP_TEMPLATE: &str = "\
 
 #[derive(Parser, Debug)]
 #[command(
-    author = "Tony Kan, Ted Yu, William A. Goddard III, Victor Wai Tak Kam",
+    author = AUTHORS,
     version,
-    about = "SCREAM++ CLI - A command-line interface for SCREAM++, an enhanced software package for automated protein side-chain placement and redesign.",
+    about = ABOUT,
+    after_help = COPYRIGHT,
     help_template = HELP_TEMPLATE,
 )]
 #[command(propagate_version = true)]
