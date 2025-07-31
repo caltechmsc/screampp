@@ -399,3 +399,259 @@ impl PartialPlacementConfig {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cli::Cli;
+    use clap::Parser;
+    use once_cell::sync::Lazy;
+    use std::fs;
+    use tempfile::{TempDir, tempdir};
+
+    static TEST_DIR: Lazy<TempDir> = Lazy::new(|| tempdir().expect("Failed to create temp dir"));
+
+    fn create_test_data_dir() -> PathBuf {
+        let data_path = TEST_DIR.path().join("mock_data");
+        fs::create_dir_all(data_path.join("rotamers/amber")).unwrap();
+        fs::write(data_path.join("rotamers/amber/rmsd-1.0.toml"), "").unwrap();
+        fs::create_dir_all(data_path.join("forcefield")).unwrap();
+        fs::write(data_path.join("forcefield/dreiding-lj-12-6-0.4.toml"), "").unwrap();
+        data_path
+    }
+
+    fn write_config_file(name: &str, content: &str) -> PathBuf {
+        let file_path = TEST_DIR.path().join(name);
+        fs::write(&file_path, content).unwrap();
+        file_path
+    }
+
+    fn get_minimal_cli_args(config_path: &Path) -> Vec<String> {
+        vec![
+            "scream".to_string(),
+            "place".to_string(),
+            "-i".to_string(),
+            "in.bgf".to_string(),
+            "-o".to_string(),
+            "out.bgf".to_string(),
+            "-c".to_string(),
+            config_path.to_str().unwrap().to_string(),
+        ]
+    }
+
+    #[test]
+    fn test_load_from_file_and_merge_with_defaults() {
+        let data_path = create_test_data_dir();
+        let manager = DataManager {
+            base_path: data_path,
+        };
+
+        let delta_csv_path = TEST_DIR.path().join("delta.csv");
+        let reg_toml_path = TEST_DIR.path().join("reg.toml");
+        fs::write(&delta_csv_path, "").unwrap();
+        fs::write(&reg_toml_path, "").unwrap();
+
+        let config_content = format!(
+            r#"
+        [forcefield]
+        s-factor = 0.8
+        forcefield-path = "lj-12-6@0.4"
+        delta-params-path = "{}"
+
+        [sampling]
+        rotamer-library = "amber@rmsd-1.0"
+        placement-registry = "{}"
+
+        [residues-to-optimize]
+        type = "all"
+        "#,
+            delta_csv_path.to_str().unwrap(),
+            reg_toml_path.to_str().unwrap()
+        );
+
+        let config_path = write_config_file("config_defaults.toml", &config_content);
+        let args = get_minimal_cli_args(&config_path);
+        let cli = Cli::parse_from(args);
+
+        if let crate::cli::Commands::Place(place_args) = cli.command {
+            let partial_config = PartialPlacementConfig::from_file(&config_path).unwrap();
+            let final_config = partial_config
+                .merge_with_cli(&place_args, &manager)
+                .unwrap();
+
+            assert_eq!(final_config.forcefield.s_factor, 0.8);
+            assert_eq!(
+                final_config.sampling.rotamer_library_path,
+                manager.base_path.join("rotamers/amber/rmsd-1.0.toml")
+            );
+            assert_eq!(
+                final_config.forcefield.forcefield_path,
+                manager
+                    .base_path
+                    .join("forcefield/dreiding-lj-12-6-0.4.toml")
+            );
+
+            assert_eq!(final_config.optimization.num_solutions, 1);
+            assert_eq!(final_config.optimization.max_iterations, 100);
+            assert_eq!(final_config.optimization.final_refinement_iterations, 2);
+            assert!(!final_config.optimization.include_input_conformation);
+        } else {
+            panic!("Expected 'place' subcommand");
+        }
+    }
+
+    #[test]
+    fn test_cli_args_override_file_values() {
+        let data_path = create_test_data_dir();
+        let manager = DataManager {
+            base_path: data_path,
+        };
+
+        let delta_csv_path = TEST_DIR.path().join("delta.csv");
+        let reg_toml_path = TEST_DIR.path().join("reg.toml");
+        fs::write(&delta_csv_path, "").unwrap();
+        fs::write(&reg_toml_path, "").unwrap();
+
+        let config_content = format!(
+            r#"
+        [forcefield]
+        s-factor = 0.5 # Will be overridden
+        forcefield-path = "lj-12-6@0.4"
+        delta-params-path = "{}"
+
+        [sampling]
+        rotamer-library = "amber@rmsd-1.0"
+        placement-registry = "{}"
+
+        [optimization]
+        num-solutions = 5 # Will be overridden
+
+        [residues-to-optimize]
+        type = "all"
+        "#,
+            delta_csv_path.to_str().unwrap(),
+            reg_toml_path.to_str().unwrap()
+        );
+
+        let config_path = write_config_file("config_override.toml", &config_content);
+        let mut args = get_minimal_cli_args(&config_path);
+        args.extend_from_slice(&[
+            "--s-factor".to_string(),
+            "0.9".to_string(),
+            "--num-solutions".to_string(),
+            "10".to_string(),
+            "--with-input-conformation".to_string(),
+        ]);
+        let cli = Cli::parse_from(args);
+
+        if let crate::cli::Commands::Place(place_args) = cli.command {
+            let partial_config = PartialPlacementConfig::from_file(&config_path).unwrap();
+            let final_config = partial_config
+                .merge_with_cli(&place_args, &manager)
+                .unwrap();
+
+            assert_eq!(final_config.forcefield.s_factor, 0.9);
+            assert_eq!(final_config.optimization.num_solutions, 10);
+            assert!(final_config.optimization.include_input_conformation);
+        } else {
+            panic!("Expected 'place' subcommand");
+        }
+    }
+
+    #[test]
+    fn test_set_value_overrides_file_and_defaults() {
+        let data_path = create_test_data_dir();
+        let manager = DataManager {
+            base_path: data_path,
+        };
+
+        let delta_csv_path = TEST_DIR.path().join("delta.csv");
+        let reg_toml_path = TEST_DIR.path().join("reg.toml");
+        fs::write(&delta_csv_path, "").unwrap();
+        fs::write(&reg_toml_path, "").unwrap();
+
+        let config_content = format!(
+            r#"
+        [forcefield]
+        s-factor = 0.8
+        forcefield-path = "lj-12-6@0.4"
+        delta-params-path = "{}"
+
+        [sampling]
+        rotamer-library = "amber@rmsd-1.0"
+        placement-registry = "{}"
+
+        [optimization]
+        num-solutions = 5 # Will be overridden by --set
+
+        [residues-to-optimize]
+        type = "all"
+        "#,
+            delta_csv_path.to_str().unwrap(),
+            reg_toml_path.to_str().unwrap()
+        );
+
+        let config_path = write_config_file("config_set.toml", &config_content);
+        let mut args = get_minimal_cli_args(&config_path);
+        args.extend_from_slice(&[
+            "-S".to_string(),
+            "optimization.num-solutions=20".to_string(),
+            "-S".to_string(),
+            "optimization.convergence.energy-threshold=0.005".to_string(),
+        ]);
+        let cli = Cli::parse_from(args);
+
+        if let crate::cli::Commands::Place(place_args) = cli.command {
+            let partial_config = PartialPlacementConfig::from_file(&config_path).unwrap();
+            let final_config = partial_config
+                .merge_with_cli(&place_args, &manager)
+                .unwrap();
+
+            assert_eq!(final_config.optimization.num_solutions, 20);
+            assert_eq!(
+                final_config.optimization.convergence.energy_threshold,
+                0.005
+            );
+            assert_eq!(final_config.optimization.convergence.patience_iterations, 5);
+        } else {
+            panic!("Expected 'place' subcommand");
+        }
+    }
+
+    #[test]
+    fn test_missing_required_field_returns_error() {
+        let data_path = create_test_data_dir();
+        let manager = DataManager {
+            base_path: data_path,
+        };
+
+        let reg_toml_path = TEST_DIR.path().join("reg.toml");
+        fs::write(&reg_toml_path, "").unwrap();
+
+        let config_content = format!(
+            r#"
+        [sampling]
+        rotamer-library = "amber@rmsd-1.0"
+        placement-registry = "{}"
+        [residues-to-optimize]
+        type = "all"
+        "#,
+            reg_toml_path.to_str().unwrap()
+        );
+
+        let config_path = write_config_file("config_missing.toml", &config_content);
+        let args = get_minimal_cli_args(&config_path);
+        let cli = Cli::parse_from(args);
+
+        if let crate::cli::Commands::Place(place_args) = cli.command {
+            let partial_config = PartialPlacementConfig::from_file(&config_path).unwrap();
+            let result = partial_config.merge_with_cli(&place_args, &manager);
+            assert!(matches!(result, Err(CliError::Config(_))));
+            if let Err(CliError::Config(msg)) = result {
+                assert!(msg.contains("forcefield") || msg.contains("s-factor"));
+            }
+        } else {
+            panic!("Expected 'place' subcommand");
+        }
+    }
+}
