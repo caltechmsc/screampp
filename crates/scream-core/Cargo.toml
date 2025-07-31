@@ -1,6 +1,6 @@
 [package]
 name = "screampp"
-description = "A modernized, high-performance library for protein side-chain placement based on the SCREAM method."
+description = "A modernized, high-performance library for protein side-chain placement and structure redesign."
 version.workspace = true
 authors.workspace = true
 license.workspace = true
