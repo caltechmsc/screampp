@@ -107,7 +107,7 @@ mod tests {
         let invalid_path = PathBuf::from("/");
 
         if cfg!(unix) && invalid_path.is_dir() {
-            let result = setup_logging(0, false, Some(invalid_path));
+            let result = setup_logging(0, false, &Some(invalid_path));
             assert!(matches!(result, Err(CliError::Io(_))));
         }
     }
