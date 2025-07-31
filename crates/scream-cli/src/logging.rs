@@ -7,7 +7,7 @@ use tracing_subscriber::{
     prelude::*,
 };
 
-pub fn setup_logging(verbosity: u8, quiet: bool, log_file: Option<PathBuf>) -> Result<()> {
+pub fn setup_logging(verbosity: u8, quiet: bool, log_file: &Option<PathBuf>) -> Result<()> {
     let level_filter = if quiet {
         LevelFilter::OFF
     } else {
