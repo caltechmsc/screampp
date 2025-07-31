@@ -29,7 +29,7 @@ impl CliProgressHandler {
         let pb_clone = self.pb.clone();
 
         Box::new(move |progress: Progress| {
-            let Ok(mut pb_guard) = pb_clone.lock() else {
+            let Ok(pb_guard) = pb_clone.lock() else {
                 warn!("Progress bar mutex was poisoned. Cannot update progress.");
                 return;
             };
