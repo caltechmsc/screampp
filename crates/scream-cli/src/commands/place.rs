@@ -87,3 +87,28 @@ pub async fn run(args: PlaceArgs) -> Result<()> {
 
     Ok(())
 }
+
+fn generate_output_path(base_path: &Path, index: usize, total: usize) -> PathBuf {
+    if total <= 1 {
+        return base_path.to_path_buf();
+    }
+
+    let stem = base_path
+        .file_stem()
+        .unwrap_or_default()
+        .to_str()
+        .unwrap_or("");
+    let extension = base_path
+        .extension()
+        .unwrap_or_default()
+        .to_str()
+        .unwrap_or("");
+
+    let new_filename = if extension.is_empty() {
+        format!("{}-best-{}", stem, index)
+    } else {
+        format!("{}-best-{}.{}", stem, index, extension)
+    };
+
+    base_path.with_file_name(new_filename)
+}
