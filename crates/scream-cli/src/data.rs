@@ -187,22 +187,28 @@ mod tests {
 
         let rot_parsed = parser::parse_logical_name("amber@rmsd-1.0", "rotamer-library").unwrap();
         let rot_path = manager.resolve_logical_name(&rot_parsed).unwrap();
-        assert_eq!(rot_path, base_path.join("rotamers/amber/rmsd-1.0.toml"));
+        assert_eq!(
+            rot_path,
+            base_path.join("data/rotamers/amber/rmsd-1.0.toml")
+        );
 
         let delta_parsed = parser::parse_logical_name("all-torsion", "delta-params").unwrap();
         let delta_path = manager.resolve_logical_name(&delta_parsed).unwrap();
-        assert_eq!(delta_path, base_path.join("delta/delta-all-torsion.csv"));
+        assert_eq!(
+            delta_path,
+            base_path.join("data/delta/delta-all-torsion.csv")
+        );
 
         let ff_parsed = parser::parse_logical_name("lj-12-6@0.4", "forcefield").unwrap();
         let ff_path = manager.resolve_logical_name(&ff_parsed).unwrap();
         assert_eq!(
             ff_path,
-            base_path.join("forcefield/dreiding-lj-12-6-0.4.toml")
+            base_path.join("data/forcefield/dreiding-lj-12-6-0.4.toml")
         );
 
         let reg_parsed = parser::parse_logical_name("default", "placement-registry").unwrap();
         let reg_path = manager.resolve_logical_name(&reg_parsed).unwrap();
-        assert_eq!(reg_path, base_path.join("rotamers/placement.toml"));
+        assert_eq!(reg_path, base_path.join("data/rotamers/placement.toml"));
     }
 
     #[test]
