@@ -163,3 +163,63 @@ impl DataManager {
             })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::utils::parser;
+    use tempfile::tempdir;
+
+    #[test]
+    fn resolve_logical_names_constructs_correct_paths() {
+        let temp_dir = tempdir().unwrap();
+        let base_path = temp_dir.path();
+
+        fs::create_dir_all(base_path.join("rotamers/amber")).unwrap();
+        fs::write(base_path.join("rotamers/amber/rmsd-1.0.toml"), "").unwrap();
+        fs::create_dir_all(base_path.join("delta")).unwrap();
+        fs::write(base_path.join("delta/delta-all-torsion.csv"), "").unwrap();
+        fs::create_dir_all(base_path.join("forcefield")).unwrap();
+        fs::write(base_path.join("forcefield/dreiding-lj-12-6-0.4.toml"), "").unwrap();
+        fs::write(base_path.join("rotamers/placement.toml"), "").unwrap();
+
+        let manager = DataManager {
+            base_path: base_path.to_path_buf(),
+        };
+
+        let rot_parsed = parser::parse_logical_name("amber@rmsd-1.0", "rotamer-library").unwrap();
+        let rot_path = manager.resolve_logical_name(&rot_parsed).unwrap();
+        assert_eq!(rot_path, base_path.join("rotamers/amber/rmsd-1.0.toml"));
+
+        let delta_parsed = parser::parse_logical_name("all-torsion", "delta-params").unwrap();
+        let delta_path = manager.resolve_logical_name(&delta_parsed).unwrap();
+        assert_eq!(delta_path, base_path.join("delta/delta-all-torsion.csv"));
+
+        let ff_parsed = parser::parse_logical_name("lj-12-6@0.4", "forcefield").unwrap();
+        let ff_path = manager.resolve_logical_name(&ff_parsed).unwrap();
+        assert_eq!(
+            ff_path,
+            base_path.join("forcefield/dreiding-lj-12-6-0.4.toml")
+        );
+
+        let reg_parsed = parser::parse_logical_name("default", "placement-registry").unwrap();
+        let reg_path = manager.resolve_logical_name(&reg_parsed).unwrap();
+        assert_eq!(reg_path, base_path.join("rotamers/placement.toml"));
+    }
+
+    #[test]
+    fn resolve_logical_name_fails_if_file_does_not_exist() {
+        let temp_dir = tempdir().unwrap();
+        let manager = DataManager {
+            base_path: temp_dir.path().to_path_buf(),
+        };
+
+        let parsed = parser::parse_logical_name("amber@rmsd-1.0", "rotamer-library").unwrap();
+        let result = manager.resolve_logical_name(&parsed);
+
+        assert!(matches!(result, Err(CliError::Data(_))));
+        if let Err(CliError::Data(msg)) = result {
+            assert!(msg.contains("Resolved data file does not exist"));
+        }
+    }
+}
