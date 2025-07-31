@@ -1739,10 +1739,11 @@ version = "0.1.0-alpha.1"
 dependencies = [
  "anyhow",
  "clap",
- "csv",
  "directories",
  "futures-util",
  "indicatif",
+ "once_cell",
+ "rayon",
  "reqwest",
  "screampp",
  "serde",
