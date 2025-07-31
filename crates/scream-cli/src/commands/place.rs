@@ -112,3 +112,40 @@ fn generate_output_path(base_path: &Path, index: usize, total: usize) -> PathBuf
 
     base_path.with_file_name(new_filename)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    #[test]
+    fn test_generate_output_path_single_solution() {
+        let path = PathBuf::from("output.bgf");
+        let new_path = generate_output_path(&path, 1, 1);
+        assert_eq!(new_path, path);
+    }
+
+    #[test]
+    fn test_generate_output_path_multiple_solutions() {
+        let path = PathBuf::from("/tmp/results/output.bgf");
+        let new_path_1 = generate_output_path(&path, 1, 3);
+        let new_path_2 = generate_output_path(&path, 2, 3);
+
+        assert_eq!(new_path_1, PathBuf::from("/tmp/results/output-best-1.bgf"));
+        assert_eq!(new_path_2, PathBuf::from("/tmp/results/output-best-2.bgf"));
+    }
+
+    #[test]
+    fn test_generate_output_path_no_extension() {
+        let path = PathBuf::from("my_output");
+        let new_path = generate_output_path(&path, 5, 10);
+        assert_eq!(new_path, PathBuf::from("my_output-best-5"));
+    }
+
+    #[test]
+    fn test_generate_output_path_with_dots_in_stem() {
+        let path = PathBuf::from("protein.v1.bgf");
+        let new_path = generate_output_path(&path, 2, 2);
+        assert_eq!(new_path, PathBuf::from("protein.v1-best-2.bgf"));
+    }
+}
