@@ -102,6 +102,7 @@ impl DataManager {
         let resolved_path = match parsed_name {
             ParsedLogicalName::RotamerLibrary(RotamerLibraryName { scheme, diversity }) => self
                 .base_path
+                .join("data")
                 .join("rotamers")
                 .join(scheme)
                 .join(format!("{}.toml", diversity)),
@@ -111,17 +112,21 @@ impl DataManager {
                 version,
             }) => self
                 .base_path
+                .join("data")
                 .join("forcefield")
                 .join(format!("dreiding-{}-{}.toml", potential_type, version)),
 
             ParsedLogicalName::DeltaParams { diversity } => self
                 .base_path
+                .join("data")
                 .join("delta")
                 .join(format!("delta-{}.csv", diversity)),
 
-            ParsedLogicalName::PlacementRegistry => {
-                self.base_path.join("rotamers").join("placement.toml")
-            }
+            ParsedLogicalName::PlacementRegistry => self
+                .base_path
+                .join("data")
+                .join("rotamers")
+                .join("placement.toml"),
         };
 
         Ok(resolved_path)
