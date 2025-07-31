@@ -65,3 +65,37 @@ async fn handle_download(force: bool) -> Result<()> {
         }
     }
 }
+
+fn handle_path() -> Result<()> {
+    let manager = DataManager::new()?;
+    println!(
+        "Current SCREAM++ data directory: {}",
+        manager.get_data_path().display()
+    );
+    Ok(())
+}
+
+fn handle_set_path(path: std::path::PathBuf) -> Result<()> {
+    let absolute_path = if path.is_absolute() {
+        path
+    } else {
+        std::env::current_dir()?.join(path)
+    };
+
+    info!("Setting custom data path to: {:?}", &absolute_path);
+    DataManager::set_custom_path(&absolute_path)?;
+    println!("Successfully set data path to: {}", absolute_path.display());
+    println!("Future runs will now use this directory.");
+    Ok(())
+}
+
+fn handle_reset_path() -> Result<()> {
+    info!("Resetting data path to default.");
+    DataManager::reset_path()?;
+    let manager = DataManager::new()?;
+    println!(
+        "Data path has been reset to the default: {}",
+        manager.get_data_path().display()
+    );
+    Ok(())
+}
