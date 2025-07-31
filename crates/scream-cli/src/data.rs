@@ -124,13 +124,6 @@ impl DataManager {
             }
         };
 
-        if !resolved_path.exists() {
-            return Err(CliError::Data(format!(
-                "Resolved data file does not exist: {:?}.\nHint: Run 'scream data download' to fetch the default data files.",
-                resolved_path
-            )));
-        }
-
         Ok(resolved_path)
     }
 
@@ -217,9 +210,15 @@ mod tests {
         let parsed = parser::parse_logical_name("amber@rmsd-1.0", "rotamer-library").unwrap();
         let result = manager.resolve_logical_name(&parsed);
 
-        assert!(matches!(result, Err(CliError::Data(_))));
-        if let Err(CliError::Data(msg)) = result {
-            assert!(msg.contains("Resolved data file does not exist"));
-        }
+        assert!(result.is_ok());
+
+        let resolved_path = result.unwrap();
+
+        assert!(!resolved_path.exists());
+        assert!(
+            resolved_path
+                .to_string_lossy()
+                .contains("rotamers/amber/rmsd-1.0.toml")
+        );
     }
 }
