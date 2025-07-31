@@ -413,10 +413,15 @@ mod tests {
 
     fn create_test_data_dir() -> PathBuf {
         let data_path = TEST_DIR.path().join("mock_data");
-        fs::create_dir_all(data_path.join("rotamers/amber")).unwrap();
-        fs::write(data_path.join("rotamers/amber/rmsd-1.0.toml"), "").unwrap();
-        fs::create_dir_all(data_path.join("forcefield")).unwrap();
-        fs::write(data_path.join("forcefield/dreiding-lj-12-6-0.4.toml"), "").unwrap();
+        let nested_data_path = data_path.join("data");
+        fs::create_dir_all(nested_data_path.join("rotamers/amber")).unwrap();
+        fs::write(nested_data_path.join("rotamers/amber/rmsd-1.0.toml"), "").unwrap();
+        fs::create_dir_all(nested_data_path.join("forcefield")).unwrap();
+        fs::write(
+            nested_data_path.join("forcefield/dreiding-lj-12-6-0.4.toml"),
+            "",
+        )
+        .unwrap();
         data_path
     }
 
@@ -482,12 +487,16 @@ mod tests {
             assert_eq!(final_config.forcefield.s_factor, 0.8);
             assert_eq!(
                 final_config.sampling.rotamer_library_path,
-                manager.get_data_path().join("rotamers/amber/rmsd-1.0.toml")
+                manager
+                    .get_data_path()
+                    .join("data")
+                    .join("rotamers/amber/rmsd-1.0.toml")
             );
             assert_eq!(
                 final_config.forcefield.forcefield_path,
                 manager
                     .get_data_path()
+                    .join("data")
                     .join("forcefield/dreiding-lj-12-6-0.4.toml")
             );
 
@@ -541,6 +550,8 @@ mod tests {
             "--num-solutions".to_string(),
             "10".to_string(),
             "--with-input-conformation".to_string(),
+            "--rotamer-library".to_string(),
+            "amber@rmsd-1.0".to_string(),
         ]);
         let cli = Cli::parse_from(args);
 
