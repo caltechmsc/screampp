@@ -448,8 +448,7 @@ mod tests {
     fn test_load_from_file_and_merge_with_defaults() {
         let data_path = create_test_data_dir();
 
-        DataManager::set_custom_path(&data_path).unwrap();
-        let manager = DataManager::new().unwrap();
+        let manager = DataManager::with_custom_path(data_path);
 
         let delta_csv_path = TEST_DIR.path().join("delta.csv");
         let reg_toml_path = TEST_DIR.path().join("reg.toml");
@@ -513,8 +512,7 @@ mod tests {
     fn test_cli_args_override_file_values() {
         let data_path = create_test_data_dir();
 
-        DataManager::set_custom_path(&data_path).unwrap();
-        let manager = DataManager::new().unwrap();
+        let manager = DataManager::with_custom_path(data_path);
 
         let delta_csv_path = TEST_DIR.path().join("delta.csv");
         let reg_toml_path = TEST_DIR.path().join("reg.toml");
@@ -573,8 +571,7 @@ mod tests {
     fn test_set_value_overrides_file_and_defaults() {
         let data_path = create_test_data_dir();
 
-        DataManager::set_custom_path(&data_path).unwrap();
-        let manager = DataManager::new().unwrap();
+        let manager = DataManager::with_custom_path(data_path);
 
         let delta_csv_path = TEST_DIR.path().join("delta.csv");
         let reg_toml_path = TEST_DIR.path().join("reg.toml");
@@ -633,8 +630,7 @@ mod tests {
     fn test_missing_required_field_returns_error() {
         let data_path = create_test_data_dir();
 
-        DataManager::set_custom_path(&data_path).unwrap();
-        let manager = DataManager::new().unwrap();
+        let manager = DataManager::with_custom_path(data_path);
 
         let reg_toml_path = TEST_DIR.path().join("reg.toml");
         fs::write(&reg_toml_path, "").unwrap();
