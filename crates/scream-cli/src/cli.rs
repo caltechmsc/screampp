@@ -155,3 +155,95 @@ pub enum DataCommands {
     /// Reset the data path to its default, OS-specific location.
     ResetPath,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn verify_cli_parsing() {
+        use clap::CommandFactory;
+        Cli::command().debug_assert();
+    }
+
+    #[test]
+    fn test_place_args_parsing() {
+        let args = [
+            "scream",
+            "place",
+            "-i",
+            "in.bgf",
+            "-o",
+            "out.bgf",
+            "-c",
+            "config.toml",
+            "-s",
+            "0.8",
+            "-l",
+            "amber@rmsd-1.2",
+            "-n",
+            "5",
+            "--with-input-conformation",
+            "-S",
+            "optimization.max-iterations=200",
+        ];
+        let cli = Cli::parse_from(args);
+        match cli.command {
+            Commands::Place(place_args) => {
+                assert_eq!(place_args.input, PathBuf::from("in.bgf"));
+                assert_eq!(place_args.output, PathBuf::from("out.bgf"));
+                assert_eq!(place_args.config, PathBuf::from("config.toml"));
+                assert_eq!(place_args.s_factor, Some(0.8));
+                assert_eq!(
+                    place_args.rotamer_library,
+                    Some("amber@rmsd-1.2".to_string())
+                );
+                assert_eq!(place_args.num_solutions, Some(5));
+                assert!(
+                    place_args
+                        .include_input_conformation
+                        .with_input_conformation
+                );
+                assert!(!place_args.include_input_conformation.no_input_conformation);
+                assert_eq!(
+                    place_args.set_values,
+                    vec!["optimization.max-iterations=200".to_string()]
+                );
+            }
+            _ => panic!("Expected Place subcommand"),
+        }
+    }
+
+    #[test]
+    fn test_mutually_exclusive_flags() {
+        let args = [
+            "scream",
+            "place",
+            "-i",
+            "in.bgf",
+            "-o",
+            "out.bgf",
+            "-c",
+            "c.toml",
+            "--with-input-conformation",
+            "--no-input-conformation",
+        ];
+        let result = Cli::try_parse_from(args);
+        assert!(result.is_err(), "Clap should reject conflicting flags");
+    }
+
+    #[test]
+    fn test_data_download_parsing() {
+        let args = ["scream", "data", "download", "--force"];
+        let cli = Cli::parse_from(args);
+        match cli.command {
+            Commands::Data(data_args) => match data_args.command {
+                DataCommands::Download { force } => {
+                    assert!(force);
+                }
+                _ => panic!("Expected data download subcommand"),
+            },
+            _ => panic!("Expected data subcommand"),
+        }
+    }
+}
