@@ -96,3 +96,78 @@ impl Default for CliProgressHandler {
         Self::new()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use screampp::engine::progress::Progress;
+    use std::thread;
+
+    #[test]
+    fn handler_initializes_in_a_clean_state() {
+        let handler = CliProgressHandler::new();
+        let pb = handler.pb.lock().unwrap();
+        assert_eq!(pb.length(), Some(0));
+        assert!(pb.is_finished());
+    }
+
+    #[test]
+    fn callback_updates_progress_bar_state() {
+        let handler = CliProgressHandler::new();
+        let callback = handler.get_callback();
+
+        callback(Progress::PhaseStart { name: "Test Phase" });
+        {
+            let pb = handler.pb.lock().unwrap();
+            assert_eq!(pb.message(), "Test Phase");
+            assert!(!pb.is_finished());
+            assert_eq!(pb.length(), Some(0));
+        }
+
+        callback(Progress::TaskStart { total_steps: 100 });
+        {
+            let pb = handler.pb.lock().unwrap();
+            assert_eq!(pb.length(), Some(100));
+            assert_eq!(pb.position(), 0);
+        }
+
+        callback(Progress::TaskIncrement);
+        {
+            let pb = handler.pb.lock().unwrap();
+            assert_eq!(pb.position(), 1);
+        }
+
+        callback(Progress::TaskFinish);
+        {
+            let pb = handler.pb.lock().unwrap();
+            assert!(pb.is_finished());
+            assert_eq!(pb.position(), 100);
+        }
+
+        callback(Progress::PhaseFinish);
+        {
+            let pb = handler.pb.lock().unwrap();
+            assert_eq!(pb.message(), "✓ Done");
+        }
+    }
+
+    #[test]
+    fn callback_is_thread_safe() {
+        let handler = CliProgressHandler::new();
+        let callback = handler.get_callback();
+
+        thread::spawn(move || {
+            callback(Progress::PhaseStart {
+                name: "Thread Test",
+            });
+            callback(Progress::TaskIncrement);
+            callback(Progress::PhaseFinish);
+        })
+        .join()
+        .unwrap();
+
+        let pb = handler.pb.lock().unwrap();
+        assert!(pb.is_finished());
+        assert_eq!(pb.message(), "✓ Done");
+    }
+}
