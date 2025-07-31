@@ -59,7 +59,7 @@ mod tests {
 
     fn ensure_global_logger_is_set() {
         INIT.call_once(|| {
-            setup_logging(3, false, None).expect("Failed to set up global logger for tests");
+            setup_logging(3, false, &None).expect("Failed to set up global logger for tests");
         });
     }
 
