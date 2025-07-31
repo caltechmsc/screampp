@@ -1,69 +1,57 @@
-use clap::{Args, Parser, Subcommand};
-use std::path::PathBuf;
+mod cli;
+mod commands;
+mod config;
+mod data;
+mod error;
+mod logging;
+mod utils;
 
-const HELP_TEMPLATE: &str = "\
-{before-help}{name} {version}
-{author-with-newline}{about-with-newline}
-{usage-heading} {usage}
+use crate::cli::{Cli, Commands};
+use crate::error::{CliError, Result};
+use clap::Parser;
+use tracing::{debug, error, info};
 
-{all-args}{after-help}
-";
-
-#[derive(Parser, Debug)]
-#[command(
-    author = "Tony Kan, Ted Yu, William A. Goddard III, Victor Wai Tak Kam",
-    version,
-    about = "SCREAM++ CLI - A command-line interface for SCREAM++, an enhanced software package for automated protein side-chain placement and redesign.",
-    help_template = HELP_TEMPLATE,
-)]
-struct Cli {
-    #[command(subcommand)]
-    command: Commands,
+#[tokio::main]
+async fn main() {
+    if let Err(e) = run().await {
+        error!("An error occurred: {}", e);
+        eprintln!("\nError: {}", e);
+        std::process::exit(1);
+    }
 }
 
-#[derive(Subcommand, Debug)]
-enum Commands {
-    Place(PlaceArgs),
-    Data(DataArgs),
-}
-
-#[derive(Args, Debug)]
-struct PlaceArgs {
-    #[arg(short, long)]
-    input: PathBuf,
-
-    #[arg(short, long)]
-    output: PathBuf,
-}
-
-#[derive(Args, Debug)]
-struct DataArgs {
-    #[command(subcommand)]
-    command: DataCommands,
-}
-
-#[derive(Subcommand, Debug)]
-enum DataCommands {
-    Download,
-    Path,
-}
-
-fn main() {
+async fn run() -> Result<()> {
     let cli = Cli::parse();
+
+    logging::setup_logging(cli.verbose, cli.quiet, &cli.log_file)?;
+
+    info!("SCREAM++ CLI v{} starting up.", env!("CARGO_PKG_VERSION"));
+    debug!("Full CLI arguments parsed: {:?}", &cli);
+
+    if let Some(num_threads) = cli.threads {
+        info!(
+            "Setting Rayon global thread pool to {} threads.",
+            num_threads
+        );
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(num_threads)
+            .build_global()
+            .map_err(|e| {
+                CliError::Other(anyhow::anyhow!("Failed to build global thread pool: {}", e))
+            })?;
+    }
 
     match cli.command {
         Commands::Place(args) => {
-            println!("'place' command is not yet implemented.");
-            println!("Input path: {:?}", args.input);
-            println!("Output path: {:?}", args.output);
+            info!("Dispatching to 'place' command.");
+            commands::place::run(args).await?;
         }
-        Commands::Data(args) => match args.command {
-            DataCommands::Download => {
-                println!("'data download' command is not yet implemented.");
-            }
-            DataCommands::Path => {
-                println!("'data path' command is not yet implemented.");
-            }
-        },
+        Commands::Data(args) => {
+            info!("Dispatching to 'data' command.");
+            commands::data::run(args).await?;
+        }
     }
+
+    info!("Command executed successfully. Shutting down.");
+    Ok(())
 }
