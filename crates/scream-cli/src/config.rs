@@ -442,9 +442,9 @@ mod tests {
     #[test]
     fn test_load_from_file_and_merge_with_defaults() {
         let data_path = create_test_data_dir();
-        let manager = DataManager {
-            base_path: data_path,
-        };
+
+        DataManager::set_custom_path(&data_path).unwrap();
+        let manager = DataManager::new().unwrap();
 
         let delta_csv_path = TEST_DIR.path().join("delta.csv");
         let reg_toml_path = TEST_DIR.path().join("reg.toml");
@@ -482,12 +482,12 @@ mod tests {
             assert_eq!(final_config.forcefield.s_factor, 0.8);
             assert_eq!(
                 final_config.sampling.rotamer_library_path,
-                manager.base_path.join("rotamers/amber/rmsd-1.0.toml")
+                manager.get_data_path().join("rotamers/amber/rmsd-1.0.toml")
             );
             assert_eq!(
                 final_config.forcefield.forcefield_path,
                 manager
-                    .base_path
+                    .get_data_path()
                     .join("forcefield/dreiding-lj-12-6-0.4.toml")
             );
 
@@ -503,9 +503,9 @@ mod tests {
     #[test]
     fn test_cli_args_override_file_values() {
         let data_path = create_test_data_dir();
-        let manager = DataManager {
-            base_path: data_path,
-        };
+
+        DataManager::set_custom_path(&data_path).unwrap();
+        let manager = DataManager::new().unwrap();
 
         let delta_csv_path = TEST_DIR.path().join("delta.csv");
         let reg_toml_path = TEST_DIR.path().join("reg.toml");
@@ -561,9 +561,9 @@ mod tests {
     #[test]
     fn test_set_value_overrides_file_and_defaults() {
         let data_path = create_test_data_dir();
-        let manager = DataManager {
-            base_path: data_path,
-        };
+
+        DataManager::set_custom_path(&data_path).unwrap();
+        let manager = DataManager::new().unwrap();
 
         let delta_csv_path = TEST_DIR.path().join("delta.csv");
         let reg_toml_path = TEST_DIR.path().join("reg.toml");
@@ -621,9 +621,9 @@ mod tests {
     #[test]
     fn test_missing_required_field_returns_error() {
         let data_path = create_test_data_dir();
-        let manager = DataManager {
-            base_path: data_path,
-        };
+
+        DataManager::set_custom_path(&data_path).unwrap();
+        let manager = DataManager::new().unwrap();
 
         let reg_toml_path = TEST_DIR.path().join("reg.toml");
         fs::write(&reg_toml_path, "").unwrap();
