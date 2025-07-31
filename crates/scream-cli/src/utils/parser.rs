@@ -22,3 +22,23 @@ pub enum ParseError {
         name: String,
     },
 }
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct RotamerLibraryName {
+    pub scheme: String,
+    pub diversity: String,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct ForcefieldName {
+    pub potential_type: String,
+    pub version: String,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum ParsedLogicalName {
+    RotamerLibrary(RotamerLibraryName),
+    Forcefield(ForcefieldName),
+    DeltaParams { diversity: String },
+    PlacementRegistry,
+}
