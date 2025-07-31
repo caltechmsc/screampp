@@ -27,6 +27,11 @@ impl DataManager {
         Ok(Self { base_path: path })
     }
 
+    pub fn with_custom_path(base_path: PathBuf) -> Self {
+        debug!("DataManager initialized with custom path: {:?}", &base_path);
+        Self { base_path }
+    }
+
     pub fn get_data_path(&self) -> &Path {
         &self.base_path
     }
