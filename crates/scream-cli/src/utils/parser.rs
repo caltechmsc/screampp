@@ -115,3 +115,130 @@ fn parse_forcefield(name: &str) -> Result<ForcefieldName, ParseError> {
         version,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_rotamer_library_success() {
+        let result = parse_logical_name("amber@rmsd-1.0", "rotamer-library").unwrap();
+        assert_eq!(
+            result,
+            ParsedLogicalName::RotamerLibrary(RotamerLibraryName {
+                scheme: "amber".to_string(),
+                diversity: "rmsd-1.0".to_string(),
+            })
+        );
+    }
+
+    #[test]
+    fn test_parse_rotamer_library_with_spaces() {
+        let result = parse_logical_name(" charmm @ all-torsion ", "rotamer-library").unwrap();
+        assert_eq!(
+            result,
+            ParsedLogicalName::RotamerLibrary(RotamerLibraryName {
+                scheme: "charmm".to_string(),
+                diversity: "all-torsion".to_string(),
+            })
+        );
+    }
+
+    #[test]
+    fn test_parse_rotamer_library_fails_no_at() {
+        let result = parse_logical_name("charmm-rmsd-1.0", "rotamer-library");
+        assert!(matches!(
+            result,
+            Err(ParseError::InvalidRotamerLibraryFormat(_))
+        ));
+    }
+
+    #[test]
+    fn test_parse_rotamer_library_fails_empty_scheme() {
+        let result = parse_logical_name("@rmsd-1.0", "rotamer-library");
+        assert_eq!(
+            result,
+            Err(ParseError::EmptyComponent {
+                component: "scheme",
+                name: "@rmsd-1.0".to_string()
+            })
+        );
+    }
+
+    #[test]
+    fn test_parse_rotamer_library_fails_empty_diversity() {
+        let result = parse_logical_name("charmm@", "rotamer-library");
+        assert_eq!(
+            result,
+            Err(ParseError::EmptyComponent {
+                component: "diversity",
+                name: "charmm@".to_string()
+            })
+        );
+    }
+
+    #[test]
+    fn test_parse_forcefield_success() {
+        let result = parse_logical_name("lj-12-6@0.3", "forcefield").unwrap();
+        assert_eq!(
+            result,
+            ParsedLogicalName::Forcefield(ForcefieldName {
+                potential_type: "lj-12-6".to_string(),
+                version: "0.3".to_string(),
+            })
+        );
+    }
+
+    #[test]
+    fn test_parse_forcefield_fails_no_at() {
+        let result = parse_logical_name("exp-6-0.4", "forcefield");
+        assert!(matches!(
+            result,
+            Err(ParseError::InvalidForcefieldFormat(_))
+        ));
+    }
+
+    #[test]
+    fn test_parse_forcefield_fails_empty_version() {
+        let result = parse_logical_name("lj-12-6@", "forcefield");
+        assert_eq!(
+            result,
+            Err(ParseError::EmptyComponent {
+                component: "version",
+                name: "lj-12-6@".to_string()
+            })
+        );
+    }
+
+    #[test]
+    fn test_parse_delta_params() {
+        let result = parse_logical_name("rmsd-1.4", "delta-params").unwrap();
+        assert_eq!(
+            result,
+            ParsedLogicalName::DeltaParams {
+                diversity: "rmsd-1.4".to_string()
+            }
+        );
+    }
+
+    #[test]
+    fn test_parse_placement_registry_success() {
+        let result = parse_logical_name("default", "placement-registry").unwrap();
+        assert_eq!(result, ParsedLogicalName::PlacementRegistry);
+    }
+
+    #[test]
+    fn test_parse_placement_registry_fails_invalid_name() {
+        let result = parse_logical_name("custom", "placement-registry");
+        assert!(matches!(
+            result,
+            Err(ParseError::InvalidPlacementRegistryName(_))
+        ));
+    }
+
+    #[test]
+    fn test_parse_unknown_kind() {
+        let result = parse_logical_name("some-value", "unknown-kind");
+        assert!(matches!(result, Err(ParseError::UnknownKind(_))));
+    }
+}
