@@ -195,46 +195,73 @@ mod tests {
     use super::*;
     use crate::core::models::residue::ResidueType;
     use nalgebra::Point3;
-    use std::collections::HashMap;
 
-    fn create_test_system() -> (MolecularSystem, HashMap<String, AtomId>) {
+    struct TestRefs {
+        chain_a_id: ChainId,
+        gly_id: ResidueId,
+        gly_n_id: AtomId,
+        gly_ca_id: AtomId,
+        ala_id: ResidueId,
+        ala_ca_id: AtomId,
+    }
+
+    fn create_standard_test_system() -> (MolecularSystem, TestRefs) {
         let mut system = MolecularSystem::new();
-        let mut key_atom_ids = HashMap::new();
 
         let chain_a_id = system.add_chain('A', ChainType::Protein);
 
         let gly_id = system
             .add_residue(chain_a_id, 1, "GLY", Some(ResidueType::Glycine))
             .unwrap();
-        let n_atom = Atom::new("N", gly_id, Point3::new(0.0, 0.0, 0.0));
-        let ca_atom = Atom::new("CA", gly_id, Point3::new(1.4, 0.0, 0.0));
+        let gly_n_atom = Atom::new("N", gly_id, Point3::new(0.0, 0.0, 0.0));
+        let gly_ca_atom = Atom::new("CA", gly_id, Point3::new(1.4, 0.0, 0.0));
 
-        let n_id = system.add_atom_to_residue(gly_id, n_atom).unwrap();
-        key_atom_ids.insert("GLY_1_N".to_string(), n_id);
-
-        let ca_id = system.add_atom_to_residue(gly_id, ca_atom).unwrap();
-        key_atom_ids.insert("GLY_1_CA".to_string(), ca_id);
-        system.add_bond(n_id, ca_id, BondOrder::Single).unwrap();
+        let gly_n_id = system.add_atom_to_residue(gly_id, gly_n_atom).unwrap();
+        let gly_ca_id = system.add_atom_to_residue(gly_id, gly_ca_atom).unwrap();
+        system
+            .add_bond(gly_n_id, gly_ca_id, BondOrder::Single)
+            .unwrap();
 
         let ala_id = system
             .add_residue(chain_a_id, 2, "ALA", Some(ResidueType::Alanine))
             .unwrap();
         let ala_ca_atom = Atom::new("CA", ala_id, Point3::new(2.0, 1.0, 0.0));
-
         let ala_ca_id = system.add_atom_to_residue(ala_id, ala_ca_atom).unwrap();
-        key_atom_ids.insert("ALA_2_CA".to_string(), ala_ca_id);
-
         system
-            .add_bond(ca_id, ala_ca_id, BondOrder::Single)
+            .add_bond(gly_ca_id, ala_ca_id, BondOrder::Single)
             .unwrap();
 
-        (system, key_atom_ids)
+        let refs = TestRefs {
+            chain_a_id,
+            gly_id,
+            gly_n_id,
+            gly_ca_id,
+            ala_id,
+            ala_ca_id,
+        };
+
+        (system, refs)
+    }
+
+    fn create_system_with_duplicate_atoms() -> MolecularSystem {
+        let mut system = MolecularSystem::new();
+        let chain_id = system.add_chain('A', ChainType::Protein);
+        let gly_id = system
+            .add_residue(chain_id, 1, "GLY", Some(ResidueType::Glycine))
+            .unwrap();
+
+        let n_atom = Atom::new("N", gly_id, Point3::origin());
+        let hca1_atom = Atom::new("HCA", gly_id, Point3::origin());
+        let hca2_atom = Atom::new("HCA", gly_id, Point3::origin());
+
+        system.add_atom_to_residue(gly_id, n_atom).unwrap();
+        system.add_atom_to_residue(gly_id, hca1_atom).unwrap();
+        system.add_atom_to_residue(gly_id, hca2_atom).unwrap();
+        system
     }
 
     struct DisulfideTestRefs {
-        cys1_a_id: ResidueId,
         cys1_a_sg_id: AtomId,
-        cys3_a_id: ResidueId,
         cys3_a_sg_id: AtomId,
         cys1_b_id: ResidueId,
         cys1_b_sg_id: AtomId,
@@ -247,7 +274,7 @@ mod tests {
         let cys1_a_id = system
             .add_residue(chain_a_id, 1, "CYS", Some(ResidueType::Cysteine))
             .unwrap();
-        let gly2_a_id = system
+        system
             .add_residue(chain_a_id, 2, "GLY", Some(ResidueType::Glycine))
             .unwrap();
         let cys3_a_id = system
@@ -255,11 +282,9 @@ mod tests {
             .unwrap();
 
         let cys1_a_sg = Atom::new("SG", cys1_a_id, Point3::new(0.0, 0.0, 0.0));
-        let gly2_a_ca = Atom::new("CA", gly2_a_id, Point3::new(2.0, 0.0, 0.0));
         let cys3_a_sg = Atom::new("SG", cys3_a_id, Point3::new(0.0, 2.0, 0.0));
 
         let cys1_a_sg_id = system.add_atom_to_residue(cys1_a_id, cys1_a_sg).unwrap();
-        system.add_atom_to_residue(gly2_a_id, gly2_a_ca).unwrap();
         let cys3_a_sg_id = system.add_atom_to_residue(cys3_a_id, cys3_a_sg).unwrap();
 
         let chain_b_id = system.add_chain('B', ChainType::Protein);
@@ -270,187 +295,190 @@ mod tests {
         let cys1_b_sg_id = system.add_atom_to_residue(cys1_b_id, cys1_b_sg).unwrap();
 
         let refs = DisulfideTestRefs {
-            cys1_a_id,
             cys1_a_sg_id,
-            cys3_a_id,
             cys3_a_sg_id,
             cys1_b_id,
             cys1_b_sg_id,
         };
-
         (system, refs)
     }
 
     #[test]
     fn system_creation_and_access() {
-        let (system, key_atom_ids) = create_test_system();
+        let (system, refs) = create_standard_test_system();
 
         assert_eq!(system.atoms_iter().count(), 3);
         assert_eq!(system.residues_iter().count(), 2);
         assert_eq!(system.chains_iter().count(), 1);
         assert_eq!(system.bonds().len(), 2);
-
-        let chain_a_id = system.find_chain_by_id('A').unwrap();
         assert!(system.find_chain_by_id('B').is_none());
 
-        let gly_id = system.find_residue_by_id(chain_a_id, 1).unwrap();
-        let ala_id = system.find_residue_by_id(chain_a_id, 2).unwrap();
+        let found_gly = system.find_residue_by_id(refs.chain_a_id, 1).unwrap();
+        let found_ala = system.find_residue_by_id(refs.chain_a_id, 2).unwrap();
+        assert_eq!(found_gly, refs.gly_id);
+        assert_eq!(found_ala, refs.ala_id);
 
-        assert_eq!(system.residue(gly_id).unwrap().name, "GLY");
-        assert_eq!(system.residue(ala_id).unwrap().name, "ALA");
-
-        let atom_n_id = *key_atom_ids.get("GLY_1_N").unwrap();
-        assert_eq!(system.atom(atom_n_id).unwrap().name, "N");
+        assert_eq!(system.residue(refs.gly_id).unwrap().name, "GLY");
+        assert_eq!(system.atom(refs.gly_n_id).unwrap().name, "N");
     }
 
     #[test]
     fn atom_removal_updates_system_correctly() {
-        let (mut system, key_atom_ids) = create_test_system();
-        let atom_n_id = *key_atom_ids.get("GLY_1_N").unwrap();
-        let atom_ca_id = *key_atom_ids.get("GLY_1_CA").unwrap();
+        let (mut system, refs) = create_standard_test_system();
 
         assert_eq!(system.bonds().len(), 2);
-        assert!(system.bonds().iter().any(|b| b.contains(atom_n_id)));
-        assert!(system.atom(atom_n_id).is_some());
-        let residue_id = system.atom(atom_n_id).unwrap().residue_id;
-        assert_eq!(system.residue(residue_id).unwrap().residue_number, 1);
+        assert!(system.bonds().iter().any(|b| b.contains(refs.gly_n_id)));
+        assert_eq!(system.residue(refs.gly_id).unwrap().atoms().len(), 2);
+        assert!(
+            system
+                .get_bonded_neighbors(refs.gly_ca_id)
+                .unwrap()
+                .contains(&refs.gly_n_id)
+        );
 
-        let removed_atom = system.remove_atom(atom_n_id).unwrap();
+        let removed_atom = system.remove_atom(refs.gly_n_id).unwrap();
+
         assert_eq!(removed_atom.name, "N");
-
         assert_eq!(system.atoms_iter().count(), 2);
-        assert!(system.atom(atom_n_id).is_none());
-
+        assert!(system.atom(refs.gly_n_id).is_none());
         assert_eq!(system.bonds().len(), 1);
+        assert!(!system.bond_adjacency.contains_key(refs.gly_n_id));
+        assert!(
+            !system
+                .get_bonded_neighbors(refs.gly_ca_id)
+                .unwrap()
+                .contains(&refs.gly_n_id)
+        );
+        assert_eq!(system.residue(refs.gly_id).unwrap().atoms().len(), 1);
+    }
 
-        assert!(system.bond_adjacency.get(atom_n_id).is_none());
-        assert!(!system.bond_adjacency[atom_ca_id].contains(&atom_n_id));
+    #[test]
+    fn atom_removal_handles_duplicates_correctly() {
+        let mut system = create_system_with_duplicate_atoms();
+        let gly_id = system
+            .find_residue_by_id(system.find_chain_by_id('A').unwrap(), 1)
+            .unwrap();
+        let gly_res = system.residue(gly_id).unwrap();
 
-        let chain_a_id = system.find_chain_by_id('A').unwrap();
-        let gly_id = system.find_residue_by_id(chain_a_id, 1).unwrap();
-        assert_eq!(system.residue(gly_id).unwrap().atoms().len(), 1);
-        assert!(!system.residue(gly_id).unwrap().atoms().contains(&atom_n_id));
+        let hca_ids = gly_res.get_atom_ids_by_name("HCA").unwrap().to_vec();
+        assert_eq!(hca_ids.len(), 2);
+        let id_to_remove = hca_ids[0];
+        let id_to_keep = hca_ids[1];
+
+        system.remove_atom(id_to_remove);
+
+        let remaining_hca_ids = system
+            .residue(gly_id)
+            .unwrap()
+            .get_atom_ids_by_name("HCA")
+            .unwrap();
+        assert_eq!(remaining_hca_ids.len(), 1);
+        assert_eq!(remaining_hca_ids[0], id_to_keep);
+        assert_eq!(system.residue(gly_id).unwrap().atoms.len(), 2);
     }
 
     #[test]
     fn residue_removal_updates_system_correctly() {
-        let (mut system, key_atom_ids) = create_test_system();
-        let atom_ala_ca_id = *key_atom_ids.get("ALA_2_CA").unwrap();
-
-        let chain_a_id = system.find_chain_by_id('A').unwrap();
-        let gly_id = system.find_residue_by_id(chain_a_id, 1).unwrap();
+        let (mut system, refs) = create_standard_test_system();
 
         assert_eq!(system.atoms_iter().count(), 3);
         assert_eq!(system.residues_iter().count(), 2);
-        assert_eq!(system.bonds().len(), 2);
-        assert_eq!(system.chain(chain_a_id).unwrap().residues().len(), 2);
+        assert!(system.find_residue_by_id(refs.chain_a_id, 1).is_some());
 
-        let removed_residue = system.remove_residue(gly_id).unwrap();
+        let removed_residue = system.remove_residue(refs.gly_id).unwrap();
+
         assert_eq!(removed_residue.name, "GLY");
-
         assert_eq!(system.residues_iter().count(), 1);
-        assert!(system.residue(gly_id).is_none());
-        assert!(system.find_residue_by_id(chain_a_id, 1).is_none());
-
+        assert!(system.residue(refs.gly_id).is_none());
+        assert!(system.find_residue_by_id(refs.chain_a_id, 1).is_none());
         assert_eq!(system.atoms_iter().count(), 1);
-        assert!(system.atom(*key_atom_ids.get("GLY_1_N").unwrap()).is_none());
+        assert!(system.atom(refs.gly_n_id).is_none());
+        assert!(system.atom(refs.gly_ca_id).is_none());
+        assert!(system.atom(refs.ala_ca_id).is_some());
         assert!(
-            system
-                .atom(*key_atom_ids.get("GLY_1_CA").unwrap())
-                .is_none()
+            system.bonds().is_empty(),
+            "Bonds to removed atoms should be gone"
         );
-        assert!(system.atom(atom_ala_ca_id).is_some());
-
-        assert!(system.bonds().is_empty());
-
-        assert_eq!(system.chain(chain_a_id).unwrap().residues().len(), 1);
-        assert!(
-            !system
-                .chain(chain_a_id)
-                .unwrap()
-                .residues()
-                .contains(&gly_id)
-        );
+        assert_eq!(system.chain(refs.chain_a_id).unwrap().residues().len(), 1);
     }
 
     #[test]
     fn get_bonded_neighbors_returns_correct_neighbors() {
-        let (system, _) = create_test_system();
+        let (system, refs) = create_standard_test_system();
+        let _gly_residue = system.residue(refs.gly_id).unwrap();
 
-        let chain_a_id = system.find_chain_by_id('A').unwrap();
-        let gly_residue = system
-            .residue(system.find_residue_by_id(chain_a_id, 1).unwrap())
-            .unwrap();
-        let ala_residue = system
-            .residue(system.find_residue_by_id(chain_a_id, 2).unwrap())
-            .unwrap();
+        let n_neighbors = system.get_bonded_neighbors(refs.gly_n_id).unwrap();
+        assert_eq!(n_neighbors, &[refs.gly_ca_id]);
 
-        let atom_n_id = gly_residue.get_atom_id_by_name("N").unwrap();
-        let atom_gly_ca_id = gly_residue.get_atom_id_by_name("CA").unwrap();
-        let atom_ala_ca_id = ala_residue.get_atom_id_by_name("CA").unwrap();
+        let ca_neighbors = system.get_bonded_neighbors(refs.gly_ca_id).unwrap();
+        assert_eq!(ca_neighbors.len(), 2);
+        assert!(ca_neighbors.contains(&refs.gly_n_id));
+        assert!(ca_neighbors.contains(&refs.ala_ca_id));
 
-        let neighbors_n = system.get_bonded_neighbors(atom_n_id).unwrap();
-        assert_eq!(neighbors_n, &[atom_gly_ca_id]);
-
-        let neighbors_ca = system.get_bonded_neighbors(atom_gly_ca_id).unwrap();
-        assert_eq!(neighbors_ca.len(), 2);
-        assert!(neighbors_ca.contains(&atom_n_id));
-        assert!(neighbors_ca.contains(&atom_ala_ca_id));
-
-        let neighbors_ala_ca = system.get_bonded_neighbors(atom_ala_ca_id).unwrap();
-        assert_eq!(neighbors_ala_ca, &[atom_gly_ca_id]);
+        let ala_ca_neighbors = system.get_bonded_neighbors(refs.ala_ca_id).unwrap();
+        assert_eq!(ala_ca_neighbors, &[refs.gly_ca_id]);
     }
 
     #[test]
     fn handles_intrachain_disulfide_bond_correctly() {
         let (mut system, refs) = create_disulfide_test_system();
-
         system
             .add_bond(refs.cys1_a_sg_id, refs.cys3_a_sg_id, BondOrder::Single)
             .unwrap();
 
-        assert_eq!(system.bonds().len(), 1);
-        let neighbors1 = system.get_bonded_neighbors(refs.cys1_a_sg_id).unwrap();
-        let neighbors3 = system.get_bonded_neighbors(refs.cys3_a_sg_id).unwrap();
-        assert_eq!(neighbors1, &[refs.cys3_a_sg_id]);
-        assert_eq!(neighbors3, &[refs.cys1_a_sg_id]);
+        assert_eq!(
+            system.get_bonded_neighbors(refs.cys1_a_sg_id).unwrap(),
+            &[refs.cys3_a_sg_id]
+        );
+        assert_eq!(
+            system.get_bonded_neighbors(refs.cys3_a_sg_id).unwrap(),
+            &[refs.cys1_a_sg_id]
+        );
 
-        system.remove_atom(refs.cys1_a_sg_id).unwrap();
+        system.remove_atom(refs.cys1_a_sg_id);
 
         assert!(system.bonds().is_empty());
         assert!(system.get_bonded_neighbors(refs.cys1_a_sg_id).is_none());
-        let neighbors3_after_removal = system.get_bonded_neighbors(refs.cys3_a_sg_id).unwrap();
-        assert!(neighbors3_after_removal.is_empty());
+        assert!(
+            system
+                .get_bonded_neighbors(refs.cys3_a_sg_id)
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[test]
     fn handles_interchain_disulfide_bond_correctly() {
         let (mut system, refs) = create_disulfide_test_system();
-
         system
             .add_bond(refs.cys1_a_sg_id, refs.cys1_b_sg_id, BondOrder::Single)
             .unwrap();
 
-        assert_eq!(system.bonds().len(), 1);
-        let neighbors_a = system.get_bonded_neighbors(refs.cys1_a_sg_id).unwrap();
-        let neighbors_b = system.get_bonded_neighbors(refs.cys1_b_sg_id).unwrap();
-        assert_eq!(neighbors_a, &[refs.cys1_b_sg_id]);
-        assert_eq!(neighbors_b, &[refs.cys1_a_sg_id]);
+        assert_eq!(
+            system.get_bonded_neighbors(refs.cys1_a_sg_id).unwrap(),
+            &[refs.cys1_b_sg_id]
+        );
+        assert_eq!(
+            system.get_bonded_neighbors(refs.cys1_b_sg_id).unwrap(),
+            &[refs.cys1_a_sg_id]
+        );
 
-        system.remove_residue(refs.cys1_b_id).unwrap();
+        system.remove_residue(refs.cys1_b_id);
 
         assert!(system.bonds().is_empty());
         assert!(system.atom(refs.cys1_b_sg_id).is_none());
         assert!(system.residue(refs.cys1_b_id).is_none());
-
-        let neighbors_a_after_removal = system.get_bonded_neighbors(refs.cys1_a_sg_id).unwrap();
-        assert!(neighbors_a_after_removal.is_empty());
+        assert!(
+            system
+                .get_bonded_neighbors(refs.cys1_a_sg_id)
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[test]
     fn idempotent_add_bond_does_not_create_duplicates() {
         let (mut system, refs) = create_disulfide_test_system();
-
         system
             .add_bond(refs.cys1_a_sg_id, refs.cys3_a_sg_id, BondOrder::Single)
             .unwrap();
@@ -463,9 +491,9 @@ mod tests {
             1,
             "Adding an existing bond should be idempotent"
         );
-        let neighbors1 = system.get_bonded_neighbors(refs.cys1_a_sg_id).unwrap();
+        let neighbors = system.get_bonded_neighbors(refs.cys1_a_sg_id).unwrap();
         assert_eq!(
-            neighbors1.len(),
+            neighbors.len(),
             1,
             "Adjacency list should not contain duplicates"
         );
