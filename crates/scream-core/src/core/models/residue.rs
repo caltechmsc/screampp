@@ -170,8 +170,13 @@ impl Residue {
         &self.atoms
     }
 
-    pub fn get_atom_id_by_name(&self, name: &str) -> Option<AtomId> {
-        self.atom_name_map.get(name).copied()
+    pub fn get_atom_ids_by_name(&self, name: &str) -> Option<&[AtomId]> {
+        self.atom_name_map.get(name).map(|v| v.as_slice())
+    }
+
+    pub fn get_first_atom_id_by_name(&self, name: &str) -> Option<AtomId> {
+        self.get_atom_ids_by_name(name)
+            .and_then(|ids| ids.first().copied())
     }
 }
 
