@@ -426,8 +426,9 @@ END
         assert_eq!(gly.residue_type, Some(ResidueType::Glycine));
         assert_eq!(gly.atoms().len(), 4);
 
-        let n_atom_id = gly.get_atom_id_by_name("N").unwrap();
-        let ca_atom_id = gly.get_atom_id_by_name("CA").unwrap();
+        let n_atom_id = gly.get_first_atom_id_by_name("N").unwrap();
+        let ca_atom_id = gly.get_first_atom_id_by_name("CA").unwrap();
+
         assert!(
             system
                 .bonds()
@@ -455,8 +456,8 @@ END
         let ala_res_id = system.find_residue_by_id(chain_a_id, 2).unwrap();
         let ala = system.residue(ala_res_id).unwrap();
 
-        let ala_n_id = ala.get_atom_id_by_name("N").unwrap();
-        let ala_ca_id = ala.get_atom_id_by_name("CA").unwrap();
+        let ala_n_id = ala.get_first_atom_id_by_name("N").unwrap();
+        let ala_ca_id = ala.get_first_atom_id_by_name("CA").unwrap();
 
         assert_eq!(system.bonds().len(), 2);
         assert!(
