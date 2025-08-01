@@ -155,9 +155,15 @@ impl Residue {
             .push(atom_id);
     }
 
-    pub(crate) fn remove_atom(&mut self, atom_name: &str, atom_id: AtomId) {
-        self.atoms.retain(|&id| id != atom_id);
-        self.atom_name_map.remove(atom_name);
+    pub(crate) fn remove_atom(&mut self, atom_name: &str, atom_id_to_remove: AtomId) {
+        self.atoms.retain(|&id| id != atom_id_to_remove);
+
+        if let Some(ids) = self.atom_name_map.get_mut(atom_name) {
+            ids.retain(|&id| id != atom_id_to_remove);
+            if ids.is_empty() {
+                self.atom_name_map.remove(atom_name);
+            }
+        }
     }
 
     pub fn atoms(&self) -> &[AtomId] {
