@@ -149,7 +149,10 @@ impl Residue {
 
     pub(crate) fn add_atom(&mut self, atom_name: &str, atom_id: AtomId) {
         self.atoms.push(atom_id);
-        self.atom_name_map.insert(atom_name.to_string(), atom_id);
+        self.atom_name_map
+            .entry(atom_name.to_string())
+            .or_default()
+            .push(atom_id);
     }
 
     pub(crate) fn remove_atom(&mut self, atom_name: &str, atom_id: AtomId) {
