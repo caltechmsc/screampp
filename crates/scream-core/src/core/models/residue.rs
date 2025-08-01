@@ -127,7 +127,7 @@ pub struct Residue {
     pub residue_type: Option<ResidueType>, // Optional residue type (e.g., Alanine, Glycine)
     pub chain_id: ChainId,     // ID of the parent chain
     pub(crate) atoms: Vec<AtomId>, // Indices of atoms belonging to this residue
-    atom_name_map: HashMap<String, AtomId>, // Map from atom name to its stable ID
+    atom_name_map: HashMap<String, Vec<AtomId>>, // Map from atom names to their IDs
 }
 
 impl Residue {
