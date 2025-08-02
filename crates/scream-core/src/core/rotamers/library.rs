@@ -3,7 +3,7 @@ use super::rotamer::{Rotamer, RotamerData};
 use crate::core::forcefield::parameterization::{ParameterizationError, Parameterizer};
 use crate::core::forcefield::params::Forcefield;
 use crate::core::models::atom::Atom;
-use crate::core::models::ids::ResidueId;
+use crate::core::models::ids::{AtomId, ResidueId};
 use crate::core::models::residue::ResidueType;
 use crate::core::models::system::MolecularSystem;
 use nalgebra::Point3;
@@ -200,67 +200,83 @@ impl RotamerLibrary {
         active_residues: &HashSet<ResidueId>,
     ) {
         for &residue_id in active_residues {
-            let residue = match system.residue(residue_id) {
-                Some(r) => r,
-                None => continue,
-            };
+            if let Some(rotamer) = self.extract_rotamer_from_system(system, residue_id) {
+                let residue = system.residue(residue_id).unwrap();
+                let residue_type = residue.residue_type.unwrap();
+                self.rotamers.entry(residue_type).or_default().push(rotamer);
+            }
+        }
+    }
 
-            let residue_type = match residue.residue_type {
-                Some(rt) => rt,
-                None => continue,
-            };
+    fn extract_rotamer_from_system(
+        &self,
+        system: &MolecularSystem,
+        residue_id: ResidueId,
+    ) -> Option<Rotamer> {
+        let residue = system.residue(residue_id)?;
+        let residue_type = residue.residue_type?;
+        let placement_info = self.placement_info.get(&residue_type)?;
 
-            let placement_info = match self.placement_info.get(&residue_type) {
-                Some(info) => info,
-                None => continue,
-            };
+        // --- 1. Create an "atom pool" from the residue in the system ---
+        let mut atom_pool: HashMap<String, Vec<AtomId>> = HashMap::new();
+        for atom_id in residue.atoms() {
+            if let Some(atom) = system.atom(*atom_id) {
+                atom_pool
+                    .entry(atom.name.clone())
+                    .or_default()
+                    .push(*atom_id);
+            }
+        }
 
-            // --- 1. Extract atoms and build a map for topology extraction ---
-            let all_rotamer_atom_names: HashSet<_> = placement_info
-                .anchor_atoms
-                .iter()
-                .chain(&placement_info.sidechain_atoms)
-                .cloned()
-                .collect();
+        // --- 2. Sequentially assign roles (anchor/sidechain) and build the new rotamer's atom list ---
+        let mut new_rotamer_atoms = Vec::new();
+        let mut old_id_to_new_index = HashMap::new();
 
-            let mut extracted_atoms = Vec::new();
-            let mut global_id_to_local_index = HashMap::new();
-
-            for atom_name in &all_rotamer_atom_names {
-                if let Some(atom_id) = residue.get_atom_id_by_name(atom_name) {
+        for name in &placement_info.anchor_atoms {
+            if let Some(ids) = atom_pool.get_mut(name) {
+                if !ids.is_empty() {
+                    let atom_id = ids.remove(0);
                     if let Some(atom) = system.atom(atom_id) {
-                        let local_index = extracted_atoms.len();
-                        extracted_atoms.push(atom.clone());
-                        global_id_to_local_index.insert(atom_id, local_index);
+                        old_id_to_new_index.insert(atom_id, new_rotamer_atoms.len());
+                        new_rotamer_atoms.push(atom.clone());
                     }
+                } else {
+                    return None;
                 }
             }
+        }
 
-            // --- 2. Extract topology (bonds) for the extracted atoms ---
-            let mut extracted_bonds = Vec::new();
-            for (atom_id_a, &local_index_a) in &global_id_to_local_index {
-                if let Some(neighbors) = system.get_bonded_neighbors(*atom_id_a) {
-                    for &atom_id_b in neighbors {
-                        if let Some(&local_index_b) = global_id_to_local_index.get(&atom_id_b) {
-                            if local_index_a < local_index_b {
-                                extracted_bonds.push((local_index_a, local_index_b));
-                            }
+        for name in &placement_info.sidechain_atoms {
+            if let Some(ids) = atom_pool.get_mut(name) {
+                if let Some(atom_id) = ids.pop() {
+                    if let Some(atom) = system.atom(atom_id) {
+                        old_id_to_new_index.insert(atom_id, new_rotamer_atoms.len());
+                        new_rotamer_atoms.push(atom.clone());
+                    }
+                } else {
+                    return None;
+                }
+            }
+        }
+
+        // --- 3. Rebuild the topology for the extracted atoms ---
+        let mut new_rotamer_bonds = Vec::new();
+        for (&old_id_a, &new_idx_a) in &old_id_to_new_index {
+            if let Some(neighbors) = system.get_bonded_neighbors(old_id_a) {
+                for &old_id_b in neighbors {
+                    if let Some(&new_idx_b) = old_id_to_new_index.get(&old_id_b) {
+                        if new_idx_a < new_idx_b {
+                            new_rotamer_bonds.push((new_idx_a, new_idx_b));
                         }
                     }
                 }
             }
-
-            let extracted_rotamer = Rotamer {
-                atoms: extracted_atoms,
-                bonds: extracted_bonds,
-            };
-
-            // --- 3. Add the extracted rotamer to the library ---
-            self.rotamers
-                .entry(residue_type)
-                .or_default()
-                .push(extracted_rotamer);
         }
+
+        Some(Rotamer {
+            atoms: new_rotamer_atoms,
+            bonds: new_rotamer_bonds,
+        })
     }
 }
 
