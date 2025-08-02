@@ -48,9 +48,8 @@ pub fn place_rotamer_on_system(
         let (rotation, translation) =
             calculate_alignment_transform(system, target_residue_id, rotamer, placement_info)?;
 
-        remove_old_sidechain(system, target_residue_id, placement_info);
-
-        // --- Phase 2: Atom Placement & Mapping ---
+        // --- Phase 2: Side-Chain Replacement ---
+        remove_old_sidechain(system, target_residue_id, placement_info)?;
         let index_to_id_map = add_new_sidechain_atoms_and_map(
             system,
             target_residue_id,
@@ -84,7 +83,7 @@ fn calculate_alignment_transform(
 
     for atom_name in &placement_info.anchor_atoms {
         let system_atom_id = target_residue
-            .get_atom_id_by_name(atom_name)
+            .get_first_atom_id_by_name(atom_name)
             .ok_or_else(|| PlacementError::AnchorAtomNotFoundInSystem {
                 atom_name: atom_name.clone(),
             })?;
