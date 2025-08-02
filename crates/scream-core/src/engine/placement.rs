@@ -10,6 +10,7 @@ use crate::core::{
 use nalgebra::{Matrix3, Point3, Rotation3, Vector3};
 use std::collections::HashMap;
 use thiserror::Error;
+use tracing::warn;
 
 #[derive(Debug, Error)]
 pub enum PlacementError {
@@ -20,12 +21,19 @@ pub enum PlacementError {
     AnchorAtomNotFoundInRotamer { atom_name: String },
 
     #[error(
+        "Could not find any atoms with name '{atom_name}' in the rotamer to build the index map"
+    )]
+    RotamerAtomNameNotFound { atom_name: String },
+
+    #[error(
         "Insufficient anchor atoms for stable alignment: requires at least 3, but found {found}"
     )]
     InsufficientAnchors { found: usize },
 
-    #[error("Could not find rotamer atom with name '{atom_name}' to build the index map")]
-    RotamerAtomNameNotFound { atom_name: String },
+    #[error(
+        "Placement logic failed for atom '{atom_name}': not enough instances in residue to fulfill placement requirements"
+    )]
+    InsufficientAtomsInResidue { atom_name: String },
 }
 
 #[inline]
