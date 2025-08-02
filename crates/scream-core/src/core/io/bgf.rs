@@ -177,6 +177,8 @@ impl MolecularFile for BgfFile {
             writeln!(writer, "{}", line)?;
         }
 
+        writeln!(writer, "FORMAT ATOM   (a6,1x,i5,1x,a5,1x,a3,1x,a1,1x,a5,3f10.5,1x,a5,i3,i2,1x,f8.5)")?;
+
         for canonical_atom in &sorted_atoms {
             let atom = canonical_atom.source;
             let new_serial = atom_id_to_new_serial[&canonical_atom.id];
