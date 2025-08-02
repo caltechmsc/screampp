@@ -112,19 +112,37 @@ fn remove_old_sidechain(
     system: &mut MolecularSystem,
     target_residue_id: ResidueId,
     placement_info: &PlacementInfo,
-) {
-    let old_atom_ids_to_remove: Vec<AtomId> = {
-        let target_residue = system.residue(target_residue_id).unwrap();
-        placement_info
-            .sidechain_atoms
-            .iter()
-            .filter_map(|atom_name| target_residue.get_atom_id_by_name(atom_name))
-            .collect()
-    };
+) -> Result<(), PlacementError> {
+    let mut frequency_map = HashMap::new();
+    for name in &placement_info.sidechain_atoms {
+        *frequency_map.entry(name.as_str()).or_insert(0) += 1;
+    }
 
-    for atom_id in old_atom_ids_to_remove {
+    let mut ids_to_remove = Vec::new();
+
+    {
+        let target_residue = system.residue(target_residue_id).unwrap();
+        for (name, count) in frequency_map {
+            if let Some(atom_ids) = target_residue.get_atom_ids_by_name(name) {
+                if atom_ids.len() < count {
+                    warn!(
+                        "Residue {:?} has only {} atom(s) named '{}', but placement info requires removing {}. This might indicate a malformed input.",
+                        target_residue_id,
+                        atom_ids.len(),
+                        name,
+                        count
+                    );
+                }
+                ids_to_remove.extend(atom_ids.iter().rev().take(count));
+            }
+        }
+    }
+
+    for atom_id in ids_to_remove {
         system.remove_atom(atom_id);
     }
+
+    Ok(())
 }
 
 fn add_new_sidechain_atoms_and_map(
