@@ -251,8 +251,6 @@ impl MolecularFile for BgfFile {
             header_lines: vec![
                 "BIOGRF  332".to_string(),
                 "FORCEFIELD DREIDING".to_string(),
-                "FORMAT ATOM   (a6,1x,i5,1x,a5,1x,a3,1x,a1,1x,a5,3f10.5,1x,a5,i3,i2,1x,f8.5)"
-                    .to_string(),
             ],
             ..Default::default()
         };
