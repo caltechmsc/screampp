@@ -873,12 +873,9 @@ mod tests {
 
                 let (rotation, translation) = if let Some(prev_c_id) = self.last_c_id {
                     let prev_c_atom = self.system.atom(prev_c_id).unwrap();
-                    let prev_ca_id = self
-                        .system
-                        .residue(prev_c_atom.residue_id)
-                        .unwrap()
-                        .get_atom_id_by_name("CA")
-                        .unwrap();
+                    let prev_residue = self.system.residue(prev_c_atom.residue_id).unwrap();
+
+                    let prev_ca_id = prev_residue.get_first_atom_id_by_name("CA").unwrap();
                     let prev_ca_atom = self.system.atom(prev_ca_id).unwrap();
 
                     let target_c = prev_c_atom.position;
@@ -1004,6 +1001,7 @@ mod tests {
                     .s_factor(0.8)
                     .max_iterations(20)
                     .num_solutions(1)
+                    .include_input_conformation(true)
                     .final_refinement_iterations(2)
                     .convergence_config(ConvergenceConfig {
                         energy_threshold: 0.01,
@@ -1050,34 +1048,60 @@ mod tests {
         fn create_dummy_rotamer_lib_file(dir: &Path) -> PathBuf {
             let path = dir.join("test.rotlib.toml");
             let mut file = File::create(&path).unwrap();
-            write!(file, r#"
-                [[ALA]] # Good rotamer
+            write!(
+                file,
+                r#"
+                [[ALA]]
                 atoms = [
                     {{ serial = 1, atom_name = "N", position = [-0.52, 1.36, 0.0], partial_charge = -0.47, force_field_type = "N_R" }},
                     {{ serial = 2, atom_name = "CA", position = [0.0, 0.0, 0.0], partial_charge = 0.07, force_field_type = "C_31" }},
                     {{ serial = 3, atom_name = "C", position = [1.2, -0.1, 0.9], partial_charge = 0.51, force_field_type = "C_R" }},
-                    {{ serial = 4, atom_name = "CB", position = [-0.76, -0.8, -1.08], partial_charge = -0.27, force_field_type = "C_33" }}
+                    {{ serial = 4, atom_name = "CB", position = [-0.76, -0.8, -1.08], partial_charge = -0.27, force_field_type = "C_33" }},
+                    {{ serial = 5, atom_name = "HB1", position = [-0.21, -1.74, -1.16], partial_charge = 0.09, force_field_type = "H_" }},
+                    {{ serial = 6, atom_name = "HB2", position = [-1.6, -0.4, -1.67], partial_charge = 0.09, force_field_type = "H_" }},
+                    {{ serial = 7, atom_name = "HB3", position = [-1.2, -1.2, -0.19], partial_charge = 0.09, force_field_type = "H_" }}
                 ]
-                bonds = [ [1,2], [2,3], [2,4] ]
+                bonds = [ [1,2], [2,3], [2,4], [4,5], [4,6], [4,7] ]
 
-                [[ALA]] # Bad rotamer (will clash with its own backbone H)
+                [[ALA]]
                 atoms = [
                     {{ serial = 1, atom_name = "N", position = [-0.52, 1.36, 0.0], partial_charge = -0.47, force_field_type = "N_R" }},
                     {{ serial = 2, atom_name = "CA", position = [0.0, 0.0, 0.0], partial_charge = 0.07, force_field_type = "C_31" }},
                     {{ serial = 3, atom_name = "C", position = [1.2, -0.1, 0.9], partial_charge = 0.51, force_field_type = "C_R" }},
-                    {{ serial = 4, atom_name = "CB", position = [-1.0, 1.0, 0.5], partial_charge = -0.27, force_field_type = "C_33" }}
+                    {{ serial = 4, atom_name = "CB", position = [-0.8, -0.9, 1.2], partial_charge = -0.27, force_field_type = "C_33" }},
+                    {{ serial = 5, atom_name = "HB1", position = [-0.3, -1.8, 1.3], partial_charge = 0.09, force_field_type = "H_" }},
+                    {{ serial = 6, atom_name = "HB2", position = [-1.7, -0.5, 1.8], partial_charge = 0.09, force_field_type = "H_" }},
+                    {{ serial = 7, atom_name = "HB3", position = [-1.3, -1.3, 0.3], partial_charge = 0.09, force_field_type = "H_" }}
                 ]
-                bonds = [ [1,2], [2,3], [2,4] ]
+                bonds = [ [1,2], [2,3], [2,4], [4,5], [4,6], [4,7] ]
 
                 [[LEU]]
                 atoms = [
                     {{ serial = 1, atom_name = "N", position = [-0.52, 1.36, 0.0], partial_charge = -0.47, force_field_type = "N_R" }},
                     {{ serial = 2, atom_name = "CA", position = [0.0, 0.0, 0.0], partial_charge = 0.07, force_field_type = "C_31" }},
                     {{ serial = 3, atom_name = "C", position = [1.2, -0.1, 0.9], partial_charge = 0.51, force_field_type = "C_R" }},
-                    {{ serial = 4, atom_name = "CB", position = [-0.8, -0.8, -1.1], partial_charge = -0.18, force_field_type = "C_32" }}
+                    {{ serial = 4, atom_name = "CB", position = [-0.8, -0.8, -1.1], partial_charge = -0.18, force_field_type = "C_32" }},
+                    {{ serial = 5, atom_name = "HB1", position = [-0.2, -1.7, -1.2], partial_charge = 0.09, force_field_type = "H_" }},
+                    {{ serial = 6, atom_name = "HB2", position = [-1.6, -0.4, -1.7], partial_charge = 0.09, force_field_type = "H_" }},
+                    {{ serial = 7, atom_name = "CG", position = [-1.5, -1.5, 0.0], partial_charge = -0.09, force_field_type = "C_31" }},
+                    {{ serial = 8, atom_name = "HG", position = [-1.0, -2.5, 0.0], partial_charge = 0.09, force_field_type = "H_" }}
                 ]
-                bonds = [ [1,2], [2,3], [2,4] ]
-            "#).unwrap();
+                bonds = [ [1,2], [2,3], [2,4], [4,5], [4,6], [4,7], [7,8] ]
+
+                [[LEU]]
+                atoms = [
+                    {{ serial = 1, atom_name = "N", position = [-0.52, 1.36, 0.0], partial_charge = -0.47, force_field_type = "N_R" }},
+                    {{ serial = 2, atom_name = "CA", position = [0.0, 0.0, 0.0], partial_charge = 0.07, force_field_type = "C_31" }},
+                    {{ serial = 3, atom_name = "C", position = [1.2, -0.1, 0.9], partial_charge = 0.51, force_field_type = "C_R" }},
+                    {{ serial = 4, atom_name = "CB", position = [0.5, 1.0, -0.8], partial_charge = -0.18, force_field_type = "C_32" }},
+                    {{ serial = 5, atom_name = "HB1", position = [0.9, 1.8, -0.4], partial_charge = 0.09, force_field_type = "H_" }},
+                    {{ serial = 6, atom_name = "HB2", position = [0.2, 1.2, -1.8], partial_charge = 0.09, force_field_type = "H_" }},
+                    {{ serial = 7, atom_name = "CG", position = [1.5, 0.0, -0.5], partial_charge = -0.09, force_field_type = "C_31" }},
+                    {{ serial = 8, atom_name = "HG", position = [2.0, 0.2, 0.4], partial_charge = 0.09, force_field_type = "H_" }}
+                ]
+                bonds = [ [1,2], [2,3], [2,4], [4,5], [4,6], [4,7], [7,8] ]
+                "#
+            ).unwrap();
             path
         }
 
@@ -1240,21 +1264,19 @@ mod tests {
         let env = setup::TestEnvironment::new();
         let mut clashing_system = env.initial_system.clone();
 
-        let ala_res_id = clashing_system
-            .find_residue_by_id(clashing_system.find_chain_by_id('A').unwrap(), 1)
-            .unwrap();
-        let leu_res_id = clashing_system
-            .find_residue_by_id(clashing_system.find_chain_by_id('A').unwrap(), 3)
-            .unwrap();
+        let chain_id = clashing_system.find_chain_by_id('A').unwrap();
+        let ala_res_id = clashing_system.find_residue_by_id(chain_id, 1).unwrap();
+        let leu_res_id = clashing_system.find_residue_by_id(chain_id, 3).unwrap();
+
         let ala_cb_id = clashing_system
             .residue(ala_res_id)
             .unwrap()
-            .get_atom_id_by_name("CB")
+            .get_first_atom_id_by_name("CB")
             .unwrap();
         let leu_cb_id = clashing_system
             .residue(leu_res_id)
             .unwrap()
-            .get_atom_id_by_name("CB")
+            .get_first_atom_id_by_name("CB")
             .unwrap();
 
         let ala_pos = clashing_system.atom(ala_cb_id).unwrap().position;
@@ -1268,6 +1290,7 @@ mod tests {
         let reporter = ProgressReporter::new();
         let forcefield = Forcefield::load(&env.forcefield_path, &env.delta_path).unwrap();
         let scorer = Scorer::new(&clashing_system, &forcefield);
+
         let initial_energy = scorer
             .score_interaction(
                 clashing_system.residue(ala_res_id).unwrap().atoms(),
@@ -1277,14 +1300,19 @@ mod tests {
 
         assert!(
             initial_energy.vdw > 10.0,
-            "Test setup should create a severe clash"
+            "Test setup should create a severe clash. Got VdW energy: {}",
+            initial_energy.vdw
         );
 
         let solutions = run(&clashing_system, &config, &reporter).unwrap();
 
         assert!(
+            !solutions.is_empty(),
+            "Workflow should produce at least one solution"
+        );
+        assert!(
             solutions[0].energy < initial_energy.total(),
-            "Final energy ({}) should be much lower than the initial clashing energy ({})",
+            "Final energy ({:.4}) should be much lower than the initial clashing energy ({:.4})",
             solutions[0].energy,
             initial_energy.total()
         );
