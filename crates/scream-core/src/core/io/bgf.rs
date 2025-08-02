@@ -177,7 +177,10 @@ impl MolecularFile for BgfFile {
             writeln!(writer, "{}", line)?;
         }
 
-        writeln!(writer, "FORMAT ATOM   (a6,1x,i5,1x,a5,1x,a3,1x,a1,1x,a5,3f10.5,1x,a5,i3,i2,1x,f8.5)")?;
+        writeln!(
+            writer,
+            "FORMAT ATOM   (a6,1x,i5,1x,a5,1x,a3,1x,a1,1x,a5,3f10.5,1x,a5,i3,i2,1x,f8.5)"
+        )?;
 
         for canonical_atom in &sorted_atoms {
             let atom = canonical_atom.source;
@@ -248,10 +251,7 @@ impl MolecularFile for BgfFile {
         writer: &mut impl Write,
     ) -> Result<(), Self::Error> {
         let minimal_metadata = BgfMetadata {
-            header_lines: vec![
-                "BIOGRF  332".to_string(),
-                "FORCEFIELD DREIDING".to_string(),
-            ],
+            header_lines: vec!["BIOGRF  332".to_string(), "FORCEFIELD DREIDING".to_string()],
             ..Default::default()
         };
         Self::write_to(system, &minimal_metadata, writer)
@@ -368,6 +368,7 @@ mod tests {
 
     const CANONICAL_BGF_DATA: &str = r#"BIOGRF 332
 REMARK A standard, clean BGF file
+FORMAT ATOM   (a6,1x,i5,1x,a5,1x,a3,1x,a1,1x,a5,3f10.5,1x,a5,i3,i2,1x,f8.5)
 ATOM       1 N     GLY A     1  -0.41600  -0.53500   0.00000 N_R    1 3 -0.35000
 ATOM       2 CA    GLY A     1   0.00000   0.00000   1.00000 C_3    1 4  0.07000
 ATOM       3 C     GLY A     1   1.00000   0.00000   0.00000 C_R    1 3  0.51000
@@ -375,7 +376,7 @@ ATOM       4 O     GLY A     1   1.50000   1.00000   0.00000 O_2    1 1 -0.51000
 ATOM       5 N     ALA B     2   2.00000   0.00000   0.00000 N_R    1 3 -0.35000
 ATOM       6 CA    ALA B     2   3.00000   0.00000   1.00000 C_3    1 4  0.07000
 ATOM       7 CB    ALA B     2   3.50000   1.50000   1.00000 C_3    1 4 -0.18000
-REMARK End of atoms
+FORMAT CONECT (a6,12i6)
 CONECT     1     2
 CONECT     2     3
 CONECT     3     4
@@ -413,7 +414,7 @@ END
             metadata.header_lines[1],
             "REMARK A standard, clean BGF file"
         );
-        assert_eq!(metadata.footer_lines.len(), 1);
+        assert_eq!(metadata.footer_lines.len(), 0);
 
         assert_eq!(system.atoms_iter().count(), 7);
         assert_eq!(system.chains_iter().count(), 2);
@@ -556,6 +557,20 @@ END
 
         assert!(output.contains("BIOGRF  332"));
         assert!(output.contains("FORCEFIELD DREIDING"));
-        assert!(output.contains("FORMAT ATOM"));
+    }
+
+    #[test]
+    fn write_to_includes_format_lines() {
+        let mut system = MolecularSystem::new();
+        system.add_chain('A', ChainType::Protein);
+
+        let mut buffer = Vec::new();
+        BgfFile::write_system_to(&system, &mut buffer).unwrap();
+        let output = String::from_utf8(buffer).unwrap();
+
+        assert!(output.contains(
+            "FORMAT ATOM   (a6,1x,i5,1x,a5,1x,a3,1x,a1,1x,a5,3f10.5,1x,a5,i3,i2,1x,f8.5)"
+        ));
+        assert!(output.contains("FORMAT CONECT (a6,12i6)"));
     }
 }
