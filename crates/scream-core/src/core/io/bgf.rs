@@ -228,6 +228,8 @@ impl MolecularFile for BgfFile {
             }
         }
 
+        writeln!(writer, "FORMAT CONECT (a6,12i6)")?;
+
         for (s1, s2) in bond_pairs {
             writeln!(writer, "CONECT {:>5} {:>6}", s1, s2)?;
         }
