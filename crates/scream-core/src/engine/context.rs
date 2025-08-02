@@ -495,8 +495,9 @@ mod tests {
         let lig_atom_id = system
             .residue(lig_res_id)
             .unwrap()
-            .get_atom_id_by_name("C1")
-            .unwrap();
+            .get_first_atom_id_by_name("C1")
+            .expect("Ligand residue should have a 'C1' atom");
+
         system.atom_mut(lig_atom_id).unwrap().position = Point3::new(100.0, 100.0, 100.0);
 
         let selection = ResidueSelection::LigandBindingSite {
