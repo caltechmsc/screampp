@@ -14,8 +14,6 @@ use thiserror::Error;
 #[derive(Debug, Default, Clone)]
 pub struct BgfMetadata {
     pub header_lines: Vec<String>, // Lines before the ATOM records
-    pub order_lines: Vec<String>,  // Lines containing bond orders
-    pub footer_lines: Vec<String>, // Lines after the ATOM records
 }
 
 #[derive(Debug, Default)]
@@ -62,13 +60,11 @@ impl MolecularFile for BgfFile {
                     atom_lines.push((line_num, line));
                 }
                 "CONECT" => conect_lines.push((line_num, line)),
-                "ORDER" => metadata.order_lines.push(line.clone()),
+                "ORDER" => {}
                 "FORMAT" => {}
                 _ => {
                     if !atom_section_started {
                         metadata.header_lines.push(line.clone());
-                    } else {
-                        metadata.footer_lines.push(line.clone());
                     }
                 }
             }
@@ -211,10 +207,6 @@ impl MolecularFile for BgfFile {
             writeln!(writer, "{}", atom_line)?;
         }
 
-        for line in &metadata.footer_lines {
-            writeln!(writer, "{}", line)?;
-        }
-
         // --- Phase 4: Write CONECT records using the new serial numbers ---
         let mut bond_pairs = BTreeSet::new();
         for bond in system.bonds() {
@@ -235,11 +227,6 @@ impl MolecularFile for BgfFile {
 
         for (s1, s2) in bond_pairs {
             writeln!(writer, "CONECT {:>5} {:>6}", s1, s2)?;
-        }
-
-        // --- Phase 5: Write remaining metadata ---
-        for line in &metadata.order_lines {
-            writeln!(writer, "{}", line)?;
         }
 
         writeln!(writer, "END")?;
@@ -414,7 +401,6 @@ END
             metadata.header_lines[1],
             "REMARK A standard, clean BGF file"
         );
-        assert_eq!(metadata.footer_lines.len(), 0);
 
         assert_eq!(system.atoms_iter().count(), 7);
         assert_eq!(system.chains_iter().count(), 2);
