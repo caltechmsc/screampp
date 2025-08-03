@@ -20,7 +20,7 @@ pub async fn run(args: PlaceArgs) -> Result<()> {
     let final_config = partial_config.merge_with_cli(&args, &data_manager)?;
 
     info!("Loading input structure from {:?}", &args.input);
-    let (system, metadata) =
+    let (mut system, metadata) =
         BgfFile::read_from_path(&args.input).map_err(|e| CliError::FileParsing {
             path: args.input.clone(),
             source: e.into(),
@@ -32,8 +32,9 @@ pub async fn run(args: PlaceArgs) -> Result<()> {
     println!("Starting side-chain placement...");
     info!("Invoking the core placement workflow...");
 
-    let solutions =
-        tokio::task::block_in_place(|| workflows::place::run(&system, &final_config, &reporter))?;
+    let solutions = tokio::task::block_in_place(|| {
+        workflows::place::run(&mut system, &final_config, &reporter)
+    })?;
 
     info!(
         "Workflow finished, received {} solution(s).",
