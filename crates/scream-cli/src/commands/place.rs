@@ -90,11 +90,41 @@ pub async fn run(args: PlaceArgs) -> Result<()> {
     Ok(())
 }
 
-fn generate_output_path(base_path: &Path, index: usize, total: usize) -> PathBuf {
+fn generate_output_path(
+    base_path_template: &Path,
+    solution: &Solution,
+    index: usize,
+    total: usize,
+) -> PathBuf {
     if total <= 1 {
-        return base_path.to_path_buf();
+        return base_path_template.to_path_buf();
     }
 
+    let template_str = match base_path_template.to_str() {
+        Some(s) => s,
+        None => {
+            return generate_indexed_path(base_path_template, index);
+        }
+    };
+
+    let contains_placeholder = ["{n}", "{i}", "{N}", "{total}", "{energy}"]
+        .iter()
+        .any(|p| template_str.contains(p));
+
+    if contains_placeholder {
+        let path_str = template_str
+            .replace("{n}", &index.to_string())
+            .replace("{i}", &index.to_string())
+            .replace("{N}", &total.to_string())
+            .replace("{total}", &total.to_string())
+            .replace("{energy}", &format!("{:.2}", solution.energy));
+        PathBuf::from(path_str)
+    } else {
+        generate_indexed_path(base_path_template, index)
+    }
+}
+
+fn generate_indexed_path(base_path: &Path, index: usize) -> PathBuf {
     let stem = base_path
         .file_stem()
         .unwrap_or_default()
