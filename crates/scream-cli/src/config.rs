@@ -30,7 +30,9 @@ impl From<PartialResidueSpecifier> for core_config::ResidueSpecifier {
 enum PartialResidueSelection {
     All,
     List {
+        #[serde(default)]
         include: Vec<PartialResidueSpecifier>,
+        #[serde(default)]
         exclude: Vec<PartialResidueSpecifier>,
     },
     LigandBindingSite {
