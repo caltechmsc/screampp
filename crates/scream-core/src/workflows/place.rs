@@ -1,3 +1,4 @@
+use crate::core::forcefield::parameterization::Parameterizer;
 use crate::core::forcefield::params::Forcefield;
 use crate::core::models::ids::ResidueId;
 use crate::core::models::system::MolecularSystem;
@@ -20,7 +21,7 @@ const CLASH_THRESHOLD: f64 = 25.0; // Clash threshold (kcal/mol)
 
 #[instrument(skip_all, name = "placement_workflow")]
 pub fn run(
-    initial_system: &MolecularSystem,
+    initial_system: &mut MolecularSystem,
     config: &PlacementConfig,
     reporter: &ProgressReporter,
 ) -> Result<Vec<Solution>, EngineError> {
@@ -66,7 +67,7 @@ pub fn run(
 
 #[instrument(skip_all, name = "workflow_setup")]
 fn setup<'a>(
-    initial_system: &MolecularSystem,
+    initial_system: &mut MolecularSystem,
     config: &'a PlacementConfig,
     reporter: &ProgressReporter,
 ) -> Result<(Forcefield, RotamerLibrary, HashSet<ResidueId>), EngineError> {
@@ -77,6 +78,13 @@ fn setup<'a>(
         &config.forcefield.forcefield_path,
         &config.forcefield.delta_params_path,
     )?;
+
+    let parameterizer = Parameterizer::new(forcefield.clone(), config.forcefield.s_factor);
+
+    info!("Parameterizing the input molecular system...");
+    parameterizer
+        .parameterize_system(initial_system)
+        .map_err(|e| EngineError::Initialization(e.to_string()))?;
 
     let mut rotamer_library = RotamerLibrary::load(
         &config.sampling.rotamer_library_path,
