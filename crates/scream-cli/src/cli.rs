@@ -59,8 +59,19 @@ pub struct PlaceArgs {
     #[arg(short, long, required = true, value_name = "PATH")]
     pub input: PathBuf,
 
-    /// Path for the output molecular structure file.
-    #[arg(short, long, required = true, value_name = "PATH")]
+    /// Path for the output molecular structure file(s).
+    ///
+    /// This path acts as a template when generating multiple solutions (using -n/--num-solutions).
+    /// The following placeholders can be used in the filename:
+    ///   {n} or {i}   - The index of the solution (1-based).
+    ///   {N} or {total} - The total number of solutions.
+    ///   {energy}     - The energy of the solution (formatted to 2 decimal places).
+    ///
+    /// Example: `solution_{n}_of_{N}.bgf` will generate `solution_1_of_3.bgf`, etc.
+    ///
+    /// If multiple solutions are generated and no placeholder is found, a `-best-{n}`
+    /// suffix will be automatically added before the file extension.
+    #[arg(short, long, required = true, value_name = "PATH_TEMPLATE")]
     pub output: PathBuf,
 
     /// Path to the main configuration file in TOML format.
