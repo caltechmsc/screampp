@@ -5,7 +5,7 @@ use crate::error::{CliError, Result};
 use crate::utils::progress::CliProgressHandler;
 use screampp::{
     core::io::{bgf::BgfFile, traits::MolecularFile},
-    engine::progress::ProgressReporter,
+    engine::{progress::ProgressReporter, state::Solution},
     workflows,
 };
 use std::path::{Path, PathBuf};
@@ -51,7 +51,8 @@ pub async fn run(args: PlaceArgs) -> Result<()> {
         );
 
         for (i, solution) in solutions.iter().enumerate() {
-            let output_path = generate_output_path(&args.output, i + 1, solutions.len());
+            let output_path =
+                generate_output_path(&args.output, solution, i + 1, solutions.len());
             info!(
                 "Writing solution {} (Energy: {:.4}) to {:?}",
                 i + 1,
