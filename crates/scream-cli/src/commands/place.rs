@@ -51,8 +51,7 @@ pub async fn run(args: PlaceArgs) -> Result<()> {
         );
 
         for (i, solution) in solutions.iter().enumerate() {
-            let output_path =
-                generate_output_path(&args.output, solution, i + 1, solutions.len());
+            let output_path = generate_output_path(&args.output, solution, i + 1, solutions.len());
             info!(
                 "Writing solution {} (Energy: {:.4}) to {:?}",
                 i + 1,
@@ -148,36 +147,108 @@ fn generate_indexed_path(base_path: &Path, index: usize) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use screampp::core::models::system::MolecularSystem;
+    use screampp::engine::state::{Solution, SolutionState};
+    use std::collections::HashMap;
     use std::path::PathBuf;
 
+    fn mock_solution(energy: f64) -> Solution {
+        Solution {
+            energy,
+            state: SolutionState {
+                system: MolecularSystem::new(),
+                rotamers: HashMap::new(),
+            },
+        }
+    }
+
+    const PLACEHOLDERS: &[&str] = &["{n}", "{i}", "{N}", "{total}", "{energy}"];
+
     #[test]
-    fn test_generate_output_path_single_solution() {
-        let path = PathBuf::from("output.bgf");
-        let new_path = generate_output_path(&path, 1, 1);
-        assert_eq!(new_path, path);
+    fn generate_indexed_path_should_add_suffix_to_filename_with_extension() {
+        let base_path = PathBuf::from("/path/to/result.bgf");
+        let result = generate_indexed_path(&base_path, 3);
+        assert_eq!(result, PathBuf::from("/path/to/result-best-3.bgf"));
     }
 
     #[test]
-    fn test_generate_output_path_multiple_solutions() {
-        let path = PathBuf::from("/tmp/results/output.bgf");
-        let new_path_1 = generate_output_path(&path, 1, 3);
-        let new_path_2 = generate_output_path(&path, 2, 3);
-
-        assert_eq!(new_path_1, PathBuf::from("/tmp/results/output-best-1.bgf"));
-        assert_eq!(new_path_2, PathBuf::from("/tmp/results/output-best-2.bgf"));
+    fn generate_indexed_path_should_add_suffix_to_filename_without_extension() {
+        let base_path = PathBuf::from("output");
+        let result = generate_indexed_path(&base_path, 5);
+        assert_eq!(result, PathBuf::from("output-best-5"));
     }
 
     #[test]
-    fn test_generate_output_path_no_extension() {
-        let path = PathBuf::from("my_output");
-        let new_path = generate_output_path(&path, 5, 10);
-        assert_eq!(new_path, PathBuf::from("my_output-best-5"));
+    fn generate_indexed_path_should_handle_multiple_dots_in_filename() {
+        let base_path = PathBuf::from("my.protein.v1.pdb");
+        let result = generate_indexed_path(&base_path, 1);
+        assert_eq!(result, PathBuf::from("my.protein.v1-best-1.pdb"));
     }
 
     #[test]
-    fn test_generate_output_path_with_dots_in_stem() {
-        let path = PathBuf::from("protein.v1.bgf");
-        let new_path = generate_output_path(&path, 2, 2);
-        assert_eq!(new_path, PathBuf::from("protein.v1-best-2.bgf"));
+    fn generate_output_path_should_return_original_path_when_total_is_one() {
+        let path_template = PathBuf::from("single_result.bgf");
+        let solution = mock_solution(-10.0);
+
+        let result = generate_output_path(&path_template, &solution, 1, 1);
+
+        assert_eq!(result, path_template);
+    }
+
+    #[test]
+    fn generate_output_path_should_use_indexed_fallback_when_multiple_solutions_and_no_placeholder()
+    {
+        let path_template = PathBuf::from("fallback.bgf");
+        let solution = mock_solution(-20.0);
+
+        let result = generate_output_path(&path_template, &solution, 2, 5);
+
+        assert_eq!(result, PathBuf::from("fallback-best-2.bgf"));
+    }
+
+    #[test]
+    fn generate_output_path_should_replace_index_placeholders_n_and_i() {
+        let solution = mock_solution(-30.0);
+        let path_with_n = PathBuf::from("solution-{n}.bgf");
+        let path_with_i = PathBuf::from("solution-{i}.bgf");
+
+        let result_n = generate_output_path(&path_with_n, &solution, 4, 10);
+        let result_i = generate_output_path(&path_with_i, &solution, 4, 10);
+
+        assert_eq!(result_n, PathBuf::from("solution-4.bgf"));
+        assert_eq!(result_i, PathBuf::from("solution-4.bgf"));
+    }
+
+    #[test]
+    fn generate_output_path_should_replace_total_placeholders_n_and_total() {
+        let solution = mock_solution(-40.0);
+        let path_with_cap_n = PathBuf::from("solution_1_of_{N}.bgf");
+        let path_with_total = PathBuf::from("solution_1_of_{total}.bgf");
+
+        let result_cap_n = generate_output_path(&path_with_cap_n, &solution, 1, 7);
+        let result_total = generate_output_path(&path_with_total, &solution, 1, 7);
+
+        assert_eq!(result_cap_n, PathBuf::from("solution_1_of_7.bgf"));
+        assert_eq!(result_total, PathBuf::from("solution_1_of_7.bgf"));
+    }
+
+    #[test]
+    fn generate_output_path_should_replace_energy_placeholder_with_two_decimals() {
+        let solution = mock_solution(-55.5555);
+        let path_template = PathBuf::from("energy_is_{energy}.bgf");
+
+        let result = generate_output_path(&path_template, &solution, 1, 2);
+
+        assert_eq!(result, PathBuf::from("energy_is_-55.56.bgf"));
+    }
+
+    #[test]
+    fn generate_output_path_should_replace_all_placeholders_at_once() {
+        let solution = mock_solution(-99.9);
+        let path_template = PathBuf::from("run_{i}_of_{N}_E={energy}.pdb");
+
+        let result = generate_output_path(&path_template, &solution, 9, 10);
+
+        assert_eq!(result, PathBuf::from("run_9_of_10_E=-99.90.pdb"));
     }
 }
