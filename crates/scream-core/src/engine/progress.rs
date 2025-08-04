@@ -3,9 +3,11 @@ pub enum Progress {
     PhaseStart { name: &'static str },
     PhaseFinish,
 
-    TaskStart { total_steps: u64 },
-    TaskIncrement,
+    TaskStart { total: u64 },
+    TaskIncrement { amount: u64 },
     TaskFinish,
+
+    StatusUpdate { text: String },
 
     Message(String),
 }
