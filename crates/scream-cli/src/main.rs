@@ -8,6 +8,7 @@ mod utils;
 
 use crate::cli::{Cli, Commands};
 use crate::error::{CliError, Result};
+use crate::utils::progress::CliProgressHandler;
 use clap::Parser;
 use tracing::{debug, error, info};
 
@@ -23,7 +24,9 @@ async fn main() {
 async fn run() -> Result<()> {
     let cli = Cli::parse();
 
-    logging::setup_logging(cli.verbose, cli.quiet, &cli.log_file)?;
+    let progress_handler = CliProgressHandler::new();
+
+    logging::setup_logging(cli.verbose, cli.quiet, &cli.log_file, &progress_handler)?;
 
     info!("SCREAM++ CLI v{} starting up.", env!("CARGO_PKG_VERSION"));
     debug!("Full CLI arguments parsed: {:?}", &cli);
