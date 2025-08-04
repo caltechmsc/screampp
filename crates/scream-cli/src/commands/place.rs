@@ -2,16 +2,17 @@ use crate::cli::PlaceArgs;
 use crate::config::PartialPlacementConfig;
 use crate::data::DataManager;
 use crate::error::{CliError, Result};
-use crate::utils::progress::CliProgressHandler;
+use crate::ui::{CliProgressHandler, UiEvent};
 use screampp::{
     core::io::{bgf::BgfFile, traits::MolecularFile},
     engine::{progress::ProgressReporter, state::Solution},
     workflows,
 };
 use std::path::{Path, PathBuf};
+use tokio::sync::mpsc;
 use tracing::{info, warn};
 
-pub async fn run(args: PlaceArgs) -> Result<()> {
+pub async fn run(args: PlaceArgs, ui_sender: mpsc::Sender<UiEvent>) -> Result<()> {
     info!("Initializing data manager...");
     let data_manager = DataManager::new()?;
 
@@ -26,7 +27,7 @@ pub async fn run(args: PlaceArgs) -> Result<()> {
             source: e.into(),
         })?;
 
-    let progress_handler = CliProgressHandler::new();
+    let progress_handler = CliProgressHandler::new(ui_sender);
     let reporter = ProgressReporter::with_callback(progress_handler.get_callback());
 
     println!("Starting side-chain placement...");
