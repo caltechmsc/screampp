@@ -201,6 +201,7 @@ fn resolve_clashes_iteratively<'a>(
     });
     info!("Starting iterative clash resolution loop.");
 
+    let max_iterations = context.config.optimization.max_iterations;
     let convergence_energy_threshold = context.config.optimization.convergence.energy_threshold;
     let convergence_patience_iterations =
         context.config.optimization.convergence.patience_iterations;
@@ -208,7 +209,7 @@ fn resolve_clashes_iteratively<'a>(
     let mut last_total_energy = state.best_solution().map(|s| s.energy).unwrap_or(f64::MAX);
     let mut iterations_without_significant_improvement = 0;
 
-    for iteration in 0..context.config.optimization.max_iterations {
+    for iteration in 0..max_iterations {
         let clashes = tasks::clash_detection::run(
             &state.working_state.system,
             context.forcefield,
@@ -216,6 +217,15 @@ fn resolve_clashes_iteratively<'a>(
             CLASH_THRESHOLD,
             reporter,
         )?;
+
+        reporter.report(Progress::StatusUpdate {
+            text: format!(
+                "Pass {}/{}, Clashes Found: {}",
+                iteration + 1,
+                max_iterations,
+                clashes.len()
+            ),
+        });
 
         if clashes.is_empty() {
             info!(
