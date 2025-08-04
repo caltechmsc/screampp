@@ -1,14 +1,57 @@
 use crate::error::{CliError, Result};
+use crate::utils::progress::CliProgressHandler;
 use std::fs::File;
 use std::path::PathBuf;
+use tracing::Subscriber;
 use tracing_subscriber::{
     filter::LevelFilter,
     fmt::{self},
     prelude::*,
+    registry::LookupSpan,
 };
 
-pub fn setup_logging(verbosity: u8, quiet: bool, log_file: &Option<PathBuf>) -> Result<()> {
-    let level_filter = if quiet {
+struct IndicatifLayer {
+    progress_handler: CliProgressHandler,
+}
+
+impl<S> tracing_subscriber::Layer<S> for IndicatifLayer
+where
+    S: Subscriber + for<'a> LookupSpan<'a>,
+{
+    fn on_event(
+        &self,
+        event: &tracing::Event<'_>,
+        _ctx: tracing_subscriber::layer::Context<'_, S>,
+    ) {
+        let level = *event.metadata().level();
+        let timestamp = chrono::Local::now().format("%Y-%m-%dT%H:%M:%S%.3fZ");
+
+        let mut message = String::new();
+        let mut visitor = StringVisitor(&mut message);
+        event.record(&mut visitor);
+
+        let log_line = format!("[{}] ({}): {}", timestamp, level, message);
+
+        self.progress_handler.log(&log_line);
+    }
+}
+
+struct StringVisitor<'a>(&'a mut String);
+impl<'a> tracing::field::Visit for StringVisitor<'a> {
+    fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn std::fmt::Debug) {
+        if field.name() == "message" {
+            self.0.push_str(&format!("{:?}", value));
+        }
+    }
+}
+
+pub fn setup_logging(
+    verbosity: u8,
+    quiet: bool,
+    log_file: &Option<PathBuf>,
+    progress_handler: &CliProgressHandler,
+) -> Result<()> {
+    let console_level_filter = if quiet {
         LevelFilter::OFF
     } else {
         match verbosity {
@@ -19,29 +62,27 @@ pub fn setup_logging(verbosity: u8, quiet: bool, log_file: &Option<PathBuf>) -> 
         }
     };
 
-    let stderr_layer = fmt::layer()
-        .with_writer(std::io::stderr)
-        .with_ansi(true)
-        .with_target(false)
-        .compact();
+    let console_layer = IndicatifLayer {
+        progress_handler: progress_handler.clone(),
+    }
+    .with_filter(console_level_filter);
 
-    let subscriber = tracing_subscriber::registry()
-        .with(level_filter)
-        .with(stderr_layer);
-
-    if let Some(path) = log_file {
-        let file = File::create(&path).map_err(|e| CliError::Io(e))?;
-
-        let file_layer = fmt::layer()
+    let file_layer = if let Some(path) = log_file {
+        let file = File::create(path).map_err(CliError::Io)?;
+        let layer = fmt::layer()
             .with_writer(file)
             .with_ansi(false)
             .with_thread_ids(true)
             .with_target(true);
-
-        subscriber.with(file_layer).init();
+        Some(layer.with_filter(LevelFilter::TRACE))
     } else {
-        subscriber.init();
-    }
+        None
+    };
+
+    tracing_subscriber::registry()
+        .with(console_layer)
+        .with(file_layer)
+        .init();
 
     Ok(())
 }
