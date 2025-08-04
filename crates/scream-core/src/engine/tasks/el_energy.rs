@@ -40,7 +40,7 @@ where
     }
 
     context.reporter.report(Progress::TaskStart {
-        total_steps: work_list.len() as u64,
+        total: work_list.len() as u64,
     });
 
     #[cfg(not(feature = "parallel"))]
@@ -162,7 +162,9 @@ where
         energy_map.insert(rotamer_idx, energy);
     }
 
-    context.reporter.report(Progress::TaskIncrement);
+    context
+        .reporter
+        .report(Progress::TaskIncrement { amount: 1 });
 
     Ok(((unit.residue_id, unit.residue_type), energy_map))
 }
