@@ -528,13 +528,18 @@ fn run_simulated_annealing<'a>(
 
     let active_residues_vec: Vec<ResidueId> = active_residues.iter().cloned().collect();
 
+    let mut temp_step_current = 0;
     while current_temperature > final_temperature {
-        reporter.report(Progress::Message(format!(
-            "SA Temp: {:.4}",
-            current_temperature
-        )));
+        temp_step_current += 1;
+        reporter.report(Progress::StatusUpdate {
+            text: format!(
+                "SA Temp: {:.4} (Step {})",
+                current_temperature, temp_step_current
+            ),
+        });
+
         reporter.report(Progress::TaskStart {
-            total_steps: steps_per_temperature as u64,
+            total: steps_per_temperature as u64,
         });
 
         for _step in 0..steps_per_temperature {
@@ -557,7 +562,7 @@ fn run_simulated_annealing<'a>(
                 .unwrap();
 
             if rotamers.len() <= 1 {
-                reporter.report(Progress::TaskIncrement);
+                reporter.report(Progress::TaskIncrement { amount: 1 });
                 continue;
             }
 
@@ -622,7 +627,7 @@ fn run_simulated_annealing<'a>(
                     );
                 }
             }
-            reporter.report(Progress::TaskIncrement);
+            reporter.report(Progress::TaskIncrement { amount: 1 });
         }
 
         reporter.report(Progress::TaskFinish);
