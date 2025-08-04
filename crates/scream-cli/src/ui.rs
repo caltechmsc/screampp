@@ -2,7 +2,7 @@ use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressState, P
 use screampp::engine::progress::Progress;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, watch};
 use tracing::warn;
 
 #[derive(Debug)]
@@ -14,7 +14,9 @@ pub enum UiEvent {
 pub struct UiManager {
     mp: Arc<MultiProgress>,
     state: BarState,
-    receiver: mpsc::Receiver<UiEvent>,
+    event_receiver: mpsc::Receiver<UiEvent>,
+    shutdown_receiver: watch::Receiver<bool>,
+    _sentinel_bar: ProgressBar,
 }
 
 #[derive(Default)]
@@ -24,24 +26,37 @@ struct BarState {
 }
 
 impl UiManager {
-    pub fn new() -> (Self, mpsc::Sender<UiEvent>) {
-        let (sender, receiver) = mpsc::channel(1024);
+    pub fn new() -> (Self, mpsc::Sender<UiEvent>, watch::Sender<bool>) {
+        let (event_sender, event_receiver) = mpsc::channel(1024);
+        let (shutdown_sender, shutdown_receiver) = watch::channel(false);
         let mp = Arc::new(MultiProgress::new());
         mp.set_draw_target(ProgressDrawTarget::stderr_with_hz(12));
-
+        let _sentinel_bar = mp.add(ProgressBar::hidden());
         let manager = Self {
             mp,
             state: BarState::default(),
-            receiver,
+            event_receiver,
+            shutdown_receiver,
+            _sentinel_bar,
         };
 
-        (manager, sender)
+        (manager, event_sender, shutdown_sender)
     }
 
     pub async fn run(mut self) {
-        while let Some(event) = self.receiver.recv().await {
-            self.handle_event(event);
+        loop {
+            tokio::select! {
+                Some(event) = self.event_receiver.recv() => {
+                    self.handle_event(event);
+                }
+                result = self.shutdown_receiver.changed() => {
+                    if result.is_err() || *self.shutdown_receiver.borrow() {
+                        break;
+                    }
+                }
+            }
         }
+        self._sentinel_bar.finish_and_clear();
     }
 
     fn handle_event(&mut self, event: UiEvent) {
