@@ -46,7 +46,6 @@ pub fn run(
         threshold = clash_threshold_kcal_mol,
         "Detecting residue clashes."
     );
-    reporter.report(Progress::Message("Detecting clashes...".to_string()));
 
     let residue_pairs: Vec<_> = active_residues.iter().combinations(2).collect();
 
@@ -55,7 +54,7 @@ pub fn run(
     }
 
     reporter.report(Progress::TaskStart {
-        total_steps: residue_pairs.len() as u64,
+        total: residue_pairs.len() as u64,
     });
 
     let scorer = Scorer::new(system, forcefield);
@@ -68,7 +67,7 @@ pub fn run(
 
     let clashes: Result<Vec<ClashPair>, EngineError> = iterator
         .filter_map(|pair| {
-            reporter.report(Progress::TaskIncrement);
+            reporter.report(Progress::TaskIncrement { amount: 1 });
             let res_id_a = *pair[0];
             let res_id_b = *pair[1];
 
