@@ -95,10 +95,15 @@ impl UiManager {
             }
             Progress::TaskStart { total } => {
                 if let Some(bar) = self.state.active_bar.as_ref() {
+                    let current_message = bar.message().to_string();
+
                     bar.reset();
+
                     bar.set_style(Self::bar_style());
                     bar.set_length(total);
-                    bar.set_message(self.state.base_message.clone());
+
+                    bar.set_message(current_message);
+
                     bar.disable_steady_tick();
                 }
             }
@@ -114,7 +119,8 @@ impl UiManager {
             }
             Progress::StatusUpdate { text } => {
                 if let Some(bar) = self.state.active_bar.as_ref() {
-                    bar.set_message(format!("{} ({})", self.state.base_message, text));
+                    let new_message = format!("{} ({})", self.state.base_message, text);
+                    bar.set_message(new_message);
                 }
             }
             Progress::Message(msg) => {
