@@ -12,7 +12,7 @@ use crate::error::{CliError, Result};
 use crate::ui::UiManager;
 use clap::Parser;
 use tokio::task;
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, warn};
 
 #[tokio::main]
 async fn main() {
@@ -72,6 +72,10 @@ async fn run_app() -> Result<()> {
     match &command_result {
         Ok(_) => info!("✅ Command executed successfully. Shutting down."),
         Err(e) => error!("❌ Command failed: {}", e),
+    }
+
+    if shutdown_sender.send(true).is_err() {
+        warn!("UI manager may have already exited before shutdown signal.");
     }
 
     ui_handle
