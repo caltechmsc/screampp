@@ -128,71 +128,128 @@ mod tests {
     use screampp::engine::progress::Progress;
     use std::thread;
 
-    #[test]
-    fn handler_initializes_in_a_clean_state() {
-        let handler = CliProgressHandler::new();
-        let pb = handler.pb.lock().unwrap();
-        assert_eq!(pb.length(), Some(0));
-        assert!(pb.is_finished());
+    fn get_active_bar(handler: &CliProgressHandler) -> Option<ProgressBar> {
+        handler.state.lock().unwrap().active_bar.clone()
+    }
+
+    fn get_base_message(handler: &CliProgressHandler) -> String {
+        handler.state.lock().unwrap().base_message.clone()
     }
 
     #[test]
-    fn callback_updates_progress_bar_state() {
+    fn new_handler_initializes_in_a_clean_state() {
+        let handler = CliProgressHandler::new();
+
+        let state = handler.state.lock().unwrap();
+
+        assert!(state.active_bar.is_none());
+        assert!(state.base_message.is_empty());
+    }
+
+    #[test]
+    fn phase_start_creates_a_new_spinner_and_sets_base_message() {
         let handler = CliProgressHandler::new();
         let callback = handler.get_callback();
 
         callback(Progress::PhaseStart { name: "Test Phase" });
-        {
-            let pb = handler.pb.lock().unwrap();
-            assert_eq!(pb.message(), "Test Phase");
-            assert!(!pb.is_finished());
-            assert_eq!(pb.length(), Some(0));
-        }
 
-        callback(Progress::TaskStart { total_steps: 100 });
-        {
-            let pb = handler.pb.lock().unwrap();
-            assert_eq!(pb.length(), Some(100));
-            assert_eq!(pb.position(), 0);
-        }
-
-        callback(Progress::TaskIncrement);
-        {
-            let pb = handler.pb.lock().unwrap();
-            assert_eq!(pb.position(), 1);
-        }
-
-        callback(Progress::TaskFinish);
-        {
-            let pb = handler.pb.lock().unwrap();
-            assert!(pb.is_finished());
-            assert_eq!(pb.position(), 100);
-        }
-
-        callback(Progress::PhaseFinish);
-        {
-            let pb = handler.pb.lock().unwrap();
-            assert_eq!(pb.message(), "✓ Done");
-        }
+        let bar = get_active_bar(&handler).expect("Bar should be active");
+        assert_eq!(bar.message(), "Test Phase");
+        assert_eq!(get_base_message(&handler), "Test Phase");
+        assert!(!bar.is_finished());
+        assert!(!bar.length().is_some_and(|l| l > 0));
     }
 
     #[test]
-    fn callback_is_thread_safe() {
+    fn task_start_transforms_spinner_into_progress_bar() {
         let handler = CliProgressHandler::new();
         let callback = handler.get_callback();
+        callback(Progress::PhaseStart { name: "Processing" });
 
-        thread::spawn(move || {
-            callback(Progress::PhaseStart {
-                name: "Thread Test",
+        callback(Progress::TaskStart { total: 100 });
+
+        let bar = get_active_bar(&handler).expect("Bar should still be active");
+        assert_eq!(bar.length(), Some(100));
+        assert_eq!(bar.position(), 0);
+    }
+
+    #[test]
+    fn task_finish_reverts_progress_bar_to_spinner_state() {
+        let handler = CliProgressHandler::new();
+        let callback = handler.get_callback();
+        callback(Progress::PhaseStart { name: "Heavy Task" });
+        callback(Progress::TaskStart { total: 100 });
+        callback(Progress::TaskIncrement { amount: 100 });
+
+        callback(Progress::TaskFinish);
+
+        let bar = get_active_bar(&handler).expect("Bar should remain active");
+        assert!(bar.is_finished());
+        assert_eq!(bar.message(), "Heavy Task");
+    }
+
+    #[test]
+    fn phase_finish_clears_bar_and_prints_permanent_message() {
+        let handler = CliProgressHandler::new();
+        let callback = handler.get_callback();
+        callback(Progress::PhaseStart { name: "Finalizing" });
+
+        let _bar_before_finish = get_active_bar(&handler).unwrap();
+
+        callback(Progress::PhaseFinish);
+
+        assert!(get_active_bar(&handler).is_none());
+        assert_eq!(get_base_message(&handler), "");
+    }
+
+    #[test]
+    fn status_update_combines_base_message_with_new_text() {
+        let handler = CliProgressHandler::new();
+        let callback = handler.get_callback();
+        callback(Progress::PhaseStart {
+            name: "Clash Resolution",
+        });
+
+        callback(Progress::StatusUpdate {
+            text: "Pass 1/10, Clashes: 5".to_string(),
+        });
+
+        let bar = get_active_bar(&handler).expect("Bar should be active");
+        assert_eq!(bar.message(), "Clash Resolution (Pass 1/10, Clashes: 5)");
+        assert_eq!(get_base_message(&handler), "Clash Resolution");
+    }
+
+    #[test]
+    fn handler_is_thread_safe_and_maintains_state() {
+        let handler = CliProgressHandler::new();
+        let callback1 = handler.get_callback();
+        let callback2 = handler.get_callback();
+
+        let thread1 = thread::spawn(move || {
+            callback1(Progress::PhaseStart {
+                name: "Parallel Work",
             });
-            callback(Progress::TaskIncrement);
-            callback(Progress::PhaseFinish);
-        })
-        .join()
-        .unwrap();
+            callback1(Progress::TaskStart { total: 10 });
+            for _ in 0..5 {
+                callback1(Progress::TaskIncrement { amount: 1 });
+                thread::sleep(Duration::from_millis(10));
+            }
+        });
 
-        let pb = handler.pb.lock().unwrap();
-        assert!(pb.is_finished());
-        assert_eq!(pb.message(), "✓ Done");
+        let thread2 = thread::spawn(move || {
+            for i in 0..3 {
+                callback2(Progress::StatusUpdate {
+                    text: format!("Update {}", i),
+                });
+                thread::sleep(Duration::from_millis(15));
+            }
+        });
+
+        thread1.join().unwrap();
+        thread2.join().unwrap();
+
+        let bar = get_active_bar(&handler).expect("Bar should be active");
+        assert_eq!(bar.position(), 5);
+        assert_eq!(bar.message(), "Parallel Work (Update 2)");
     }
 }
