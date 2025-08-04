@@ -1,4 +1,4 @@
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Progress {
     PhaseStart { name: &'static str },
     PhaseFinish,
