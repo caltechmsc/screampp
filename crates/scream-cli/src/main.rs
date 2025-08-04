@@ -70,8 +70,8 @@ async fn run_app() -> Result<()> {
     .await;
 
     match &command_result {
-        Ok(_) => info!("✅ Command executed successfully. Shutting down."),
-        Err(e) => error!("❌ Command failed: {}", e),
+        Ok(_) => println!("✅ Command completed successfully."),
+        Err(e) => eprintln!("❌ Command failed: {}", e),
     }
 
     if shutdown_sender.send(true).is_err() {
