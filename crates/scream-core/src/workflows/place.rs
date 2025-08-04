@@ -15,7 +15,7 @@ use rand::Rng;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use std::collections::{HashMap, HashSet};
-use tracing::{info, instrument, warn};
+use tracing::{debug, info, instrument, warn};
 
 const CLASH_THRESHOLD: f64 = 25.0; // Clash threshold (kcal/mol)
 
@@ -345,9 +345,20 @@ fn final_refinement<'a>(
     info!("Starting final refinement (singlet optimization).");
 
     let final_refinement_iterations = context.config.optimization.final_refinement_iterations;
+    if final_refinement_iterations == 0 {
+        info!("Final refinement skipped as configured (0 iterations).");
+        reporter.report(Progress::PhaseFinish);
+        return Ok(());
+    }
 
     for i in 0..final_refinement_iterations {
         let mut changed_in_cycle = false;
+
+        info!(
+            "Beginning refinement pass {}/{}.",
+            i + 1,
+            final_refinement_iterations
+        );
 
         reporter.report(Progress::TaskStart {
             total_steps: active_residues.len() as u64,
@@ -356,7 +367,15 @@ fn final_refinement<'a>(
         let mut residues_to_process: Vec<ResidueId> = active_residues.iter().cloned().collect();
         residues_to_process.shuffle(&mut thread_rng());
 
-        for &residue_id in &residues_to_process {
+        for (res_idx, &residue_id) in residues_to_process.iter().enumerate() {
+            debug!(
+                "Refining residue {}/{} (ID: {:?}, Type: {})",
+                res_idx + 1,
+                residues_to_process.len(),
+                residue_id,
+                state.working_state.system.residue(residue_id).unwrap().name
+            );
+
             let residue_type = state
                 .working_state
                 .system
@@ -379,6 +398,7 @@ fn final_refinement<'a>(
 
             let mut temp_system_for_eval = state.working_state.system.clone();
             let mut temp_rotamers_for_eval = state.working_state.rotamers.clone();
+            let energy_of_current_rotamer = state.current_energy;
 
             for (idx, rotamer) in rotamers.iter().enumerate() {
                 if idx == current_rot_idx {
@@ -413,6 +433,16 @@ fn final_refinement<'a>(
 
             if best_rotamer_idx != current_rot_idx {
                 changed_in_cycle = true;
+
+                debug!(
+                    "  Found better rotamer for {:?}. Index: {} -> {}. Global energy: {:.2} -> {:.2}",
+                    residue_id,
+                    current_rot_idx,
+                    best_rotamer_idx,
+                    energy_of_current_rotamer,
+                    best_energy
+                );
+
                 let best_rotamer = &rotamers[best_rotamer_idx];
                 place_rotamer_on_system(
                     &mut state.working_state.system,
@@ -427,14 +457,21 @@ fn final_refinement<'a>(
                 state.current_energy = best_energy;
                 state.submit_current_solution();
             }
+
             reporter.report(Progress::TaskIncrement);
         }
 
         reporter.report(Progress::TaskFinish);
 
-        if !changed_in_cycle {
+        if changed_in_cycle {
             info!(
-                "Refinement converged after {} cycle(s). No further improvements.",
+                "Refinement pass {} complete. At least one rotamer was changed. Current best energy: {:.4}",
+                i + 1,
+                state.best_solution().map(|s| s.energy).unwrap_or(f64::NAN)
+            );
+        } else {
+            info!(
+                "Refinement converged after {} pass(es). No further improvements in this pass.",
                 i + 1
             );
             break;
