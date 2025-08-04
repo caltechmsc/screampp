@@ -164,156 +164,146 @@ impl CliProgressHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use screampp::engine::progress::Progress;
     use tokio::sync::mpsc;
 
-    fn setup_manager() -> (UiManager, mpsc::Sender<UiEvent>) {
-        let (manager, sender) = UiManager::new();
-        manager.mp.set_draw_target(ProgressDrawTarget::hidden());
-        (manager, sender)
-    }
-
-    #[test]
-    fn handle_phase_start_creates_new_spinner() {
-        let (mut manager, _) = setup_manager();
-        assert!(manager.state.active_bar.is_none());
-
-        manager.handle_event(UiEvent::Progress(Progress::PhaseStart {
-            name: "Test Phase".into(),
-        }));
-
-        assert!(manager.state.active_bar.is_some());
-        let bar = manager.state.active_bar.as_ref().unwrap();
-        assert_eq!(bar.message(), "Test Phase");
-        assert_eq!(manager.state.base_message, "Test Phase");
-    }
-
-    #[test]
-    fn handle_phase_start_replaces_existing_bar() {
-        let (mut manager, _) = setup_manager();
-        manager.handle_event(UiEvent::Progress(Progress::PhaseStart {
-            name: "First Phase".into(),
-        }));
-        assert_eq!(
-            manager.state.active_bar.as_ref().unwrap().message(),
-            "First Phase"
-        );
-
-        manager.handle_event(UiEvent::Progress(Progress::PhaseStart {
-            name: "Second Phase".into(),
-        }));
-
-        assert!(manager.state.active_bar.is_some());
-        let second_bar = manager.state.active_bar.as_ref().unwrap();
-        assert_eq!(second_bar.message(), "Second Phase");
-        assert_eq!(manager.state.base_message, "Second Phase");
-    }
-
-    #[test]
-    fn handle_phase_finish_clears_active_bar() {
-        let (mut manager, _) = setup_manager();
-        manager.handle_event(UiEvent::Progress(Progress::PhaseStart {
-            name: "Test Phase".into(),
-        }));
-        assert!(manager.state.active_bar.is_some());
-
-        manager.handle_event(UiEvent::Progress(Progress::PhaseFinish));
-
-        assert!(manager.state.active_bar.is_none());
-        assert!(manager.state.base_message.is_empty());
-    }
-
-    #[test]
-    fn handle_task_start_configures_bar_for_task() {
-        let (mut manager, _) = setup_manager();
-        manager.handle_event(UiEvent::Progress(Progress::PhaseStart {
-            name: "Test Phase".into(),
-        }));
-
-        manager.handle_event(UiEvent::Progress(Progress::TaskStart { total: 100 }));
-
-        let bar = manager.state.active_bar.as_ref().unwrap();
-        assert_eq!(bar.length(), Some(100));
-        assert_eq!(bar.position(), 0);
-    }
-
-    #[test]
-    fn handle_task_increment_updates_bar_position() {
-        let (mut manager, _) = setup_manager();
-        manager.handle_event(UiEvent::Progress(Progress::PhaseStart {
-            name: "Test Phase".into(),
-        }));
-        manager.handle_event(UiEvent::Progress(Progress::TaskStart { total: 100 }));
-
-        manager.handle_event(UiEvent::Progress(Progress::TaskIncrement { amount: 10 }));
-
-        let bar = manager.state.active_bar.as_ref().unwrap();
-        assert_eq!(bar.position(), 10);
-    }
-
-    #[test]
-    fn handle_task_finish_completes_bar() {
-        let (mut manager, _) = setup_manager();
-        manager.handle_event(UiEvent::Progress(Progress::PhaseStart {
-            name: "Test Phase".into(),
-        }));
-        manager.handle_event(UiEvent::Progress(Progress::TaskStart { total: 100 }));
-
-        manager.handle_event(UiEvent::Progress(Progress::TaskFinish));
-
-        let bar = manager.state.active_bar.as_ref().unwrap();
-        assert!(bar.is_finished());
-    }
-
-    #[test]
-    fn handle_status_update_changes_bar_message() {
-        let (mut manager, _) = setup_manager();
-        manager.handle_event(UiEvent::Progress(Progress::PhaseStart {
-            name: "Test Phase".into(),
-        }));
-
-        manager.handle_event(UiEvent::Progress(Progress::StatusUpdate {
-            text: "doing something".into(),
-        }));
-
-        let bar = manager.state.active_bar.as_ref().unwrap();
-        assert_eq!(bar.message(), "Test Phase (doing something)");
-    }
-
     #[tokio::test]
-    async fn cli_progress_handler_sends_progress_event() {
-        let (sender, mut receiver) = mpsc::channel(1);
+    async fn cli_progress_handler_sends_progress_updates() {
+        let (sender, mut receiver) = mpsc::channel(10);
         let handler = CliProgressHandler::new(sender);
         let callback = handler.get_callback();
-        let progress = Progress::PhaseStart {
-            name: "Testing".into(),
-        };
+        let progress = Progress::PhaseStart { name: "Test" };
 
         callback(progress.clone());
 
-        let event = receiver.recv().await.unwrap();
-        if let UiEvent::Progress(p) = event {
-            if let Progress::PhaseStart { name } = p {
-                assert_eq!(name, "Testing");
-            } else {
-                panic!("Incorrect progress variant received");
-            }
-        } else {
-            panic!("Incorrect event type received");
+        let received = receiver.recv().await.unwrap();
+        match received {
+            UiEvent::Progress(p) => assert_eq!(p, progress),
+            _ => panic!("Incorrect event type received"),
         }
     }
 
-    #[test]
-    fn handle_log_event_prints_message() {
-        let (mut manager, _) = setup_manager();
-        manager.handle_event(UiEvent::Log("Test log message".to_string()));
+    #[tokio::test]
+    async fn ui_manager_handles_log_event() {
+        let (ui_manager, sender, _shutdown_sender) = UiManager::new();
+        let mp = ui_manager.mp.clone();
+        mp.set_draw_target(ProgressDrawTarget::hidden());
+
+        let log_message = "Test log message".to_string();
+        sender
+            .send(UiEvent::Log(log_message.clone()))
+            .await
+            .unwrap();
     }
 
-    #[test]
-    fn handle_progress_message_prints_indented_message() {
-        let (mut manager, _) = setup_manager();
-        manager.handle_event(UiEvent::Progress(Progress::Message(
-            "Test progress message".to_string(),
-        )));
+    #[tokio::test]
+    async fn ui_manager_handles_phase_start_and_finish() {
+        let (mut ui_manager, sender, _shutdown_sender) = UiManager::new();
+        ui_manager.mp.set_draw_target(ProgressDrawTarget::hidden());
+
+        sender
+            .send(UiEvent::Progress(Progress::PhaseStart { name: "Testing" }))
+            .await
+            .unwrap();
+        let event = ui_manager.event_receiver.recv().await.unwrap();
+        ui_manager.handle_event(event);
+        assert!(ui_manager.state.active_bar.is_some());
+        assert_eq!(ui_manager.state.base_message, "Testing");
+
+        sender
+            .send(UiEvent::Progress(Progress::PhaseFinish))
+            .await
+            .unwrap();
+        let event = ui_manager.event_receiver.recv().await.unwrap();
+        ui_manager.handle_event(event);
+        assert!(ui_manager.state.active_bar.is_none());
+        assert!(ui_manager.state.base_message.is_empty());
+    }
+
+    #[tokio::test]
+    async fn ui_manager_handles_task_lifecycle() {
+        let (mut ui_manager, sender, _shutdown_sender) = UiManager::new();
+        ui_manager.mp.set_draw_target(ProgressDrawTarget::hidden());
+
+        sender
+            .send(UiEvent::Progress(Progress::PhaseStart {
+                name: "Task Phase",
+            }))
+            .await
+            .unwrap();
+        let event = ui_manager.event_receiver.recv().await.unwrap();
+        ui_manager.handle_event(event);
+
+        sender
+            .send(UiEvent::Progress(Progress::TaskStart { total: 100 }))
+            .await
+            .unwrap();
+        let event = ui_manager.event_receiver.recv().await.unwrap();
+        ui_manager.handle_event(event);
+        {
+            let bar = ui_manager.state.active_bar.as_ref().unwrap();
+            assert_eq!(bar.length(), Some(100));
+            assert_eq!(bar.position(), 0);
+        }
+
+        sender
+            .send(UiEvent::Progress(Progress::TaskIncrement { amount: 10 }))
+            .await
+            .unwrap();
+        let event = ui_manager.event_receiver.recv().await.unwrap();
+        ui_manager.handle_event(event);
+        {
+            let bar = ui_manager.state.active_bar.as_ref().unwrap();
+            assert_eq!(bar.position(), 10);
+        }
+
+        sender
+            .send(UiEvent::Progress(Progress::TaskFinish))
+            .await
+            .unwrap();
+        let event = ui_manager.event_receiver.recv().await.unwrap();
+        ui_manager.handle_event(event);
+        let bar = ui_manager.state.active_bar.as_ref().unwrap();
+        assert!(bar.is_finished());
+    }
+
+    #[tokio::test]
+    async fn ui_manager_handles_status_update() {
+        let (mut ui_manager, sender, _shutdown_sender) = UiManager::new();
+        ui_manager.mp.set_draw_target(ProgressDrawTarget::hidden());
+
+        sender
+            .send(UiEvent::Progress(Progress::PhaseStart {
+                name: "Status Phase",
+            }))
+            .await
+            .unwrap();
+        let event = ui_manager.event_receiver.recv().await.unwrap();
+        ui_manager.handle_event(event);
+
+        let update_text = "doing something important".to_string();
+        sender
+            .send(UiEvent::Progress(Progress::StatusUpdate {
+                text: update_text.clone(),
+            }))
+            .await
+            .unwrap();
+        let event = ui_manager.event_receiver.recv().await.unwrap();
+        ui_manager.handle_event(event);
+
+        let bar = ui_manager.state.active_bar.as_ref().unwrap();
+        assert_eq!(bar.message(), "Status Phase (doing something important)");
+    }
+
+    #[tokio::test]
+    async fn ui_manager_shuts_down_on_signal() {
+        let (ui_manager, _sender, shutdown_sender) = UiManager::new();
+        ui_manager.mp.set_draw_target(ProgressDrawTarget::hidden());
+
+        let handle = tokio::spawn(ui_manager.run());
+
+        shutdown_sender.send(true).unwrap();
+
+        let result = tokio::time::timeout(Duration::from_secs(1), handle).await;
+        assert!(result.is_ok(), "UI manager did not shut down in time");
     }
 }
