@@ -4,18 +4,20 @@ mod config;
 mod data;
 mod error;
 mod logging;
+mod ui;
 mod utils;
 
 use crate::cli::{Cli, Commands};
 use crate::error::{CliError, Result};
-use crate::utils::progress::CliProgressHandler;
+use crate::ui::UiManager;
 use clap::Parser;
+use tokio::task;
 use tracing::{debug, error, info};
 
 #[tokio::main]
 async fn main() {
     if let Err(e) = run().await {
-        error!("An error occurred: {}", e);
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
         eprintln!("\nError: {}", e);
         std::process::exit(1);
     }
@@ -24,11 +26,22 @@ async fn main() {
 async fn run() -> Result<()> {
     let cli = Cli::parse();
 
-    let progress_handler = CliProgressHandler::new();
+    let (ui_manager, ui_sender) = UiManager::new();
 
-    logging::setup_logging(cli.verbose, cli.quiet, &cli.log_file, &progress_handler)?;
+    let ui_handle = task::spawn(ui_manager.run());
 
-    info!("SCREAM++ CLI v{} starting up.", env!("CARGO_PKG_VERSION"));
+    logging::setup_logging(cli.verbose, cli.quiet, &cli.log_file, ui_sender.clone())?;
+
+    let (panic_hook, eyre_hook) = color_eyre::config::HookBuilder::default().into_hooks();
+    eyre_hook.install().unwrap();
+    std::panic::set_hook(Box::new(move |pi| {
+        error!("{}", panic_hook.panic_report(pi));
+    }));
+
+    info!(
+        "🚀 SCREAM++ CLI v{} starting up.",
+        env!("CARGO_PKG_VERSION")
+    );
     debug!("Full CLI arguments parsed: {:?}", &cli);
 
     if let Some(num_threads) = cli.threads {
@@ -44,17 +57,25 @@ async fn run() -> Result<()> {
             })?;
     }
 
-    match cli.command {
+    let command_result = match cli.command {
         Commands::Place(args) => {
             info!("Dispatching to 'place' command.");
-            commands::place::run(args).await?;
+            commands::place::run(args, ui_sender.clone()).await
         }
         Commands::Data(args) => {
             info!("Dispatching to 'data' command.");
-            commands::data::run(args).await?;
+            commands::data::run(args).await
         }
+    };
+
+    drop(ui_sender);
+    ui_handle
+        .await
+        .map_err(|e| CliError::Other(anyhow::anyhow!("UI manager task failed: {}", e)))?;
+
+    if command_result.is_ok() {
+        info!("🎉 Command executed successfully. Shutting down.");
     }
 
-    info!("Command executed successfully. Shutting down.");
-    Ok(())
+    command_result
 }
