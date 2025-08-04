@@ -80,8 +80,8 @@ impl UiManager {
                 pb.set_style(Self::spinner_style());
                 pb.set_message(name.to_string());
 
-                self.state.active_bar = Some(pb);
                 self.state.base_message = name.to_string();
+                self.state.active_bar = Some(pb);
             }
             Progress::PhaseFinish => {
                 if let Some(bar) = self.state.active_bar.take() {
@@ -95,9 +95,10 @@ impl UiManager {
             }
             Progress::TaskStart { total } => {
                 if let Some(bar) = self.state.active_bar.as_ref() {
+                    bar.reset();
                     bar.set_style(Self::bar_style());
                     bar.set_length(total);
-                    bar.set_position(0);
+                    bar.set_message(self.state.base_message.clone());
                     bar.disable_steady_tick();
                 }
             }
