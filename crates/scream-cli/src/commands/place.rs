@@ -10,6 +10,7 @@ use screampp::{
 };
 use std::path::{Path, PathBuf};
 use tokio::sync::mpsc;
+use tokio::task;
 use tracing::{info, warn};
 
 pub async fn run(args: PlaceArgs, ui_sender: mpsc::Sender<UiEvent>) -> Result<()> {
@@ -33,9 +34,27 @@ pub async fn run(args: PlaceArgs, ui_sender: mpsc::Sender<UiEvent>) -> Result<()
     println!("Starting side-chain placement...");
     info!("Invoking the core placement workflow...");
 
-    let solutions = tokio::task::block_in_place(|| {
-        workflows::place::run(&mut system, &final_config, &reporter)
-    })?;
+    let workflow_task =
+        task::spawn_blocking(move || workflows::place::run(&mut system, &final_config, &reporter));
+
+    let solutions_result = match workflow_task.await {
+        Ok(Ok(solutions)) => Ok(solutions),
+        Ok(Err(e)) => Err(e.into()),
+        Err(join_err) => {
+            if join_err.is_panic() {
+                Err(CliError::Other(anyhow::anyhow!(
+                    "Core workflow panicked! This might be due to a corrupted input file or an internal bug."
+                )))
+            } else {
+                Err(CliError::Other(anyhow::anyhow!(
+                    "Core workflow task failed to complete: {}",
+                    join_err
+                )))
+            }
+        }
+    };
+
+    let solutions = solutions_result?;
 
     info!(
         "Workflow finished, received {} solution(s).",
