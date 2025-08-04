@@ -27,6 +27,7 @@ impl DataManager {
         Ok(Self { base_path: path })
     }
 
+    #[cfg(test)]
     pub fn with_custom_path(base_path: PathBuf) -> Self {
         debug!("DataManager initialized with custom path: {:?}", &base_path);
         Self { base_path }
