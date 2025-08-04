@@ -73,7 +73,8 @@ pub fn setup_logging(
             .with_writer(file)
             .with_ansi(false)
             .with_thread_ids(true)
-            .with_target(true);
+            .with_target(true)
+            .compact();
         Some(layer.with_filter(LevelFilter::TRACE))
     } else {
         None
