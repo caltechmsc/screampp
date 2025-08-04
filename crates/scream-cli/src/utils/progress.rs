@@ -1,73 +1,97 @@
-use indicatif::{ProgressBar, ProgressState, ProgressStyle};
+use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressState, ProgressStyle};
 use screampp::engine::progress::{Progress, ProgressCallback};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tracing::warn;
 
-const SPINNER_TICK_MS: u64 = 80;
+#[derive(Default)]
+struct BarState {
+    active_bar: Option<ProgressBar>,
+    base_message: String,
+}
 
 #[derive(Clone)]
 pub struct CliProgressHandler {
-    pb: Arc<Mutex<ProgressBar>>,
+    mp: Arc<MultiProgress>,
+    state: Arc<Mutex<BarState>>,
 }
 
 impl CliProgressHandler {
     pub fn new() -> Self {
-        let pb = ProgressBar::new(0)
-            .with_style(Self::spinner_style())
-            .with_message("Initializing...");
-        pb.set_draw_target(indicatif::ProgressDrawTarget::stderr());
-        pb.disable_steady_tick();
-        pb.finish_and_clear();
-
+        let mp = MultiProgress::new();
+        mp.set_draw_target(ProgressDrawTarget::stderr_with_hz(12));
         Self {
-            pb: Arc::new(Mutex::new(pb)),
+            mp: Arc::new(mp),
+            state: Arc::new(Mutex::new(BarState::default())),
         }
     }
 
+    pub fn log(&self, msg: &str) {
+        self.mp.println(msg).ok();
+    }
+
     pub fn get_callback(&self) -> ProgressCallback<'static> {
-        let pb_clone = self.pb.clone();
+        let mp_clone = self.mp.clone();
+        let state_clone = self.state.clone();
 
         Box::new(move |progress: Progress| {
-            let Ok(pb_guard) = pb_clone.lock() else {
-                warn!("Progress bar mutex was poisoned. Cannot update progress.");
+            let Ok(mut state) = state_clone.lock() else {
+                warn!("Progress bar mutex was poisoned; cannot update UI.");
                 return;
             };
 
             match progress {
                 Progress::PhaseStart { name } => {
-                    pb_guard.reset();
-                    pb_guard.set_length(0);
-                    pb_guard.set_style(Self::spinner_style());
-                    pb_guard.enable_steady_tick(Duration::from_millis(SPINNER_TICK_MS));
-                    pb_guard.set_message(name.to_string());
+                    if let Some(bar) = state.active_bar.take() {
+                        bar.finish_and_clear();
+                    }
+
+                    let pb = mp_clone.add(ProgressBar::new_spinner());
+                    pb.enable_steady_tick(Duration::from_millis(80));
+                    pb.set_style(Self::spinner_style());
+                    pb.set_message(name.to_string());
+
+                    state.active_bar = Some(pb);
+                    state.base_message = name.to_string();
                 }
                 Progress::PhaseFinish => {
-                    pb_guard.disable_steady_tick();
-                    pb_guard.finish_with_message("✓ Done");
+                    if let Some(bar) = state.active_bar.take() {
+                        bar.finish_and_clear();
+                    }
+
+                    let final_message = format!("✓ {}", state.base_message);
+                    mp_clone.println(final_message).ok();
+
+                    state.base_message.clear();
                 }
-                Progress::TaskStart { total_steps } => {
-                    pb_guard.disable_steady_tick();
-                    pb_guard.reset();
-                    pb_guard.set_length(total_steps);
-                    pb_guard.set_position(0);
-                    pb_guard.set_style(Self::bar_style());
+                Progress::TaskStart { total } => {
+                    if let Some(bar) = state.active_bar.as_ref() {
+                        bar.set_style(Self::bar_style());
+                        bar.set_length(total);
+                        bar.set_position(0);
+                        bar.disable_steady_tick();
+                    }
                 }
-                Progress::TaskIncrement => {
-                    pb_guard.inc(1);
+                Progress::TaskIncrement { amount } => {
+                    if let Some(bar) = state.active_bar.as_ref() {
+                        bar.inc(amount);
+                    }
                 }
                 Progress::TaskFinish => {
-                    if pb_guard.position() < pb_guard.length().unwrap_or(0) {
-                        pb_guard.set_position(pb_guard.length().unwrap_or(0));
+                    if let Some(bar) = state.active_bar.as_ref() {
+                        bar.finish();
+                        bar.set_style(Self::spinner_style());
+                        bar.set_message(state.base_message.clone());
+                        bar.enable_steady_tick(Duration::from_millis(80));
                     }
-                    pb_guard.finish();
+                }
+                Progress::StatusUpdate { text } => {
+                    if let Some(bar) = state.active_bar.as_ref() {
+                        bar.set_message(format!("{} ({})", state.base_message, text));
+                    }
                 }
                 Progress::Message(msg) => {
-                    if !pb_guard.is_finished() {
-                        pb_guard.println(format!("  {}", msg));
-                    } else {
-                        pb_guard.set_message(msg);
-                    }
+                    mp_clone.println(format!("  {}", msg)).ok();
                 }
             }
         })
@@ -75,19 +99,20 @@ impl CliProgressHandler {
 
     fn spinner_style() -> ProgressStyle {
         ProgressStyle::with_template("{spinner:.green} {msg}")
-            .expect("Failed to create spinner style template")
+            .expect("Invalid template")
+            .tick_strings(&["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"])
     }
 
     fn bar_style() -> ProgressStyle {
-        ProgressStyle::with_template("{msg:<20} [{bar:40.cyan/blue}] {pos}/{len} ({eta})")
-            .expect("Failed to create bar style template")
+        ProgressStyle::with_template("{msg:<45} [{bar:40.cyan/blue}] {pos}/{len} ({eta})")
+            .expect("Invalid template")
             .with_key(
                 "eta",
                 |state: &ProgressState, w: &mut dyn std::fmt::Write| {
-                    write!(w, "{:.1}s", state.eta().as_secs_f64()).unwrap()
+                    write!(w, "{:.1}s", state.eta().as_secs_f64()).unwrap();
                 },
             )
-            .progress_chars("##-")
+            .progress_chars("━╸ ")
     }
 }
 
