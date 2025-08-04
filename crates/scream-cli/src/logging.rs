@@ -1,7 +1,8 @@
 use crate::error::{CliError, Result};
-use crate::utils::progress::CliProgressHandler;
+use crate::ui::UiEvent;
 use std::fs::File;
 use std::path::PathBuf;
+use tokio::sync::mpsc;
 use tracing::Subscriber;
 use tracing_subscriber::{
     filter::LevelFilter,
@@ -10,11 +11,11 @@ use tracing_subscriber::{
     registry::LookupSpan,
 };
 
-struct IndicatifLayer {
-    progress_handler: CliProgressHandler,
+struct ChannelLayer {
+    sender: mpsc::Sender<UiEvent>,
 }
 
-impl<S> tracing_subscriber::Layer<S> for IndicatifLayer
+impl<S> tracing_subscriber::Layer<S> for ChannelLayer
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
 {
@@ -32,7 +33,7 @@ where
 
         let log_line = format!("[{}] ({}): {}", timestamp, level, message);
 
-        self.progress_handler.log(&log_line);
+        let _ = self.sender.try_send(UiEvent::Log(log_line));
     }
 }
 
@@ -40,7 +41,11 @@ struct StringVisitor<'a>(&'a mut String);
 impl<'a> tracing::field::Visit for StringVisitor<'a> {
     fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn std::fmt::Debug) {
         if field.name() == "message" {
-            self.0.push_str(&format!("{:?}", value));
+            let mut formatted = format!("{:?}", value);
+            if formatted.starts_with('"') && formatted.ends_with('"') {
+                formatted = formatted[1..formatted.len() - 1].to_string();
+            }
+            self.0.push_str(&formatted);
         }
     }
 }
@@ -49,7 +54,7 @@ pub fn setup_logging(
     verbosity: u8,
     quiet: bool,
     log_file: &Option<PathBuf>,
-    progress_handler: &CliProgressHandler,
+    ui_sender: mpsc::Sender<UiEvent>,
 ) -> Result<()> {
     let console_level_filter = if quiet {
         LevelFilter::OFF
@@ -62,10 +67,7 @@ pub fn setup_logging(
         }
     };
 
-    let console_layer = IndicatifLayer {
-        progress_handler: progress_handler.clone(),
-    }
-    .with_filter(console_level_filter);
+    let console_layer = ChannelLayer { sender: ui_sender }.with_filter(console_level_filter);
 
     let file_layer = if let Some(path) = log_file {
         let file = File::create(path).map_err(CliError::Io)?;
