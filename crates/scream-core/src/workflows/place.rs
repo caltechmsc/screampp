@@ -370,8 +370,12 @@ fn final_refinement<'a>(
             final_refinement_iterations
         );
 
+        reporter.report(Progress::StatusUpdate {
+            text: format!("Pass {}/{}", i + 1, final_refinement_iterations),
+        });
+
         reporter.report(Progress::TaskStart {
-            total_steps: active_residues.len() as u64,
+            total: active_residues.len() as u64,
         });
 
         let mut residues_to_process: Vec<ResidueId> = active_residues.iter().cloned().collect();
@@ -468,7 +472,7 @@ fn final_refinement<'a>(
                 state.submit_current_solution();
             }
 
-            reporter.report(Progress::TaskIncrement);
+            reporter.report(Progress::TaskIncrement { amount: 1 });
         }
 
         reporter.report(Progress::TaskFinish);
