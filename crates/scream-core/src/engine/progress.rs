@@ -1,11 +1,13 @@
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Progress {
     PhaseStart { name: &'static str },
     PhaseFinish,
 
-    TaskStart { total_steps: u64 },
-    TaskIncrement,
+    TaskStart { total: u64 },
+    TaskIncrement { amount: u64 },
     TaskFinish,
+
+    StatusUpdate { text: String },
 
     Message(String),
 }
@@ -42,50 +44,70 @@ mod tests {
     use std::sync::{Arc, Mutex};
 
     #[test]
-    fn progress_reporter_new_has_no_callback() {
+    fn new_reporter_with_no_callback_does_not_panic_on_report() {
         let reporter = ProgressReporter::new();
-        reporter.report(Progress::PhaseStart { name: "init" });
+
+        reporter.report(Progress::PhaseStart { name: "Test Phase" });
     }
 
     #[test]
-    fn progress_reporter_with_callback_invokes_callback() {
-        let called = Arc::new(Mutex::new(false));
-        let called_clone = Arc::clone(&called);
-        let reporter = ProgressReporter::with_callback(Box::new(move |event| {
-            if let Progress::PhaseFinish = event {
-                *called_clone.lock().unwrap() = true;
+    fn with_callback_reporter_invokes_the_provided_callback() {
+        let received_event = Arc::new(Mutex::new(None));
+        let received_event_clone = Arc::clone(&received_event);
+
+        let callback = Box::new(move |event: Progress| {
+            *received_event_clone.lock().unwrap() = Some(event);
+        });
+
+        let reporter = ProgressReporter::with_callback(callback);
+        let event_to_send = Progress::TaskStart { total: 100 };
+
+        reporter.report(event_to_send.clone());
+
+        let received = received_event.lock().unwrap();
+        assert!(received.is_some(), "Callback was not invoked");
+
+        if let Some(Progress::TaskStart { total }) = received.as_ref() {
+            assert_eq!(*total, 100);
+        } else {
+            panic!("Received event of the wrong type: {:?}", received);
+        }
+    }
+
+    #[test]
+    fn reporter_is_thread_safe_and_handles_concurrent_reports() {
+        let received_count = Arc::new(Mutex::new(0));
+
+        let callback = Box::new({
+            let received_count_clone = Arc::clone(&received_count);
+            move |_event: Progress| {
+                *received_count_clone.lock().unwrap() += 1;
             }
-        }));
-        reporter.report(Progress::PhaseFinish);
-        assert!(*called.lock().unwrap());
-    }
+        });
 
-    #[test]
-    fn report_with_no_callback_does_not_panic() {
-        let reporter = ProgressReporter::new();
-        reporter.report(Progress::TaskFinish);
-    }
+        let reporter = ProgressReporter::with_callback(callback);
 
-    #[test]
-    fn progress_callback_receives_correct_event() {
-        let received = Arc::new(Mutex::new(None));
-        let received_clone = Arc::clone(&received);
-        let reporter = ProgressReporter::with_callback(Box::new(move |event| {
-            if let Progress::Message(msg) = event {
-                *received_clone.lock().unwrap() = Some(msg);
+        std::thread::scope(|s| {
+            for _ in 0..10 {
+                s.spawn(|| {
+                    reporter.report(Progress::TaskIncrement { amount: 1 });
+                });
             }
-        }));
-        reporter.report(Progress::Message("hello".to_string()));
-        assert_eq!(*received.lock().unwrap(), Some("hello".to_string()));
+        });
+
+        assert_eq!(*received_count.lock().unwrap(), 10);
     }
 
     #[test]
     fn progress_enum_variants_are_constructible() {
         let _ = Progress::PhaseStart { name: "phase" };
         let _ = Progress::PhaseFinish;
-        let _ = Progress::TaskStart { total_steps: 42 };
-        let _ = Progress::TaskIncrement;
+        let _ = Progress::TaskStart { total: 42 };
+        let _ = Progress::TaskIncrement { amount: 1 };
         let _ = Progress::TaskFinish;
+        let _ = Progress::StatusUpdate {
+            text: "status".to_string(),
+        };
         let _ = Progress::Message("msg".to_string());
     }
 }

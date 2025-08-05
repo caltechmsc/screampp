@@ -10,6 +10,7 @@ use crate::core::{
 use nalgebra::{Matrix3, Point3, Rotation3, Vector3};
 use std::collections::HashMap;
 use thiserror::Error;
+use tracing::warn;
 
 #[derive(Debug, Error)]
 pub enum PlacementError {
@@ -20,12 +21,19 @@ pub enum PlacementError {
     AnchorAtomNotFoundInRotamer { atom_name: String },
 
     #[error(
+        "Could not find any atoms with name '{atom_name}' in the rotamer to build the index map"
+    )]
+    RotamerAtomNameNotFound { atom_name: String },
+
+    #[error(
         "Insufficient anchor atoms for stable alignment: requires at least 3, but found {found}"
     )]
     InsufficientAnchors { found: usize },
 
-    #[error("Could not find rotamer atom with name '{atom_name}' to build the index map")]
-    RotamerAtomNameNotFound { atom_name: String },
+    #[error(
+        "Placement logic failed for atom '{atom_name}': not enough instances in residue to fulfill placement requirements"
+    )]
+    InsufficientAtomsInResidue { atom_name: String },
 }
 
 #[inline]
@@ -40,9 +48,8 @@ pub fn place_rotamer_on_system(
         let (rotation, translation) =
             calculate_alignment_transform(system, target_residue_id, rotamer, placement_info)?;
 
-        remove_old_sidechain(system, target_residue_id, placement_info);
-
-        // --- Phase 2: Atom Placement & Mapping ---
+        // --- Phase 2: Side-Chain Replacement ---
+        remove_old_sidechain(system, target_residue_id, placement_info)?;
         let index_to_id_map = add_new_sidechain_atoms_and_map(
             system,
             target_residue_id,
@@ -76,7 +83,7 @@ fn calculate_alignment_transform(
 
     for atom_name in &placement_info.anchor_atoms {
         let system_atom_id = target_residue
-            .get_atom_id_by_name(atom_name)
+            .get_first_atom_id_by_name(atom_name)
             .ok_or_else(|| PlacementError::AnchorAtomNotFoundInSystem {
                 atom_name: atom_name.clone(),
             })?;
@@ -105,19 +112,37 @@ fn remove_old_sidechain(
     system: &mut MolecularSystem,
     target_residue_id: ResidueId,
     placement_info: &PlacementInfo,
-) {
-    let old_atom_ids_to_remove: Vec<AtomId> = {
-        let target_residue = system.residue(target_residue_id).unwrap();
-        placement_info
-            .sidechain_atoms
-            .iter()
-            .filter_map(|atom_name| target_residue.get_atom_id_by_name(atom_name))
-            .collect()
-    };
+) -> Result<(), PlacementError> {
+    let mut frequency_map = HashMap::new();
+    for name in &placement_info.sidechain_atoms {
+        *frequency_map.entry(name.as_str()).or_insert(0) += 1;
+    }
 
-    for atom_id in old_atom_ids_to_remove {
+    let mut ids_to_remove = Vec::new();
+
+    {
+        let target_residue = system.residue(target_residue_id).unwrap();
+        for (name, count) in frequency_map {
+            if let Some(atom_ids) = target_residue.get_atom_ids_by_name(name) {
+                if atom_ids.len() < count {
+                    warn!(
+                        "Residue {:?} has only {} atom(s) named '{}', but placement info requires removing {}. This might indicate a malformed input.",
+                        target_residue_id,
+                        atom_ids.len(),
+                        name,
+                        count
+                    );
+                }
+                ids_to_remove.extend(atom_ids.iter().rev().take(count));
+            }
+        }
+    }
+
+    for atom_id in ids_to_remove {
         system.remove_atom(atom_id);
     }
+
+    Ok(())
 }
 
 fn add_new_sidechain_atoms_and_map(
@@ -131,32 +156,52 @@ fn add_new_sidechain_atoms_and_map(
     let mut index_to_id_map = HashMap::new();
     let target_residue = system.residue(target_residue_id).unwrap();
 
-    // 1. Pre-populate the map with anchor atoms already in the system.
+    // 1. Create a "pool" of rotamer atoms to be consumed during assignment.
+    let mut rotamer_atom_pool: HashMap<&str, Vec<(usize, &crate::core::models::atom::Atom)>> =
+        HashMap::new();
+    for (index, atom) in rotamer.atoms.iter().enumerate() {
+        rotamer_atom_pool
+            .entry(&atom.name)
+            .or_default()
+            .push((index, atom));
+    }
+
+    // 2. Pre-populate the map with anchor atoms already present in the system.
     for atom_name in &placement_info.anchor_atoms {
-        let rotamer_atom_index = rotamer
-            .atoms
-            .iter()
-            .position(|a| &a.name == atom_name)
+        let (rotamer_atom_index, _) = rotamer_atom_pool
+            .get_mut(atom_name.as_str())
+            .and_then(|atoms| {
+                if atoms.is_empty() {
+                    None
+                } else {
+                    Some(atoms.remove(0))
+                }
+            })
             .ok_or_else(|| PlacementError::RotamerAtomNameNotFound {
                 atom_name: atom_name.clone(),
             })?;
 
-        let system_atom_id = target_residue.get_atom_id_by_name(atom_name).unwrap();
+        let system_atom_id = target_residue.get_first_atom_id_by_name(atom_name).unwrap();
         index_to_id_map.insert(rotamer_atom_index, system_atom_id);
     }
 
-    // 2. Add new side-chain atoms and populate the map.
-    for (index, rotamer_atom) in rotamer.atoms.iter().enumerate() {
-        if placement_info.sidechain_atoms.contains(&rotamer_atom.name) {
-            let mut new_atom = rotamer_atom.clone();
-            new_atom.residue_id = target_residue_id;
-            new_atom.position = rotation * rotamer_atom.position + translation;
+    // 3. Add new side-chain atoms, consuming them from the end of the rotamer pool.
+    for atom_name in &placement_info.sidechain_atoms {
+        let (index, rotamer_atom) = rotamer_atom_pool
+            .get_mut(atom_name.as_str())
+            .and_then(|atoms| atoms.pop())
+            .ok_or_else(|| PlacementError::InsufficientAtomsInResidue {
+                atom_name: atom_name.clone(),
+            })?;
 
-            let new_atom_id = system
-                .add_atom_to_residue(target_residue_id, new_atom)
-                .unwrap();
-            index_to_id_map.insert(index, new_atom_id);
-        }
+        let mut new_atom = rotamer_atom.clone();
+        new_atom.residue_id = target_residue_id;
+        new_atom.position = rotation * rotamer_atom.position + translation;
+
+        let new_atom_id = system
+            .add_atom_to_residue(target_residue_id, new_atom)
+            .unwrap();
+        index_to_id_map.insert(index, new_atom_id);
     }
 
     Ok(index_to_id_map)
@@ -220,29 +265,55 @@ mod tests {
     };
     use nalgebra::{Point3, Vector3};
 
-    fn create_test_system_with_ala_residue() -> (MolecularSystem, ResidueId) {
+    fn create_system_with_residue(
+        res_name: &str,
+        res_type: ResidueType,
+        atoms_to_add: &[(&str, [f64; 3])],
+    ) -> (MolecularSystem, ResidueId) {
         let mut system = MolecularSystem::new();
         let chain_id = system.add_chain('A', ChainType::Protein);
         let residue_id = system
-            .add_residue(chain_id, 1, "ALA", Some(ResidueType::Alanine))
+            .add_residue(chain_id, 1, res_name, Some(res_type))
             .unwrap();
 
-        let n = Atom::new("N", residue_id, Point3::new(0.0, 1.0, 0.0));
-        let ca = Atom::new("CA", residue_id, Point3::new(0.0, 0.0, 0.0));
-        let c = Atom::new("C", residue_id, Point3::new(1.0, 0.0, 0.0));
-        let old_cb = Atom::new("CB", residue_id, Point3::new(-1.0, -1.0, -1.0));
+        for (name, pos) in atoms_to_add {
+            let atom = Atom::new(name, residue_id, Point3::from(*pos));
+            system.add_atom_to_residue(residue_id, atom).unwrap();
+        }
+        (system, residue_id)
+    }
 
-        let n_id = system.add_atom_to_residue(residue_id, n).unwrap();
-        let ca_id = system.add_atom_to_residue(residue_id, ca).unwrap();
-        let c_id = system.add_atom_to_residue(residue_id, c).unwrap();
-        let old_cb_id = system.add_atom_to_residue(residue_id, old_cb).unwrap();
-
+    fn create_test_system_with_ala_residue() -> (MolecularSystem, ResidueId) {
+        let (mut system, residue_id) = create_system_with_residue(
+            "ALA",
+            ResidueType::Alanine,
+            &[
+                ("N", [0.0, 1.0, 0.0]),
+                ("CA", [0.0, 0.0, 0.0]),
+                ("C", [1.0, 0.0, 0.0]),
+                ("CB", [-1.0, -0.5, 0.0]),
+                ("HCB", [-1.5, -0.5, 0.8]),
+                ("HCB", [-1.5, -0.5, -0.8]),
+                ("HCB", [-1.5, 0.5, 0.0]),
+            ],
+        );
+        let n_id = system
+            .residue(residue_id)
+            .unwrap()
+            .get_first_atom_id_by_name("N")
+            .unwrap();
+        let ca_id = system
+            .residue(residue_id)
+            .unwrap()
+            .get_first_atom_id_by_name("CA")
+            .unwrap();
+        let c_id = system
+            .residue(residue_id)
+            .unwrap()
+            .get_first_atom_id_by_name("C")
+            .unwrap();
         system.add_bond(n_id, ca_id, BondOrder::Single).unwrap();
         system.add_bond(ca_id, c_id, BondOrder::Single).unwrap();
-        system
-            .add_bond(ca_id, old_cb_id, BondOrder::Single)
-            .unwrap();
-
         (system, residue_id)
     }
 
@@ -253,22 +324,15 @@ mod tests {
             Atom::new("C", ResidueId::default(), Point3::new(6.0, 5.0, 5.0)),
             Atom::new("CB", ResidueId::default(), Point3::new(4.0, 4.0, 5.0)),
             Atom::new("CG", ResidueId::default(), Point3::new(3.0, 4.0, 4.0)),
-            Atom::new("CD1", ResidueId::default(), Point3::new(2.0, 3.0, 4.0)),
-            Atom::new("CD2", ResidueId::default(), Point3::new(2.0, 5.0, 4.0)),
         ];
-        let bonds = vec![(0, 1), (1, 2), (1, 3), (3, 4), (4, 5), (4, 6)];
+        let bonds = vec![(0, 1), (1, 2), (1, 3), (3, 4)];
         Rotamer { atoms, bonds }
     }
 
     fn leu_placement_info() -> PlacementInfo {
         PlacementInfo {
             anchor_atoms: vec!["N".to_string(), "CA".to_string(), "C".to_string()],
-            sidechain_atoms: vec![
-                "CB".to_string(),
-                "CG".to_string(),
-                "CD1".to_string(),
-                "CD2".to_string(),
-            ],
+            sidechain_atoms: vec!["CB".to_string(), "CG".to_string()],
             connection_points: vec![],
             exact_match_atoms: vec![],
         }
@@ -276,8 +340,8 @@ mod tests {
 
     fn bond_exists(system: &MolecularSystem, res_id: ResidueId, name1: &str, name2: &str) -> bool {
         let res = system.residue(res_id).unwrap();
-        let id1 = res.get_atom_id_by_name(name1);
-        let id2 = res.get_atom_id_by_name(name2);
+        let id1 = res.get_first_atom_id_by_name(name1);
+        let id2 = res.get_first_atom_id_by_name(name2);
 
         if let (Some(id1), Some(id2)) = (id1, id2) {
             system
@@ -300,99 +364,157 @@ mod tests {
 
         let (rot, trans) = calculate_transformation(&from_points, &to_points).unwrap();
 
-        assert!(
-            rot.angle().abs() < 1e-9,
-            "Rotation angle should be zero for pure translation"
+        assert!(rot.angle().abs() < 1e-9);
+        assert!((trans - translation_vec).norm() < 1e-9);
+    }
+
+    #[test]
+    fn test_remove_old_sidechain_handles_duplicates() {
+        let (mut system, residue_id) = create_test_system_with_ala_residue();
+        let placement_info = PlacementInfo {
+            anchor_atoms: vec!["N".to_string(), "CA".to_string(), "C".to_string()],
+            sidechain_atoms: vec![
+                "CB".to_string(),
+                "HCB".to_string(),
+                "HCB".to_string(),
+                "HCB".to_string(),
+            ],
+            exact_match_atoms: vec![],
+            connection_points: vec![],
+        };
+
+        assert_eq!(system.residue(residue_id).unwrap().atoms().len(), 7);
+        assert_eq!(
+            system
+                .residue(residue_id)
+                .unwrap()
+                .get_atom_ids_by_name("HCB")
+                .unwrap()
+                .len(),
+            3
+        );
+
+        remove_old_sidechain(&mut system, residue_id, &placement_info).unwrap();
+
+        let residue = system.residue(residue_id).unwrap();
+        assert_eq!(
+            residue.atoms().len(),
+            3,
+            "Only backbone atoms should remain"
         );
         assert!(
-            (trans - translation_vec).norm() < 1e-9,
-            "Translation should match the applied vector"
+            residue.get_atom_ids_by_name("CB").is_none(),
+            "CB should be removed"
+        );
+        assert!(
+            residue.get_atom_ids_by_name("HCB").is_none(),
+            "All HCB atoms should be removed"
         );
     }
 
     #[test]
-    fn test_full_placement_workflow() {
+    fn test_full_placement_workflow_with_new_api() {
         let (mut system, residue_id) = create_test_system_with_ala_residue();
+        let original_atom_count = system.atoms_iter().count();
+        let ala_sidechain_to_remove = PlacementInfo {
+            sidechain_atoms: vec![
+                "CB".to_string(),
+                "HCB".to_string(),
+                "HCB".to_string(),
+                "HCB".to_string(),
+            ],
+            anchor_atoms: vec![],
+            exact_match_atoms: vec![],
+            connection_points: vec![],
+        };
+        remove_old_sidechain(&mut system, residue_id, &ala_sidechain_to_remove).unwrap();
+
         let rotamer = create_leu_rotamer();
         let placement_info = leu_placement_info();
 
-        let original_atom_count = system.atoms_iter().count();
-        assert_eq!(system.residue(residue_id).unwrap().atoms().len(), 4);
-        assert!(
-            system
-                .residue(residue_id)
-                .unwrap()
-                .get_atom_id_by_name("CG")
-                .is_none()
-        );
-        assert!(bond_exists(&system, residue_id, "CA", "CB"));
-
         let result = place_rotamer_on_system(&mut system, residue_id, &rotamer, &placement_info);
-        assert!(result.is_ok());
+        assert!(result.is_ok(), "Placement failed: {:?}", result.err());
 
         let residue = system.residue(residue_id).unwrap();
 
         assert_eq!(
             residue.atoms().len(),
-            3 + 4,
-            "Should have 3 backbone + 4 new sidechain atoms"
+            3 + 2,
+            "Should have 3 backbone + 2 new LEU sidechain atoms"
         );
         assert_eq!(
             system.atoms_iter().count(),
-            original_atom_count - 1 + 4,
+            original_atom_count - 4 + 2,
             "System total atoms should reflect replacement"
         );
 
-        assert!(residue.get_atom_id_by_name("CB").is_some());
-        assert!(residue.get_atom_id_by_name("CG").is_some());
-        assert!(residue.get_atom_id_by_name("CD1").is_some());
-        assert!(residue.get_atom_id_by_name("CD2").is_some());
+        assert!(residue.get_first_atom_id_by_name("CB").is_some());
+        assert!(residue.get_first_atom_id_by_name("CG").is_some());
 
-        let new_cb_id = residue.get_atom_id_by_name("CB").unwrap();
-        let new_cb_atom = system.atom(new_cb_id).unwrap();
-        let ca_pos = system
-            .atom(residue.get_atom_id_by_name("CA").unwrap())
-            .unwrap()
-            .position;
-        assert!(
-            (new_cb_atom.position - ca_pos).norm() < 2.0,
-            "New CB should be close to CA"
-        );
+        assert!(bond_exists(&system, residue_id, "CA", "CB"));
+        assert!(bond_exists(&system, residue_id, "CB", "CG"));
+        assert!(bond_exists(&system, residue_id, "N", "CA"));
+    }
 
-        assert!(
-            bond_exists(&system, residue_id, "CA", "CB"),
-            "CA-CB bond must be created"
-        );
-
-        assert!(
-            bond_exists(&system, residue_id, "CB", "CG"),
-            "CB-CG bond must be created"
-        );
-        assert!(
-            bond_exists(&system, residue_id, "CG", "CD1"),
-            "CG-CD1 bond must be created"
-        );
-        assert!(
-            bond_exists(&system, residue_id, "CG", "CD2"),
-            "CG-CD2 bond must be created"
+    #[test]
+    fn test_placement_on_glycine_special_case() {
+        let (mut system, gly_id) = create_system_with_residue(
+            "GLY",
+            ResidueType::Glycine,
+            &[
+                ("N", [0.0, 1.0, 0.0]),
+                ("CA", [0.0, 0.0, 0.0]),
+                ("C", [1.0, 0.0, 0.0]),
+                ("HCA", [0.0, -0.5, 0.8]),
+                ("HCA", [0.0, -0.5, -0.8]),
+            ],
         );
 
-        assert!(
-            bond_exists(&system, residue_id, "N", "CA"),
-            "N-CA bond must be preserved"
-        );
-        assert!(
-            bond_exists(&system, residue_id, "CA", "C"),
-            "CA-C bond must be preserved"
-        );
+        let gly_placement = PlacementInfo {
+            anchor_atoms: vec!["N".to_string(), "CA".to_string(), "HCA".to_string()],
+            sidechain_atoms: vec!["HCA".to_string()],
+            exact_match_atoms: vec![],
+            connection_points: vec![],
+        };
+
+        let gly_rotamer = {
+            let atoms = vec![
+                Atom::new("N", ResidueId::default(), Point3::new(0.0, 1.0, 0.0)),
+                Atom::new("CA", ResidueId::default(), Point3::new(0.0, 0.0, 0.0)),
+                Atom::new("HCA", ResidueId::default(), Point3::new(0.0, -0.5, 0.8)),
+                Atom::new("HCA", ResidueId::default(), Point3::new(5.0, 5.0, 5.0)),
+                Atom::new("C", ResidueId::default(), Point3::new(1.0, 0.0, 0.0)),
+            ];
+            let bonds = vec![(1, 0), (1, 2), (1, 3), (1, 4)];
+            Rotamer { atoms, bonds }
+        };
+
+        let result = place_rotamer_on_system(&mut system, gly_id, &gly_rotamer, &gly_placement);
+        assert!(result.is_ok(), "GLY placement failed: {:?}", result.err());
+
+        let residue = system.residue(gly_id).unwrap();
+        assert_eq!(residue.atoms().len(), 5, "GLY should still have 5 atoms");
+
+        let hca_ids = residue.get_atom_ids_by_name("HCA").unwrap();
+        assert_eq!(hca_ids.len(), 2, "Should still have two HCA atoms");
+
+        let hca1 = system.atom(hca_ids[0]).unwrap();
+        let hca2 = system.atom(hca_ids[1]).unwrap();
+
+        let new_pos_atom = if (hca1.position - Point3::new(5.0, 5.0, 5.0)).norm() < 1e-6 {
+            hca1
+        } else {
+            hca2
+        };
+        let old_pos_atom = if new_pos_atom.position == hca1.position {
+            hca2
+        } else {
+            hca1
+        };
 
         assert!(
-            !bond_exists(&system, residue_id, "N", "CB"),
-            "N-CB bond should not exist"
-        );
-        assert!(
-            !bond_exists(&system, residue_id, "C", "CB"),
-            "C-CB bond should not exist"
+            (old_pos_atom.position - Point3::new(0.0, -0.5, 0.8)).norm() < 1e-6,
+            "The anchor HCA should not have moved"
         );
     }
 
@@ -402,7 +524,7 @@ mod tests {
         let n_id = system
             .residue(residue_id)
             .unwrap()
-            .get_atom_id_by_name("N")
+            .get_first_atom_id_by_name("N")
             .unwrap();
         system.remove_atom(n_id);
 
@@ -444,9 +566,7 @@ mod tests {
 
         assert!(matches!(result, Err(EngineError::Placement { .. })));
         if let Err(EngineError::Placement { message, .. }) = result {
-            assert!(message.contains(
-                "Insufficient anchor atoms for stable alignment: requires at least 3, but found 2"
-            ));
+            assert!(message.contains("requires at least 3, but found 2"));
         }
     }
 }

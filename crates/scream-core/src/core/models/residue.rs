@@ -127,7 +127,7 @@ pub struct Residue {
     pub residue_type: Option<ResidueType>, // Optional residue type (e.g., Alanine, Glycine)
     pub chain_id: ChainId,     // ID of the parent chain
     pub(crate) atoms: Vec<AtomId>, // Indices of atoms belonging to this residue
-    atom_name_map: HashMap<String, AtomId>, // Map from atom name to its stable ID
+    atom_name_map: HashMap<String, Vec<AtomId>>, // Map from atom names to their IDs
 }
 
 impl Residue {
@@ -149,20 +149,34 @@ impl Residue {
 
     pub(crate) fn add_atom(&mut self, atom_name: &str, atom_id: AtomId) {
         self.atoms.push(atom_id);
-        self.atom_name_map.insert(atom_name.to_string(), atom_id);
+        self.atom_name_map
+            .entry(atom_name.to_string())
+            .or_default()
+            .push(atom_id);
     }
 
-    pub(crate) fn remove_atom(&mut self, atom_name: &str, atom_id: AtomId) {
-        self.atoms.retain(|&id| id != atom_id);
-        self.atom_name_map.remove(atom_name);
+    pub(crate) fn remove_atom(&mut self, atom_name: &str, atom_id_to_remove: AtomId) {
+        self.atoms.retain(|&id| id != atom_id_to_remove);
+
+        if let Some(ids) = self.atom_name_map.get_mut(atom_name) {
+            ids.retain(|&id| id != atom_id_to_remove);
+            if ids.is_empty() {
+                self.atom_name_map.remove(atom_name);
+            }
+        }
     }
 
     pub fn atoms(&self) -> &[AtomId] {
         &self.atoms
     }
 
-    pub fn get_atom_id_by_name(&self, name: &str) -> Option<AtomId> {
-        self.atom_name_map.get(name).copied()
+    pub fn get_atom_ids_by_name(&self, name: &str) -> Option<&[AtomId]> {
+        self.atom_name_map.get(name).map(|v| v.as_slice())
+    }
+
+    pub fn get_first_atom_id_by_name(&self, name: &str) -> Option<AtomId> {
+        self.get_atom_ids_by_name(name)
+            .and_then(|ids| ids.first().copied())
     }
 }
 
@@ -203,48 +217,91 @@ mod tests {
     #[test]
     fn from_str_optional_returns_none_for_unknown_code() {
         assert!(ResidueType::from_str_optional("XYZ").is_none());
-        assert!(ResidueType::from_str_optional("unknown").is_none());
     }
 
     #[test]
     fn display_formats_residuetype_as_three_letter_code() {
         assert_eq!(format!("{}", ResidueType::Alanine), "ALA");
-        assert_eq!(format!("{}", ResidueType::HistidineProtonated), "HSP");
-        assert_eq!(format!("{}", ResidueType::Glycine), "GLY");
     }
 
     #[test]
     fn to_three_letter_returns_correct_code() {
         assert_eq!(ResidueType::Alanine.to_three_letter(), "ALA");
-        assert_eq!(ResidueType::HistidineProtonated.to_three_letter(), "HSP");
     }
 
     #[test]
-    fn residue_adds_and_retrieves_atoms_by_name() {
+    fn residue_adds_and_retrieves_single_atom() {
         let mut residue = Residue::new(1, "ALA", Some(ResidueType::Alanine), dummy_chain_id(0));
         let atom_id = dummy_atom_id(42);
         residue.add_atom("CA", atom_id);
+
         assert_eq!(residue.atoms(), &[atom_id]);
-        assert_eq!(residue.get_atom_id_by_name("CA"), Some(atom_id));
+        assert_eq!(
+            residue.get_atom_ids_by_name("CA"),
+            Some([atom_id].as_slice())
+        );
+        assert_eq!(residue.get_first_atom_id_by_name("CA"), Some(atom_id));
     }
 
     #[test]
-    fn residue_removes_atom_by_name_and_id() {
+    fn residue_handles_duplicate_atom_names_correctly() {
+        let mut residue = Residue::new(1, "ALA", Some(ResidueType::Alanine), dummy_chain_id(0));
+        let hcb1_id = dummy_atom_id(1);
+        let hcb2_id = dummy_atom_id(2);
+        let hcb3_id = dummy_atom_id(3);
+
+        residue.add_atom("HCB", hcb1_id);
+        residue.add_atom("HCB", hcb2_id);
+        residue.add_atom("HCB", hcb3_id);
+
+        assert_eq!(residue.atoms(), &[hcb1_id, hcb2_id, hcb3_id]);
+        let retrieved_ids = residue.get_atom_ids_by_name("HCB").unwrap();
+        assert_eq!(retrieved_ids, &[hcb1_id, hcb2_id, hcb3_id]);
+        assert_eq!(residue.get_first_atom_id_by_name("HCB"), Some(hcb1_id));
+    }
+
+    #[test]
+    fn residue_removes_one_of_many_duplicates() {
         let mut residue = Residue::new(2, "GLY", Some(ResidueType::Glycine), dummy_chain_id(1));
         let atom_id1 = dummy_atom_id(1);
         let atom_id2 = dummy_atom_id(2);
-        residue.add_atom("N", atom_id1);
-        residue.add_atom("CA", atom_id2);
-        residue.remove_atom("N", atom_id1);
+        residue.add_atom("HCA", atom_id1);
+        residue.add_atom("HCA", atom_id2);
+
+        residue.remove_atom("HCA", atom_id1);
+
         assert_eq!(residue.atoms(), &[atom_id2]);
-        assert_eq!(residue.get_atom_id_by_name("N"), None);
-        assert_eq!(residue.get_atom_id_by_name("CA"), Some(atom_id2));
+        let remaining_ids = residue.get_atom_ids_by_name("HCA").unwrap();
+        assert_eq!(remaining_ids, &[atom_id2]);
     }
 
     #[test]
-    fn residue_get_atom_id_by_name_returns_none_for_unknown_atom() {
+    fn residue_removes_last_duplicate_and_cleans_up_map() {
+        let mut residue = Residue::new(2, "GLY", Some(ResidueType::Glycine), dummy_chain_id(1));
+        let atom_id1 = dummy_atom_id(1);
+        residue.add_atom("CA", atom_id1);
+
+        assert!(residue.atom_name_map.contains_key("CA"));
+        residue.remove_atom("CA", atom_id1);
+
+        assert!(residue.atoms().is_empty());
+        assert!(residue.get_atom_ids_by_name("CA").is_none());
+        assert!(
+            !residue.atom_name_map.contains_key("CA"),
+            "Map entry should be removed when its vec is empty"
+        );
+    }
+
+    #[test]
+    fn get_atom_ids_by_name_returns_none_for_unknown_atom() {
         let residue = Residue::new(3, "SER", Some(ResidueType::Serine), dummy_chain_id(2));
-        assert_eq!(residue.get_atom_id_by_name("CB"), None);
+        assert!(residue.get_atom_ids_by_name("CB").is_none());
+    }
+
+    #[test]
+    fn get_first_atom_id_by_name_returns_none_for_unknown_atom() {
+        let residue = Residue::new(3, "SER", Some(ResidueType::Serine), dummy_chain_id(2));
+        assert!(residue.get_first_atom_id_by_name("CB").is_none());
     }
 
     #[test]

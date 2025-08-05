@@ -188,51 +188,82 @@ pub fn resolve_selection_to_ids(
             let radius_sq = radius_angstroms * radius_angstroms;
 
             #[cfg(not(feature = "parallel"))]
-            let residue_iter = system
-                .residues_iter()
-                .filter_map(|(res_id, res)| Some((res_id, res)));
-
-            #[cfg(feature = "parallel")]
-            let residue_iter = system
-                .residues_iter()
-                .par_bridge()
-                .filter_map(|(res_id, res)| Some((res_id, res)));
-
-            for (res_id, residue) in residue_iter {
-                if res_id == ligand_res_id {
-                    continue;
-                }
-                if let Some(chain) = system.chain(residue.chain_id) {
-                    if chain.chain_type != ChainType::Protein {
+            {
+                for (res_id, residue) in system.residues_iter() {
+                    if res_id == ligand_res_id {
                         continue;
                     }
-                } else {
-                    continue;
-                }
+                    if let Some(chain) = system.chain(residue.chain_id) {
+                        if chain.chain_type != ChainType::Protein {
+                            continue;
+                        }
+                    } else {
+                        continue;
+                    }
 
-                let mut is_in_binding_site = false;
-                for protein_atom_id in residue.atoms() {
-                    if let Some(protein_atom) = system.atom(*protein_atom_id) {
-                        if is_heavy_atom(&protein_atom.name) {
-                            let protein_pos = [
-                                protein_atom.position.x,
-                                protein_atom.position.y,
-                                protein_atom.position.z,
-                            ];
-
-                            let nearest = kdtree.nearest_one::<SquaredEuclidean>(&protein_pos);
-
-                            if nearest.distance <= radius_sq {
-                                is_in_binding_site = true;
-                                break;
+                    let is_in_binding_site = residue.atoms().iter().any(|protein_atom_id| {
+                        if let Some(protein_atom) = system.atom(*protein_atom_id) {
+                            if is_heavy_atom(&protein_atom.name) {
+                                let protein_pos = [
+                                    protein_atom.position.x,
+                                    protein_atom.position.y,
+                                    protein_atom.position.z,
+                                ];
+                                let nearest = kdtree.nearest_one::<SquaredEuclidean>(&protein_pos);
+                                return nearest.distance <= radius_sq;
                             }
                         }
+                        false
+                    });
+
+                    if is_in_binding_site {
+                        candidate_ids.insert(res_id);
                     }
                 }
+            }
 
-                if is_in_binding_site {
-                    candidate_ids.insert(res_id);
-                }
+            #[cfg(feature = "parallel")]
+            {
+                let binding_site_ids: HashSet<ResidueId> = system
+                    .residues_iter()
+                    .par_bridge()
+                    .filter_map(|(res_id, residue)| {
+                        if res_id == ligand_res_id {
+                            return None;
+                        }
+                        if let Some(chain) = system.chain(residue.chain_id) {
+                            if chain.chain_type != ChainType::Protein {
+                                return None;
+                            }
+                        } else {
+                            return None;
+                        }
+
+                        let is_in_binding_site = residue.atoms().iter().any(|protein_atom_id| {
+                            if let Some(protein_atom) = system.atom(*protein_atom_id) {
+                                if is_heavy_atom(&protein_atom.name) {
+                                    let protein_pos = [
+                                        protein_atom.position.x,
+                                        protein_atom.position.y,
+                                        protein_atom.position.z,
+                                    ];
+                                    let nearest =
+                                        kdtree.nearest_one::<SquaredEuclidean>(&protein_pos);
+                                    return nearest.distance <= radius_sq;
+                                }
+                            }
+                            false
+                        });
+
+                        if is_in_binding_site {
+                            Some(res_id)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+
+                candidate_ids.extend(binding_site_ids);
             }
         }
     };
@@ -464,8 +495,9 @@ mod tests {
         let lig_atom_id = system
             .residue(lig_res_id)
             .unwrap()
-            .get_atom_id_by_name("C1")
-            .unwrap();
+            .get_first_atom_id_by_name("C1")
+            .expect("Ligand residue should have a 'C1' atom");
+
         system.atom_mut(lig_atom_id).unwrap().position = Point3::new(100.0, 100.0, 100.0);
 
         let selection = ResidueSelection::LigandBindingSite {

@@ -1,5 +1,3 @@
-use std::f64::consts::PI;
-
 const COULOMB_CONSTANT: f64 = 332.0637; // In kcal·Å/(mol·e²)
 
 #[inline]

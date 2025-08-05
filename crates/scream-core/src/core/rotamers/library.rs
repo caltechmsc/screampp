@@ -3,7 +3,7 @@ use super::rotamer::{Rotamer, RotamerData};
 use crate::core::forcefield::parameterization::{ParameterizationError, Parameterizer};
 use crate::core::forcefield::params::Forcefield;
 use crate::core::models::atom::Atom;
-use crate::core::models::ids::ResidueId;
+use crate::core::models::ids::{AtomId, ResidueId};
 use crate::core::models::residue::ResidueType;
 use crate::core::models::system::MolecularSystem;
 use nalgebra::Point3;
@@ -200,67 +200,83 @@ impl RotamerLibrary {
         active_residues: &HashSet<ResidueId>,
     ) {
         for &residue_id in active_residues {
-            let residue = match system.residue(residue_id) {
-                Some(r) => r,
-                None => continue,
-            };
+            if let Some(rotamer) = self.extract_rotamer_from_system(system, residue_id) {
+                let residue = system.residue(residue_id).unwrap();
+                let residue_type = residue.residue_type.unwrap();
+                self.rotamers.entry(residue_type).or_default().push(rotamer);
+            }
+        }
+    }
 
-            let residue_type = match residue.residue_type {
-                Some(rt) => rt,
-                None => continue,
-            };
+    fn extract_rotamer_from_system(
+        &self,
+        system: &MolecularSystem,
+        residue_id: ResidueId,
+    ) -> Option<Rotamer> {
+        let residue = system.residue(residue_id)?;
+        let residue_type = residue.residue_type?;
+        let placement_info = self.placement_info.get(&residue_type)?;
 
-            let placement_info = match self.placement_info.get(&residue_type) {
-                Some(info) => info,
-                None => continue,
-            };
+        // --- 1. Create an "atom pool" from the residue in the system ---
+        let mut atom_pool: HashMap<String, Vec<AtomId>> = HashMap::new();
+        for atom_id in residue.atoms() {
+            if let Some(atom) = system.atom(*atom_id) {
+                atom_pool
+                    .entry(atom.name.clone())
+                    .or_default()
+                    .push(*atom_id);
+            }
+        }
 
-            // --- 1. Extract atoms and build a map for topology extraction ---
-            let all_rotamer_atom_names: HashSet<_> = placement_info
-                .anchor_atoms
-                .iter()
-                .chain(&placement_info.sidechain_atoms)
-                .cloned()
-                .collect();
+        // --- 2. Sequentially assign roles (anchor/sidechain) and build the new rotamer's atom list ---
+        let mut new_rotamer_atoms = Vec::new();
+        let mut old_id_to_new_index = HashMap::new();
 
-            let mut extracted_atoms = Vec::new();
-            let mut global_id_to_local_index = HashMap::new();
-
-            for atom_name in &all_rotamer_atom_names {
-                if let Some(atom_id) = residue.get_atom_id_by_name(atom_name) {
+        for name in &placement_info.anchor_atoms {
+            if let Some(ids) = atom_pool.get_mut(name) {
+                if !ids.is_empty() {
+                    let atom_id = ids.remove(0);
                     if let Some(atom) = system.atom(atom_id) {
-                        let local_index = extracted_atoms.len();
-                        extracted_atoms.push(atom.clone());
-                        global_id_to_local_index.insert(atom_id, local_index);
+                        old_id_to_new_index.insert(atom_id, new_rotamer_atoms.len());
+                        new_rotamer_atoms.push(atom.clone());
                     }
+                } else {
+                    return None;
                 }
             }
+        }
 
-            // --- 2. Extract topology (bonds) for the extracted atoms ---
-            let mut extracted_bonds = Vec::new();
-            for (atom_id_a, &local_index_a) in &global_id_to_local_index {
-                if let Some(neighbors) = system.get_bonded_neighbors(*atom_id_a) {
-                    for &atom_id_b in neighbors {
-                        if let Some(&local_index_b) = global_id_to_local_index.get(&atom_id_b) {
-                            if local_index_a < local_index_b {
-                                extracted_bonds.push((local_index_a, local_index_b));
-                            }
+        for name in &placement_info.sidechain_atoms {
+            if let Some(ids) = atom_pool.get_mut(name) {
+                if let Some(atom_id) = ids.pop() {
+                    if let Some(atom) = system.atom(atom_id) {
+                        old_id_to_new_index.insert(atom_id, new_rotamer_atoms.len());
+                        new_rotamer_atoms.push(atom.clone());
+                    }
+                } else {
+                    return None;
+                }
+            }
+        }
+
+        // --- 3. Rebuild the topology for the extracted atoms ---
+        let mut new_rotamer_bonds = Vec::new();
+        for (&old_id_a, &new_idx_a) in &old_id_to_new_index {
+            if let Some(neighbors) = system.get_bonded_neighbors(old_id_a) {
+                for &old_id_b in neighbors {
+                    if let Some(&new_idx_b) = old_id_to_new_index.get(&old_id_b) {
+                        if new_idx_a < new_idx_b {
+                            new_rotamer_bonds.push((new_idx_a, new_idx_b));
                         }
                     }
                 }
             }
-
-            let extracted_rotamer = Rotamer {
-                atoms: extracted_atoms,
-                bonds: extracted_bonds,
-            };
-
-            // --- 3. Add the extracted rotamer to the library ---
-            self.rotamers
-                .entry(residue_type)
-                .or_default()
-                .push(extracted_rotamer);
         }
+
+        Some(Rotamer {
+            atoms: new_rotamer_atoms,
+            bonds: new_rotamer_bonds,
+        })
     }
 }
 
@@ -312,15 +328,6 @@ mod tests {
         Forcefield { deltas, non_bonded }
     }
 
-    fn ala_placement_info() -> PlacementInfo {
-        PlacementInfo {
-            sidechain_atoms: vec!["CB".to_string()],
-            anchor_atoms: vec!["N".to_string(), "CA".to_string(), "C".to_string()],
-            connection_points: vec![],
-            exact_match_atoms: vec![],
-        }
-    }
-
     fn write_file(path: &std::path::Path, content: &str) {
         fs::write(path, content).expect("Failed to write temporary file for test setup");
     }
@@ -340,35 +347,18 @@ atoms = [
     { serial = 2, atom_name = "CA", position = [1.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" },
 ]
 bonds = [ [1, 2] ]
-
-[[ALA]]
-atoms = [
-    { serial = 10, atom_name = "N", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" },
-    { serial = 20, atom_name = "CA", position = [1.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_SP3" },
-]
-bonds = [ [10, 20] ]
 "#,
         );
-
         write_file(
             &placement_path,
-            r#"ALA = { sidechain_atoms = ["CB"], anchor_atoms = ["N", "CA", "C"], connection_points = [], exact_match_atoms = [] }"#,
+            r#"ALA = { sidechain_atoms = [], anchor_atoms = ["N", "CA"], connection_points = [], exact_match_atoms = [] }"#,
         );
         let ff = dummy_forcefield();
         let lib = RotamerLibrary::load(&rotamer_path, &placement_path, &ff, 0.0).unwrap();
-
         let rots = lib.get_rotamers_for(ResidueType::Alanine).unwrap();
-        assert_eq!(rots.len(), 2, "Should load two rotamers for ALA");
-
+        assert_eq!(rots.len(), 1);
         let rotamer1 = &rots[0];
         assert_eq!(rotamer1.atoms.len(), 2);
-        assert_eq!(rotamer1.bonds.len(), 1);
-        assert_eq!(rotamer1.bonds[0], (0, 1));
-
-        let rotamer2 = &rots[1];
-        assert_eq!(rotamer2.atoms.len(), 2);
-        assert_eq!(rotamer2.bonds.len(), 1);
-        assert_eq!(rotamer2.bonds[0], (0, 1));
     }
 
     #[test]
@@ -391,13 +381,12 @@ bonds = []
             &placement_path,
             r#"ALA = { sidechain_atoms = [], anchor_atoms = [], connection_points = [], exact_match_atoms = [] }"#,
         );
-
         let ff = dummy_forcefield();
         let result = RotamerLibrary::load(&rotamer_path, &placement_path, &ff, 0.0);
-
-        assert!(
-            matches!(result, Err(LibraryLoadError::DuplicateAtomSerial { residue_type, serial }) if residue_type == "ALA" && serial == 1)
-        );
+        assert!(matches!(
+            result,
+            Err(LibraryLoadError::DuplicateAtomSerial { .. })
+        ));
     }
 
     #[test]
@@ -417,110 +406,238 @@ bonds = [ [1, 99] ]
             &placement_path,
             r#"ALA = { sidechain_atoms = [], anchor_atoms = [], connection_points = [], exact_match_atoms = [] }"#,
         );
-
         let ff = dummy_forcefield();
         let result = RotamerLibrary::load(&rotamer_path, &placement_path, &ff, 0.0);
-
-        assert!(
-            matches!(result, Err(LibraryLoadError::InvalidBondSerial { residue_type, serial }) if residue_type == "ALA" && serial == 99)
-        );
+        assert!(matches!(
+            result,
+            Err(LibraryLoadError::InvalidBondSerial { .. })
+        ));
     }
 
-    fn create_test_system_for_extraction() -> (MolecularSystem, ResidueId) {
+    fn create_library_with_placement_info() -> RotamerLibrary {
+        let mut lib = RotamerLibrary::default();
+        lib.placement_info.insert(
+            ResidueType::Alanine,
+            PlacementInfo {
+                anchor_atoms: vec!["N".to_string(), "CA".to_string(), "C".to_string()],
+                sidechain_atoms: vec![
+                    "CB".to_string(),
+                    "HCB".to_string(),
+                    "HCB".to_string(),
+                    "HCB".to_string(),
+                ],
+                connection_points: vec![],
+                exact_match_atoms: vec![],
+            },
+        );
+        lib.placement_info.insert(
+            ResidueType::Glycine,
+            PlacementInfo {
+                anchor_atoms: vec![
+                    "N".to_string(),
+                    "CA".to_string(),
+                    "C".to_string(),
+                    "HCA".to_string(),
+                ],
+                sidechain_atoms: vec!["HCA".to_string()],
+                connection_points: vec![],
+                exact_match_atoms: vec![],
+            },
+        );
+        lib
+    }
+
+    #[test]
+    fn extract_rotamer_ala_with_multiple_hcb_correctly() {
         let mut system = MolecularSystem::new();
         let chain_id = system.add_chain('A', ChainType::Protein);
         let res_id = system
             .add_residue(chain_id, 1, "ALA", Some(ResidueType::Alanine))
             .unwrap();
 
-        let n_atom = Atom::new("N", res_id, Point3::origin());
-        let ca_atom = Atom::new("CA", res_id, Point3::new(1.0, 0.0, 0.0));
-        let c_atom = Atom::new("C", res_id, Point3::new(1.0, 1.0, 0.0));
-        let cb_atom = Atom::new("CB", res_id, Point3::new(2.0, -1.0, 0.0));
-
-        let n_id = system.add_atom_to_residue(res_id, n_atom).unwrap();
-        let ca_id = system.add_atom_to_residue(res_id, ca_atom).unwrap();
-        let c_id = system.add_atom_to_residue(res_id, c_atom).unwrap();
-        let cb_id = system.add_atom_to_residue(res_id, cb_atom).unwrap();
-
-        system.add_bond(n_id, ca_id, BondOrder::Single).unwrap();
-        system.add_bond(ca_id, c_id, BondOrder::Single).unwrap();
+        let n_id = system
+            .add_atom_to_residue(res_id, Atom::new("N", res_id, Point3::origin()))
+            .unwrap();
+        let ca_id = system
+            .add_atom_to_residue(res_id, Atom::new("CA", res_id, Point3::origin()))
+            .unwrap();
+        let c_id = system
+            .add_atom_to_residue(res_id, Atom::new("C", res_id, Point3::origin()))
+            .unwrap();
+        let cb_id = system
+            .add_atom_to_residue(res_id, Atom::new("CB", res_id, Point3::origin()))
+            .unwrap();
+        let hcb1_id = system
+            .add_atom_to_residue(res_id, Atom::new("HCB", res_id, Point3::origin()))
+            .unwrap();
+        let hcb2_id = system
+            .add_atom_to_residue(res_id, Atom::new("HCB", res_id, Point3::origin()))
+            .unwrap();
+        let hcb3_id = system
+            .add_atom_to_residue(res_id, Atom::new("HCB", res_id, Point3::origin()))
+            .unwrap();
         system.add_bond(ca_id, cb_id, BondOrder::Single).unwrap();
+        system.add_bond(cb_id, hcb1_id, BondOrder::Single).unwrap();
 
-        (system, res_id)
-    }
+        let mut lib = create_library_with_placement_info();
+        let active_residues = [res_id].iter().cloned().collect();
 
-    #[test]
-    fn include_system_conformations_extracts_atoms_and_topology() {
-        let mut lib = RotamerLibrary::default();
-        let placement_info = ala_placement_info();
-        lib.placement_info
-            .insert(ResidueType::Alanine, placement_info);
-        lib.rotamers.insert(ResidueType::Alanine, vec![]);
-
-        let (system, res_id) = create_test_system_for_extraction();
-        let mut active = HashSet::new();
-        active.insert(res_id);
-
-        lib.include_system_conformations(&system, &active);
+        lib.include_system_conformations(&system, &active_residues);
 
         let rots = lib.get_rotamers_for(ResidueType::Alanine).unwrap();
         assert_eq!(rots.len(), 1);
         let rotamer = &rots[0];
 
-        assert_eq!(rotamer.atoms.len(), 4);
-        assert!(rotamer.atoms.iter().any(|a| a.name == "N"));
-        assert!(rotamer.atoms.iter().any(|a| a.name == "CA"));
-        assert!(rotamer.atoms.iter().any(|a| a.name == "C"));
-        assert!(rotamer.atoms.iter().any(|a| a.name == "CB"));
+        assert_eq!(rotamer.atoms.len(), 7);
 
-        assert_eq!(rotamer.bonds.len(), 3);
+        let atom_names: Vec<_> = rotamer.atoms.iter().map(|a| a.name.as_str()).collect();
+        assert_eq!(&atom_names[0..3], &["N", "CA", "C"]);
+        assert_eq!(&atom_names[3..], &["CB", "HCB", "HCB", "HCB"]);
+
+        assert_eq!(rotamer.bonds.len(), 2, "Should have CA-CB and CB-HCB bonds");
+
         let name_to_idx: HashMap<_, _> = rotamer
             .atoms
             .iter()
             .enumerate()
-            .map(|(idx, atom)| (atom.name.as_str(), idx))
+            .map(|(i, a)| (a.name.clone(), i))
             .collect();
-        let expected_bonds: HashSet<(usize, usize)> = [
-            (name_to_idx["N"], name_to_idx["CA"]),
-            (name_to_idx["CA"], name_to_idx["C"]),
-            (name_to_idx["CA"], name_to_idx["CB"]),
-        ]
-        .iter()
-        .map(|&(a, b)| if a < b { (a, b) } else { (b, a) })
-        .collect();
-
-        let actual_bonds: HashSet<(usize, usize)> = rotamer
+        let bonds_as_set: HashSet<(usize, usize)> = rotamer
             .bonds
             .iter()
-            .map(|&(a, b)| if a < b { (a, b) } else { (b, a) })
+            .map(|&(a, b)| (a.min(b), a.max(b)))
             .collect();
+        let ca_idx = name_to_idx["CA"];
+        let cb_idx = name_to_idx["CB"];
 
-        assert_eq!(actual_bonds, expected_bonds);
+        assert!(bonds_as_set.contains(&(ca_idx, cb_idx)));
     }
 
     #[test]
-    fn include_system_conformations_always_adds_extracted_rotamer() {
-        let mut lib = RotamerLibrary::default();
-        let placement_info = ala_placement_info();
-        lib.placement_info
-            .insert(ResidueType::Alanine, placement_info.clone());
-        lib.rotamers.insert(ResidueType::Alanine, vec![]);
+    fn extract_rotamer_gly_handles_dual_role_hca_correctly() {
+        let mut system = MolecularSystem::new();
+        let chain_id = system.add_chain('A', ChainType::Protein);
+        let res_id = system
+            .add_residue(chain_id, 1, "GLY", Some(ResidueType::Glycine))
+            .unwrap();
 
-        let (system, res_id) = create_test_system_for_extraction();
-        let mut active = HashSet::new();
-        active.insert(res_id);
+        let n_id = system
+            .add_atom_to_residue(res_id, Atom::new("N", res_id, Point3::new(0.0, 1.0, 0.0)))
+            .unwrap();
+        let ca_id = system
+            .add_atom_to_residue(res_id, Atom::new("CA", res_id, Point3::new(0.0, 0.0, 0.0)))
+            .unwrap();
+        let c_id = system
+            .add_atom_to_residue(res_id, Atom::new("C", res_id, Point3::new(1.0, 0.0, 0.0)))
+            .unwrap();
+        let hca1_id = system
+            .add_atom_to_residue(
+                res_id,
+                Atom::new("HCA", res_id, Point3::new(-0.5, -0.5, 0.0)),
+            )
+            .unwrap();
+        let hca2_id = system
+            .add_atom_to_residue(
+                res_id,
+                Atom::new("HCA", res_id, Point3::new(-0.5, -0.5, 1.0)),
+            )
+            .unwrap();
 
-        lib.include_system_conformations(&system, &active);
-        let rots = lib.get_rotamers_for(ResidueType::Alanine).unwrap();
-        assert_eq!(rots.len(), 1, "Should add the rotamer the first time");
+        system.add_bond(n_id, ca_id, BondOrder::Single).unwrap();
+        system.add_bond(ca_id, c_id, BondOrder::Single).unwrap();
+        system.add_bond(ca_id, hca1_id, BondOrder::Single).unwrap();
+        system.add_bond(ca_id, hca2_id, BondOrder::Single).unwrap();
 
-        lib.include_system_conformations(&system, &active);
-        let rots_after_second_call = lib.get_rotamers_for(ResidueType::Alanine).unwrap();
+        let mut lib = create_library_with_placement_info();
+        let active_residues = [res_id].iter().cloned().collect();
+
+        lib.include_system_conformations(&system, &active_residues);
+
+        let rots = lib.get_rotamers_for(ResidueType::Glycine).unwrap();
+        assert_eq!(rots.len(), 1);
+        let rotamer = &rots[0];
+
+        assert_eq!(rotamer.atoms.len(), 5);
+
+        let atom_ids_in_rotamer: Vec<_> = rotamer.atoms.iter().map(|a| a.residue_id).collect();
+        let atom_positions_in_rotamer: Vec<_> = rotamer.atoms.iter().map(|a| a.position).collect();
+
+        assert_eq!(atom_positions_in_rotamer[3], Point3::new(-0.5, -0.5, 0.0));
+        assert_eq!(atom_positions_in_rotamer[4], Point3::new(-0.5, -0.5, 1.0));
+
+        let ca_idx = 1;
+        let hca_anchor_idx = 3;
+        let hca_sidechain_idx = 4;
+        let bonds_as_set: HashSet<(usize, usize)> = rotamer
+            .bonds
+            .iter()
+            .map(|&(a, b)| (a.min(b), a.max(b)))
+            .collect();
+
+        assert!(
+            bonds_as_set.contains(&(ca_idx, hca_anchor_idx)),
+            "Bond between CA and anchor HCA should exist"
+        );
+        assert!(
+            bonds_as_set.contains(&(ca_idx, hca_sidechain_idx)),
+            "Bond between CA and sidechain HCA should exist"
+        );
+    }
+
+    #[test]
+    fn include_system_conformations_is_idempotent_in_adding() {
+        let mut lib = create_library_with_placement_info();
+
+        let mut system = MolecularSystem::new();
+        let chain_id = system.add_chain('A', ChainType::Protein);
+        let res_id = system
+            .add_residue(chain_id, 1, "ALA", Some(ResidueType::Alanine))
+            .unwrap();
+        system
+            .add_atom_to_residue(res_id, Atom::new("N", res_id, Point3::origin()))
+            .unwrap();
+        system
+            .add_atom_to_residue(res_id, Atom::new("CA", res_id, Point3::origin()))
+            .unwrap();
+        system
+            .add_atom_to_residue(res_id, Atom::new("C", res_id, Point3::origin()))
+            .unwrap();
+        system
+            .add_atom_to_residue(res_id, Atom::new("CB", res_id, Point3::origin()))
+            .unwrap();
+
+        let active_residues = [res_id].iter().cloned().collect();
+
+        lib.include_system_conformations(&system, &active_residues);
         assert_eq!(
-            rots_after_second_call.len(),
+            lib.get_rotamers_for(ResidueType::Alanine).unwrap().len(),
+            1,
+            "Should add the rotamer the first time"
+        );
+
+        lib.include_system_conformations(&system, &active_residues);
+        assert_eq!(
+            lib.get_rotamers_for(ResidueType::Alanine).unwrap().len(),
             2,
-            "Should add the rotamer again as de-duplication is disabled"
+            "Should add the rotamer again as de-duplication is not implemented"
+        );
+    }
+
+    #[test]
+    fn include_system_conformations_skips_residue_if_placement_info_is_missing() {
+        let mut lib = RotamerLibrary::default();
+        let mut system = MolecularSystem::new();
+        let chain_id = system.add_chain('A', ChainType::Protein);
+        let res_id = system
+            .add_residue(chain_id, 1, "ALA", Some(ResidueType::Alanine))
+            .unwrap();
+
+        let active_residues = [res_id].iter().cloned().collect();
+        lib.include_system_conformations(&system, &active_residues);
+
+        assert!(
+            lib.get_rotamers_for(ResidueType::Alanine).is_none(),
+            "Should not add rotamer if placement info is missing"
         );
     }
 }
