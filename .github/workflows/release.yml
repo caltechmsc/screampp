@@ -47,11 +47,16 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      - name: Install cross-compilation tool (for Linux targets)
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libssl-dev pkg-config
+
+      - name: Install cross-compilation tool
         if: runner.os == 'Linux'
         run: cargo install cross --git https://github.com/cross-rs/cross
 
       - name: Build binary with cargo/cross
+        shell: bash
         run: |
           if [[ "${{ runner.os }}" == "Linux" ]]; then
             cross build --package scream-cli --release --target ${{ matrix.target }}
@@ -115,7 +120,7 @@ jobs:
           RELEASE_VERSION=$(echo "${{ github.ref_name }}" | sed 's/v//')
           ARCHIVE_NAME="${{ env.DATA_PREFIX }}-v${RELEASE_VERSION}.tar.zst"
 
-          tar --zstd -cf "$ARCHIVE_NAME" -I "zstd -19 -T0" data
+          tar -cf "$ARCHIVE_NAME" --use-compress-program="zstd -19 -T0" data
 
           echo "ARCHIVE_PATH=${ARCHIVE_NAME}" >> $GITHUB_ENV
 
@@ -130,7 +135,6 @@ jobs:
     name: Upload Assets to Release
     needs: [build-cli, package-data]
     runs-on: ubuntu-latest
-
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
