@@ -6,7 +6,7 @@ use std::fs::{self};
 use std::path::{Path, PathBuf};
 use tracing::{debug, info, warn};
 
-const DATA_URL: &str = "https://github.com/caltechmsc/screampp/releases/download/XXX.tar.zst"; // TODO: Replace with actual URL
+const DATA_URL: &str = "https://github.com/caltechmsc/screampp/releases/download/v0.1.0-alpha.1/screampp-data-v0.1.0-alpha.1.tar.zst";
 
 #[derive(Debug, Clone, Copy)]
 pub enum DataProgress {
