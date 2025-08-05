@@ -1226,7 +1226,7 @@ mod tests {
             .unwrap();
         let reporter = ProgressReporter::new();
 
-        let mut system_to_run = env.initial_system.clone();
+        let system_to_run = env.initial_system.clone();
         let initial_ala_centroid = get_sidechain_centroid(
             &system_to_run,
             system_to_run
@@ -1240,7 +1240,7 @@ mod tests {
                 .unwrap(),
         );
 
-        let result = run(&mut system_to_run, &config, &reporter);
+        let result = run(&system_to_run, &config, &reporter);
 
         assert!(result.is_ok(), "Workflow failed: {:?}", result.err());
         let solutions = result.unwrap();
@@ -1282,8 +1282,8 @@ mod tests {
             .unwrap();
         let reporter = ProgressReporter::new();
 
-        let mut system_to_run = env.initial_system.clone();
-        let solutions = run(&mut system_to_run, &config, &reporter).unwrap();
+        let system_to_run = env.initial_system.clone();
+        let solutions = run(&system_to_run, &config, &reporter).unwrap();
 
         assert!(
             solutions.len() <= 3 && !solutions.is_empty(),
@@ -1309,7 +1309,7 @@ mod tests {
             .unwrap();
         let reporter = ProgressReporter::new();
 
-        let mut system_to_run = env.initial_system.clone();
+        let system_to_run = env.initial_system.clone();
         let initial_ala_centroid = get_sidechain_centroid(
             &system_to_run,
             system_to_run
@@ -1323,7 +1323,7 @@ mod tests {
                 .unwrap(),
         );
 
-        let solutions = run(&mut system_to_run, &config, &reporter).unwrap();
+        let solutions = run(&system_to_run, &config, &reporter).unwrap();
 
         let final_system = &solutions[0].state.system;
         let final_ala_centroid = get_sidechain_centroid(
@@ -1394,7 +1394,7 @@ mod tests {
             initial_energy.vdw
         );
 
-        let result = run(&mut clashing_system, &config, &reporter);
+        let result = run(&clashing_system, &config, &reporter);
         assert!(
             result.is_ok(),
             "Workflow failed with error: {:?}",
@@ -1440,8 +1440,8 @@ mod tests {
             }
         }));
 
-        let mut system_to_run = env.initial_system.clone();
-        let result = run(&mut system_to_run, &config, &reporter);
+        let system_to_run = env.initial_system.clone();
+        let result = run(& system_to_run, &config, &reporter);
 
         assert!(result.is_ok());
         assert!(
@@ -1464,8 +1464,8 @@ mod tests {
             .unwrap();
         let reporter = ProgressReporter::new();
 
-        let mut system_to_run = env.initial_system.clone();
-        let solutions = run(&mut system_to_run, &config, &reporter).unwrap();
+        let system_to_run = env.initial_system.clone();
+        let solutions = run(&system_to_run, &config, &reporter).unwrap();
 
         assert_eq!(solutions.len(), 1);
         let final_system = &solutions[0].state.system;
