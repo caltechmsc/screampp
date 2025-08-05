@@ -27,7 +27,8 @@ pub fn run(
 ) -> Result<Vec<Solution>, EngineError> {
     // --- Phase 0 & 1: Setup & Pre-computation ---
     let mut working_system = initial_system.clone();
-    let (forcefield, rotamer_library, active_residues) = setup(&mut working_system, config, reporter)?;
+    let (forcefield, rotamer_library, active_residues) =
+        setup(&mut working_system, config, reporter)?;
     let context = OptimizationContext::new(
         &working_system,
         &forcefield,
@@ -1441,7 +1442,7 @@ mod tests {
         }));
 
         let system_to_run = env.initial_system.clone();
-        let result = run(& system_to_run, &config, &reporter);
+        let result = run(&system_to_run, &config, &reporter);
 
         assert!(result.is_ok());
         assert!(

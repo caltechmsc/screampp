@@ -22,7 +22,7 @@ pub async fn run(args: PlaceArgs, ui_sender: mpsc::Sender<UiEvent>) -> Result<()
     let final_config = partial_config.merge_with_cli(&args, &data_manager)?;
 
     info!("Loading input structure from {:?}", &args.input);
-    let (mut system, metadata) =
+    let (system, metadata) =
         BgfFile::read_from_path(&args.input).map_err(|e| CliError::FileParsing {
             path: args.input.clone(),
             source: e.into(),
@@ -35,7 +35,7 @@ pub async fn run(args: PlaceArgs, ui_sender: mpsc::Sender<UiEvent>) -> Result<()
     info!("Invoking the core placement workflow...");
 
     let workflow_task =
-        task::spawn_blocking(move || workflows::place::run(&mut system, &final_config, &reporter));
+        task::spawn_blocking(move || workflows::place::run(&system, &final_config, &reporter));
 
     let solutions_result = match workflow_task.await {
         Ok(Ok(solutions)) => Ok(solutions),
