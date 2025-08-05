@@ -21,14 +21,15 @@ const CLASH_THRESHOLD: f64 = 25.0; // Clash threshold (kcal/mol)
 
 #[instrument(skip_all, name = "placement_workflow")]
 pub fn run(
-    initial_system: &mut MolecularSystem,
+    initial_system: &MolecularSystem,
     config: &PlacementConfig,
     reporter: &ProgressReporter,
 ) -> Result<Vec<Solution>, EngineError> {
     // --- Phase 0 & 1: Setup & Pre-computation ---
-    let (forcefield, rotamer_library, active_residues) = setup(initial_system, config, reporter)?;
+    let mut working_system = initial_system.clone();
+    let (forcefield, rotamer_library, active_residues) = setup(&mut working_system, config, reporter)?;
     let context = OptimizationContext::new(
-        initial_system,
+        &working_system,
         &forcefield,
         reporter,
         config,
@@ -38,7 +39,7 @@ pub fn run(
 
     // --- Phase 2: Initialization ---
     let mut state = initialize_state(
-        initial_system,
+        &working_system,
         &active_residues,
         &context,
         &el_cache,
@@ -67,7 +68,7 @@ pub fn run(
 
 #[instrument(skip_all, name = "workflow_setup")]
 fn setup<'a>(
-    initial_system: &mut MolecularSystem,
+    working_system: &mut MolecularSystem,
     config: &'a PlacementConfig,
     reporter: &ProgressReporter,
 ) -> Result<(Forcefield, RotamerLibrary, HashSet<ResidueId>), EngineError> {
@@ -83,7 +84,7 @@ fn setup<'a>(
 
     info!("Parameterizing the input molecular system...");
     parameterizer
-        .parameterize_system(initial_system)
+        .parameterize_system(working_system)
         .map_err(|e| EngineError::Initialization(e.to_string()))?;
 
     let mut rotamer_library = RotamerLibrary::load(
@@ -94,14 +95,14 @@ fn setup<'a>(
     )?;
 
     let active_residues = resolve_selection_to_ids(
-        initial_system,
+        working_system,
         &config.residues_to_optimize,
         &rotamer_library,
     )?;
 
     if config.optimization.include_input_conformation {
         info!("Including original side-chain conformations in the rotamer library.");
-        rotamer_library.include_system_conformations(initial_system, &active_residues);
+        rotamer_library.include_system_conformations(working_system, &active_residues);
     }
 
     reporter.report(Progress::PhaseFinish);
@@ -123,7 +124,7 @@ fn precompute_el_energies<'a>(
 
 #[instrument(skip_all, name = "state_initialization")]
 fn initialize_state<'a>(
-    initial_system: &MolecularSystem,
+    working_system: &MolecularSystem,
     active_residues: &HashSet<ResidueId>,
     context: &OptimizationContext<'a, PlacementConfig>,
     el_cache: &ELCache,
@@ -135,7 +136,7 @@ fn initialize_state<'a>(
     info!("Initializing system with ground-state rotamers.");
 
     let mut initial_rotamers = HashMap::new();
-    let mut working_system = initial_system.clone();
+    let mut working_system = working_system.clone();
 
     for &residue_id in active_residues {
         let residue_type = working_system
