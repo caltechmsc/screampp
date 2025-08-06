@@ -288,8 +288,6 @@ mod tests {
         let placement_info = PlacementInfo {
             anchor_atoms: vec!["N".to_string(), "CA".to_string(), "C".to_string()],
             sidechain_atoms: vec!["CB".to_string()],
-            exact_match_atoms: vec![],
-            connection_points: vec![],
         };
         let mut placement_map = HashMap::new();
         placement_map.insert(ResidueType::Alanine, placement_info.clone());
