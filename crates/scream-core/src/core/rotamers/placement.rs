@@ -7,8 +7,6 @@ use thiserror::Error;
 pub struct PlacementInfo {
     pub anchor_atoms: Vec<String>,
     pub sidechain_atoms: Vec<String>,
-    pub exact_match_atoms: Vec<String>,
-    pub connection_points: Vec<String>,
 }
 
 pub type PlacementRegistry = HashMap<String, PlacementInfo>;
