@@ -1,6 +1,17 @@
 use super::ids::ResidueId;
 use nalgebra::Point3;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum AtomRole {
+    Backbone,  // Backbone atom (e.g., C, N, O)
+    Sidechain, // Sidechain atom (e.g., CH3, OH)
+    Ligand,    // Ligand atom (e.g., in a small molecule)
+    Water,     // Water molecule atom (e.g., H2O)
+    Ion,       // Ion atom (e.g., Na+, Cl-)
+    #[default]
+    Unknown, // Unknown or unclassified atom
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum CachedVdwParam {
     LennardJones {
@@ -20,6 +31,7 @@ pub struct Atom {
     // --- Identity & Topology ---
     pub name: String,          // Atom name (e.g., "CA", "N", "O")
     pub residue_id: ResidueId, // ID of the parent residue
+    pub role: AtomRole,
 
     // --- Physicochemical Properties ---
     pub force_field_type: String, // Force field atom type (e.g., "C.3", "N.2")
@@ -31,7 +43,7 @@ pub struct Atom {
 
     // --- Cached Force Field Parameters for Performance ---
     pub vdw_param: CachedVdwParam, // Cached van der Waals parameters
-    pub hbond_type_id: i8,         // Hydrogen bond type identifier
+    pub hbond_type_id: i8, // Hydrogen bond type identifier (-1: None, 0: Donor Hydrogen, >0: Acceptor)
 }
 
 impl Atom {
@@ -40,7 +52,8 @@ impl Atom {
             name: name.to_string(),
             residue_id,
             position,
-            force_field_type: "".to_string(),
+            role: AtomRole::default(),
+            force_field_type: String::new(),
             partial_charge: 0.0,
             delta: 0.0,
             vdw_param: CachedVdwParam::None,
