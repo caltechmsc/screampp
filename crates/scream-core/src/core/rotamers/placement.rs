@@ -47,21 +47,26 @@ mod tests {
         let content = r#"
 [ALA]
 anchor_atoms = ["N", "CA", "C"]
-sidechain_atoms = ["CB"]
-exact_match_atoms = ["N", "CA", "C", "O"]
-connection_points = ["C", "N"]
+sidechain_atoms = ["CB", "HB1", "HB2", "HB3"]
+
+[GLY]
+anchor_atoms = ["N", "CA", "C"]
+sidechain_atoms = ["HA1", "HA2"]
 "#;
         let mut file = NamedTempFile::new().unwrap();
         write!(file, "{}", content).unwrap();
 
         let registry = load_placement_registry(file.path()).unwrap();
 
-        assert_eq!(registry.len(), 1);
-        let ala_info = registry.get("ALA").unwrap();
+        assert_eq!(registry.len(), 2);
+
+        let ala_info = registry.get("ALA").expect("ALA info should be present");
         assert_eq!(ala_info.anchor_atoms, vec!["N", "CA", "C"]);
-        assert_eq!(ala_info.sidechain_atoms, vec!["CB"]);
-        assert_eq!(ala_info.exact_match_atoms, vec!["N", "CA", "C", "O"]);
-        assert_eq!(ala_info.connection_points, vec!["C", "N"]);
+        assert_eq!(ala_info.sidechain_atoms, vec!["CB", "HB1", "HB2", "HB3"]);
+
+        let gly_info = registry.get("GLY").expect("GLY info should be present");
+        assert_eq!(gly_info.anchor_atoms, vec!["N", "CA", "C"]);
+        assert_eq!(gly_info.sidechain_atoms, vec!["HA1", "HA2"]);
     }
 
     #[test]
