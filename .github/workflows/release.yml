@@ -4,6 +4,9 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: write
+
 env:
   BINARY_PREFIX: screampp
   DATA_PREFIX: screampp-data
