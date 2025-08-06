@@ -1,4 +1,6 @@
+use super::atom::AtomRole;
 use super::ids::{AtomId, ChainId};
+use super::system::MolecularSystem;
 use std::collections::HashMap;
 use std::fmt;
 use std::str::FromStr;
@@ -122,12 +124,14 @@ impl ResidueType {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Residue {
-    pub residue_number: isize, // Residue sequence number from source file
-    pub name: String,          // Name of the residue (e.g., "ALA", "GLY")
-    pub residue_type: Option<ResidueType>, // Optional residue type (e.g., Alanine, Glycine)
-    pub chain_id: ChainId,     // ID of the parent chain
-    pub(crate) atoms: Vec<AtomId>, // Indices of atoms belonging to this residue
-    atom_name_map: HashMap<String, Vec<AtomId>>, // Map from atom names to their IDs
+    pub residue_number: isize,
+    pub name: String,
+    pub residue_type: Option<ResidueType>,
+    pub chain_id: ChainId,
+    atoms: Vec<AtomId>,
+    atom_name_map: HashMap<String, Vec<AtomId>>,
+    sidechain_atoms_cache: Vec<AtomId>,
+    backbone_atoms_cache: Vec<AtomId>,
 }
 
 impl Residue {
@@ -144,6 +148,8 @@ impl Residue {
             chain_id,
             atoms: Vec::new(),
             atom_name_map: HashMap::new(),
+            sidechain_atoms_cache: Vec::new(),
+            backbone_atoms_cache: Vec::new(),
         }
     }
 
