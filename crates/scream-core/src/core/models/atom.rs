@@ -72,6 +72,7 @@ mod tests {
     fn new_atom_has_expected_default_fields() {
         let residue_id = ResidueId::default();
         let atom = Atom::new("CA", residue_id, Point3::new(1.0, 2.0, 3.0));
+
         assert_eq!(atom.name, "CA");
         assert_eq!(atom.residue_id, residue_id);
         assert_eq!(atom.position, Point3::new(1.0, 2.0, 3.0));
@@ -83,10 +84,27 @@ mod tests {
     }
 
     #[test]
+    fn new_atom_has_correct_default_role() {
+        let residue_id = ResidueId::default();
+        let atom = Atom::new("CA", residue_id, Point3::new(1.0, 2.0, 3.0));
+        assert_eq!(atom.role, AtomRole::Unknown);
+        assert_eq!(atom.role, AtomRole::default());
+    }
+
+    #[test]
     fn atom_equality_and_clone_works() {
         let residue_id = ResidueId::default();
-        let atom1 = Atom::new("N", residue_id, Point3::new(0.0, 0.0, 0.0));
+        let mut atom1 = Atom::new("N", residue_id, Point3::new(0.0, 0.0, 0.0));
+        atom1.role = AtomRole::Backbone; // Also test non-default fields
         let atom2 = atom1.clone();
         assert_eq!(atom1, atom2);
+    }
+
+    #[test]
+    fn atom_role_derives_expected_traits() {
+        let role = AtomRole::Sidechain;
+        let role_clone = role.clone();
+        assert_eq!(role, role_clone);
+        assert_eq!(format!("{:?}", role), "Sidechain");
     }
 }
