@@ -153,12 +153,18 @@ impl Residue {
         }
     }
 
+    fn invalidate_caches(&mut self) {
+        self.sidechain_atoms_cache.clear();
+        self.backbone_atoms_cache.clear();
+    }
+
     pub(crate) fn add_atom(&mut self, atom_name: &str, atom_id: AtomId) {
         self.atoms.push(atom_id);
         self.atom_name_map
             .entry(atom_name.to_string())
             .or_default()
             .push(atom_id);
+        self.invalidate_caches();
     }
 
     pub(crate) fn remove_atom(&mut self, atom_name: &str, atom_id_to_remove: AtomId) {
@@ -170,10 +176,38 @@ impl Residue {
                 self.atom_name_map.remove(atom_name);
             }
         }
+        self.invalidate_caches();
     }
 
     pub fn atoms(&self) -> &[AtomId] {
         &self.atoms
+    }
+
+    pub fn sidechain_atoms<'a>(&'a mut self, system: &'a MolecularSystem) -> &'a [AtomId] {
+        if self.sidechain_atoms_cache.is_empty() && !self.atoms.is_empty() {
+            self.build_caches(system);
+        }
+        &self.sidechain_atoms_cache
+    }
+
+    pub fn backbone_atoms<'a>(&'a mut self, system: &'a MolecularSystem) -> &'a [AtomId] {
+        if self.backbone_atoms_cache.is_empty() && !self.atoms.is_empty() {
+            self.build_caches(system);
+        }
+        &self.backbone_atoms_cache
+    }
+
+    fn build_caches(&mut self, system: &MolecularSystem) {
+        self.invalidate_caches();
+        for &atom_id in &self.atoms {
+            if let Some(atom) = system.atom(atom_id) {
+                match atom.role {
+                    AtomRole::Sidechain => self.sidechain_atoms_cache.push(atom_id),
+                    AtomRole::Backbone => self.backbone_atoms_cache.push(atom_id),
+                    _ => {}
+                }
+            }
+        }
     }
 
     pub fn get_atom_ids_by_name(&self, name: &str) -> Option<&[AtomId]> {
