@@ -10,33 +10,33 @@ env:
 
 jobs:
   build-cli:
-    name: Build CLI for ${{ matrix.target }}
+    name: Build CLI for ${{ matrix.target }} on ${{ matrix.os_name }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
+            os_name: "Linux x86_64"
             target: x86_64-unknown-linux-gnu
-            archive_format: tar.gz
           - os: ubuntu-latest
+            os_name: "Linux x86_64 (musl)"
             target: x86_64-unknown-linux-musl
-            archive_format: tar.gz
-          - os: ubuntu-latest
+          - os: ubuntu-22.04-arm64
+            os_name: "Linux aarch64"
             target: aarch64-unknown-linux-gnu
-            archive_format: tar.gz
-          - os: ubuntu-latest
+          - os: ubuntu-22.04-arm64
+            os_name: "Linux aarch64 (musl)"
             target: aarch64-unknown-linux-musl
-            archive_format: tar.gz
           - os: macos-13
+            os_name: "macOS x86_64"
             target: x86_64-apple-darwin
-            archive_format: tar.gz
           - os: macos-14
+            os_name: "macOS aarch64"
             target: aarch64-apple-darwin
-            archive_format: tar.gz
           - os: windows-latest
+            os_name: "Windows x86_64"
             target: x86_64-pc-windows-msvc
-            archive_format: zip
 
     steps:
       - name: Checkout repository
@@ -47,18 +47,13 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      - name: Install cross-compilation tool (for Linux targets)
-        if: runner.os == 'Linux'
-        run: cargo install cross --git https://github.com/cross-rs/cross
+      - name: Install musl tools (if needed)
+        if: contains(matrix.target, '-musl')
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
 
-      - name: Build binary with cargo/cross
+      - name: Build binary
         shell: bash
-        run: |
-          if [[ "${{ runner.os }}" == "Linux" ]]; then
-            cross build --package scream-cli --release --target ${{ matrix.target }}
-          else
-            cargo build --package scream-cli --release --target ${{ matrix.target }}
-          fi
+        run: cargo build --package scream-cli --release --target ${{ matrix.target }}
         env:
           CARGO_TERM_COLOR: always
 
