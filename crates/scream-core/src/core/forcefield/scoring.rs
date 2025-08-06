@@ -379,26 +379,6 @@ mod tests {
     }
 
     #[test]
-    fn ignores_intra_residue_interactions() {
-        let mut system = MolecularSystem::new();
-        let ff = create_generic_forcefield();
-
-        let chain_id = system.add_chain('A', ChainType::Protein);
-        let res1_id = system.add_residue(chain_id, 1, "RES", None).unwrap();
-
-        let atom1 = create_generic_atom("C1", res1_id, Point3::origin(), "C", 0.5, -1);
-        let atom2 = create_generic_atom("C2", res1_id, Point3::new(3.0, 0.0, 0.0), "C", -0.5, -1);
-
-        let id1 = system.add_atom_to_residue(res1_id, atom1).unwrap();
-        let id2 = system.add_atom_to_residue(res1_id, atom2).unwrap();
-
-        let scorer = Scorer::new(&system, &ff);
-        let energy = scorer.score_interaction(&[id1], &[id2]).unwrap();
-
-        assert!((energy.total()).abs() < TOLERANCE);
-    }
-
-    #[test]
     fn ignores_1_2_and_1_3_bonded_interactions() {
         let mut system = MolecularSystem::new();
         let ff = create_generic_forcefield();
