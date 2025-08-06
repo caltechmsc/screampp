@@ -333,8 +333,6 @@ mod tests {
         PlacementInfo {
             anchor_atoms: vec!["N".to_string(), "CA".to_string(), "C".to_string()],
             sidechain_atoms: vec!["CB".to_string(), "CG".to_string()],
-            connection_points: vec![],
-            exact_match_atoms: vec![],
         }
     }
 
@@ -379,8 +377,6 @@ mod tests {
                 "HCB".to_string(),
                 "HCB".to_string(),
             ],
-            exact_match_atoms: vec![],
-            connection_points: vec![],
         };
 
         assert_eq!(system.residue(residue_id).unwrap().atoms().len(), 7);
@@ -424,8 +420,6 @@ mod tests {
                 "HCB".to_string(),
             ],
             anchor_atoms: vec![],
-            exact_match_atoms: vec![],
-            connection_points: vec![],
         };
         remove_old_sidechain(&mut system, residue_id, &ala_sidechain_to_remove).unwrap();
 
@@ -473,8 +467,6 @@ mod tests {
         let gly_placement = PlacementInfo {
             anchor_atoms: vec!["N".to_string(), "CA".to_string(), "HCA".to_string()],
             sidechain_atoms: vec!["HCA".to_string()],
-            exact_match_atoms: vec![],
-            connection_points: vec![],
         };
 
         let gly_rotamer = {
