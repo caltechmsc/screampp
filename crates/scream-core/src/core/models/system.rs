@@ -1,4 +1,4 @@
-use super::atom::Atom;
+use super::atom::{Atom, AtomRole};
 use super::chain::{Chain, ChainType};
 use super::ids::{AtomId, ChainId, ResidueId};
 use super::residue::{Residue, ResidueType};
@@ -187,6 +187,37 @@ impl MolecularSystem {
 
     pub fn get_bonded_neighbors(&self, atom_id: AtomId) -> Option<&[AtomId]> {
         self.bond_adjacency.get(atom_id).map(|v| v.as_slice())
+    }
+
+    pub fn atoms_by_role(&self, role: AtomRole) -> impl Iterator<Item = (AtomId, &Atom)> {
+        self.atoms.iter().filter(move |(_, atom)| atom.role == role)
+    }
+
+    pub fn atom_ids_by_role(&self, role: AtomRole) -> Vec<AtomId> {
+        self.atoms_by_role(role).map(|(id, _)| id).collect()
+    }
+
+    pub fn protein_atoms(&self) -> impl Iterator<Item = (AtomId, &Atom)> {
+        self.atoms
+            .iter()
+            .filter(|(_, atom)| matches!(atom.role, AtomRole::Backbone | AtomRole::Sidechain))
+    }
+
+    pub fn protein_atom_ids(&self) -> Vec<AtomId> {
+        self.protein_atoms().map(|(id, _)| id).collect()
+    }
+
+    pub fn background_atoms(&self) -> impl Iterator<Item = (AtomId, &Atom)> {
+        self.atoms.iter().filter(|(_, atom)| {
+            matches!(
+                atom.role,
+                AtomRole::Ligand | AtomRole::Water | AtomRole::Ion | AtomRole::Unknown
+            )
+        })
+    }
+
+    pub fn background_atom_ids(&self) -> Vec<AtomId> {
+        self.background_atoms().map(|(id, _)| id).collect()
     }
 }
 
