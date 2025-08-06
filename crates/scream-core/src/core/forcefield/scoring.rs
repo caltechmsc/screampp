@@ -3,6 +3,7 @@ use super::params::Forcefield;
 use super::term::EnergyTerm;
 use crate::core::models::ids::AtomId;
 use crate::core::models::system::MolecularSystem;
+use std::collections::HashSet;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -33,64 +34,89 @@ impl<'a> Scorer<'a> {
         query_atom_ids: &[AtomId],
         environment_atom_ids: &[AtomId],
     ) -> Result<EnergyTerm, ScoringError> {
+        let mut energy = self.score_vdw_coulomb(query_atom_ids, environment_atom_ids)?;
+        energy += self.score_hbond(query_atom_ids, environment_atom_ids)?;
+        Ok(energy)
+    }
+
+    fn score_vdw_coulomb(
+        &self,
+        group1_ids: &[AtomId],
+        group2_ids: &[AtomId],
+    ) -> Result<EnergyTerm, ScoringError> {
         let mut energy = EnergyTerm::default();
+        let is_internal = group1_ids.as_ptr() == group2_ids.as_ptr();
 
-        for &query_id in query_atom_ids {
-            let query_atom = self
+        for (i, &id1) in group1_ids.iter().enumerate() {
+            let atom1 = self
                 .system
-                .atom(query_id)
-                .ok_or(ScoringError::AtomNotFound(query_id))?;
+                .atom(id1)
+                .ok_or(ScoringError::AtomNotFound(id1))?;
+            let neighbors1 = self.system.get_bonded_neighbors(id1).unwrap_or(&[]);
+            let neighbors1_set: HashSet<_> = neighbors1.iter().copied().collect();
 
-            for &env_id in environment_atom_ids {
-                if query_id == env_id {
+            let start_index = if is_internal { i + 1 } else { 0 };
+            for &id2 in &group2_ids[start_index..] {
+                if neighbors1_set.contains(&id2) {
                     continue;
                 }
 
-                let env_atom = self
-                    .system
-                    .atom(env_id)
-                    .ok_or(ScoringError::AtomNotFound(env_id))?;
-
-                if query_atom.residue_id == env_atom.residue_id {
-                    continue;
-                }
-
-                let neighbors_of_query = self.system.get_bonded_neighbors(query_id).unwrap_or(&[]);
-                if neighbors_of_query.contains(&env_id) {
-                    continue;
-                }
-
-                let mut is_1_3_neighbor = false;
-                for &neighbor_of_query in neighbors_of_query {
-                    let neighbors_of_neighbor = self
-                        .system
-                        .get_bonded_neighbors(neighbor_of_query)
-                        .unwrap_or(&[]);
-                    if neighbors_of_neighbor.contains(&env_id) {
-                        is_1_3_neighbor = true;
-                        break;
+                let mut is_1_3 = false;
+                for &neighbor_id in neighbors1 {
+                    if let Some(neighbors_of_neighbor) =
+                        self.system.get_bonded_neighbors(neighbor_id)
+                    {
+                        if neighbors_of_neighbor.contains(&id2) {
+                            is_1_3 = true;
+                            break;
+                        }
                     }
                 }
-                if is_1_3_neighbor {
+                if is_1_3 {
                     continue;
                 }
 
-                energy.vdw += EnergyCalculator::calculate_vdw(query_atom, env_atom)?;
+                let atom2 = self
+                    .system
+                    .atom(id2)
+                    .ok_or(ScoringError::AtomNotFound(id2))?;
+
+                energy.vdw += EnergyCalculator::calculate_vdw(atom1, atom2)?;
                 energy.coulomb += EnergyCalculator::calculate_coulomb(
-                    query_atom,
-                    env_atom,
+                    atom1,
+                    atom2,
                     self.forcefield.non_bonded.globals.dielectric_constant,
                 );
             }
         }
+        Ok(energy)
+    }
 
-        let all_ids: Vec<_> = query_atom_ids
-            .iter()
-            .chain(environment_atom_ids.iter())
-            .copied()
-            .collect();
+    fn score_hbond(
+        &self,
+        group1_ids: &[AtomId],
+        group2_ids: &[AtomId],
+    ) -> Result<EnergyTerm, ScoringError> {
+        let mut energy = EnergyTerm::default();
+        let is_internal = group1_ids.as_ptr() == group2_ids.as_ptr();
 
-        for &h_id in &all_ids {
+        energy += self.calculate_hbond_one_way(group1_ids, group2_ids)?;
+
+        if !is_internal {
+            energy += self.calculate_hbond_one_way(group2_ids, group1_ids)?;
+        }
+
+        Ok(energy)
+    }
+
+    fn calculate_hbond_one_way(
+        &self,
+        donor_group_ids: &[AtomId],
+        acceptor_group_ids: &[AtomId],
+    ) -> Result<EnergyTerm, ScoringError> {
+        let mut hbond_energy = 0.0;
+
+        for &h_id in donor_group_ids {
             let hydrogen = self
                 .system
                 .atom(h_id)
@@ -100,15 +126,19 @@ impl<'a> Scorer<'a> {
                 let donor_id = *self
                     .system
                     .get_bonded_neighbors(h_id)
-                    .and_then(|neighbors| neighbors.first())
+                    .and_then(|n| n.first())
                     .ok_or(ScoringError::DonorNotFound(h_id))?;
+
+                if !donor_group_ids.contains(&donor_id) {
+                    continue;
+                }
                 let donor = self
                     .system
                     .atom(donor_id)
                     .ok_or(ScoringError::AtomNotFound(donor_id))?;
 
-                for &a_id in &all_ids {
-                    if a_id == h_id || a_id == donor_id {
+                for &a_id in acceptor_group_ids {
+                    if a_id == donor_id || a_id == h_id {
                         continue;
                     }
 
@@ -118,21 +148,11 @@ impl<'a> Scorer<'a> {
                         .ok_or(ScoringError::AtomNotFound(a_id))?;
 
                     if acceptor.hbond_type_id > 0 {
-                        let is_query_h = query_atom_ids.contains(&h_id);
-                        let is_env_a = environment_atom_ids.contains(&a_id);
-                        let is_env_h = environment_atom_ids.contains(&h_id);
-                        let is_query_a = query_atom_ids.contains(&a_id);
-
-                        // Skip if the hydrogen and acceptor are not in the same group
-                        if !((is_query_h && is_env_a) || (is_env_h && is_query_a)) {
-                            continue;
-                        }
-
                         let hbond_key =
                             format!("{}-{}", acceptor.force_field_type, donor.force_field_type);
                         if let Some(hbond_param) = self.forcefield.non_bonded.hbond.get(&hbond_key)
                         {
-                            energy.hbond += EnergyCalculator::calculate_hbond(
+                            hbond_energy += EnergyCalculator::calculate_hbond(
                                 acceptor,
                                 hydrogen,
                                 donor,
@@ -145,7 +165,10 @@ impl<'a> Scorer<'a> {
             }
         }
 
-        Ok(energy)
+        Ok(EnergyTerm {
+            hbond: hbond_energy,
+            ..Default::default()
+        })
     }
 }
 
