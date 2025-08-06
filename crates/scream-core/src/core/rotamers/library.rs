@@ -426,8 +426,6 @@ bonds = [ [1, 99] ]
                     "HCB".to_string(),
                     "HCB".to_string(),
                 ],
-                connection_points: vec![],
-                exact_match_atoms: vec![],
             },
         );
         lib.placement_info.insert(
@@ -440,8 +438,6 @@ bonds = [ [1, 99] ]
                     "HCA".to_string(),
                 ],
                 sidechain_atoms: vec!["HCA".to_string()],
-                connection_points: vec![],
-                exact_match_atoms: vec![],
             },
         );
         lib
