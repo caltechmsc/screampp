@@ -224,7 +224,7 @@ impl Residue {
 mod tests {
     use super::*;
     use crate::core::models::atom::Atom;
-    use crate::core::models::ids::{AtomId, ChainId, ResidueId};
+    use crate::core::models::ids::{AtomId, ChainId};
     use crate::core::models::system::MolecularSystem;
     use slotmap::KeyData;
 
@@ -355,26 +355,22 @@ mod tests {
     #[test]
     fn caches_and_retrieves_sidechain_and_backbone_atoms() {
         let mut system = MolecularSystem::new();
-        let chain_id = dummy_chain_id(0);
-
+        let chain_id = system.add_chain('A', crate::core::models::chain::ChainType::Protein);
+        let residue_id = system
+            .add_residue(chain_id, 1, "ALA", Some(ResidueType::Alanine))
+            .unwrap();
         let mut residue = Residue::new(1, "ALA", Some(ResidueType::Alanine), chain_id);
 
-        let mut n_atom = Atom::new("N", ResidueId::default(), Default::default());
+        let mut n_atom = Atom::new("N", residue_id, Default::default());
         n_atom.role = AtomRole::Backbone;
-        let mut ca_atom = Atom::new("CA", ResidueId::default(), Default::default());
+        let mut ca_atom = Atom::new("CA", residue_id, Default::default());
         ca_atom.role = AtomRole::Backbone;
-        let mut cb_atom = Atom::new("CB", ResidueId::default(), Default::default());
+        let mut cb_atom = Atom::new("CB", residue_id, Default::default());
         cb_atom.role = AtomRole::Sidechain;
 
-        let n_id = system
-            .add_atom_to_residue(ResidueId::default(), n_atom)
-            .unwrap();
-        let ca_id = system
-            .add_atom_to_residue(ResidueId::default(), ca_atom)
-            .unwrap();
-        let cb_id = system
-            .add_atom_to_residue(ResidueId::default(), cb_atom)
-            .unwrap();
+        let n_id = system.add_atom_to_residue(residue_id, n_atom).unwrap();
+        let ca_id = system.add_atom_to_residue(residue_id, ca_atom).unwrap();
+        let cb_id = system.add_atom_to_residue(residue_id, cb_atom).unwrap();
 
         residue.add_atom("N", n_id);
         residue.add_atom("CA", ca_id);
@@ -397,24 +393,23 @@ mod tests {
     #[test]
     fn modifying_atom_list_invalidates_caches() {
         let mut system = MolecularSystem::new();
-        let chain_id = dummy_chain_id(0);
+        let chain_id = system.add_chain('A', crate::core::models::chain::ChainType::Protein);
+        let residue_id = system
+            .add_residue(chain_id, 1, "ALA", Some(ResidueType::Alanine))
+            .unwrap();
         let mut residue = Residue::new(1, "ALA", Some(ResidueType::Alanine), chain_id);
 
-        let mut n_atom = Atom::new("N", ResidueId::default(), Default::default());
+        let mut n_atom = Atom::new("N", residue_id, Default::default());
         n_atom.role = AtomRole::Backbone;
-        let n_id = system
-            .add_atom_to_residue(ResidueId::default(), n_atom)
-            .unwrap();
+        let n_id = system.add_atom_to_residue(residue_id, n_atom).unwrap();
         residue.add_atom("N", n_id);
 
         residue.backbone_atoms(&system);
         assert!(!residue.backbone_atoms_cache.is_empty());
 
-        let mut ca_atom = Atom::new("CA", ResidueId::default(), Default::default());
+        let mut ca_atom = Atom::new("CA", residue_id, Default::default());
         ca_atom.role = AtomRole::Backbone;
-        let ca_id = system
-            .add_atom_to_residue(ResidueId::default(), ca_atom)
-            .unwrap();
+        let ca_id = system.add_atom_to_residue(residue_id, ca_atom).unwrap();
         residue.add_atom("CA", ca_id);
 
         assert!(residue.backbone_atoms_cache.is_empty());
