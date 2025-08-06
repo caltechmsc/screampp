@@ -39,6 +39,12 @@ impl<'a> Scorer<'a> {
         Ok(energy)
     }
 
+    pub fn score_group_internal(&self, group_ids: &[AtomId]) -> Result<EnergyTerm, ScoringError> {
+        let mut energy = self.score_vdw_coulomb(group_ids, group_ids)?;
+        energy += self.score_hbond(group_ids, group_ids)?;
+        Ok(energy)
+    }
+
     fn score_vdw_coulomb(
         &self,
         group1_ids: &[AtomId],
