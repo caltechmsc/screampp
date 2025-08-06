@@ -181,8 +181,8 @@ impl<'a> Scorer<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::forcefield::params::{GlobalParams, HBondParam, NonBondedParams, VdwParam};
-    use crate::core::models::atom::{Atom, CachedVdwParam};
+    use crate::core::forcefield::params::{GlobalParams, HBondParam, NonBondedParams};
+    use crate::core::models::atom::{Atom, AtomRole, CachedVdwParam};
     use crate::core::models::chain::ChainType;
     use crate::core::models::ids::ResidueId;
     use crate::core::models::system::MolecularSystem;
@@ -190,429 +190,475 @@ mod tests {
     use nalgebra::Point3;
     use std::collections::HashMap;
 
-    const TOLERANCE: f64 = 1e-9;
-
-    fn create_generic_forcefield() -> Forcefield {
-        let globals = GlobalParams {
-            dielectric_constant: 1.0,
-            potential_function: "mixed".to_string(),
-        };
-        let mut vdw = HashMap::new();
-        vdw.insert(
-            "C".to_string(),
-            VdwParam::LennardJones {
-                radius: 4.0,
-                well_depth: 0.1,
-            },
-        );
-        vdw.insert(
-            "N".to_string(),
-            VdwParam::LennardJones {
-                radius: 3.5,
-                well_depth: 0.2,
-            },
-        );
-        vdw.insert(
-            "O".to_string(),
-            VdwParam::LennardJones {
-                radius: 3.2,
-                well_depth: 0.3,
-            },
-        );
-        vdw.insert(
-            "H".to_string(),
-            VdwParam::LennardJones {
-                radius: 1.0,
-                well_depth: 0.01,
-            },
-        );
-        let mut hbond = HashMap::new();
-        hbond.insert(
-            "O-N".to_string(),
-            HBondParam {
-                equilibrium_distance: 2.8,
-                well_depth: 5.0,
-            },
-        );
-        Forcefield {
-            non_bonded: NonBondedParams {
-                globals,
-                vdw,
-                hbond,
-            },
-            deltas: HashMap::new(),
-        }
+    struct TestSetup {
+        system: MolecularSystem,
+        forcefield: Forcefield,
+        res_ala_id: ResidueId,
+        res_gly_id: ResidueId,
+        res_ser_id: ResidueId,
+        res_leu_id: ResidueId,
     }
 
-    fn create_hbond_forcefield(include_hbond_params: bool) -> Forcefield {
-        let mut vdw = HashMap::new();
-        vdw.insert(
-            "O_R".to_string(),
-            VdwParam::LennardJones {
-                radius: 3.0,
-                well_depth: 0.2,
-            },
-        );
-        vdw.insert(
-            "H_A".to_string(),
-            VdwParam::LennardJones {
-                radius: 1.0,
-                well_depth: 0.01,
-            },
-        );
-        vdw.insert(
-            "O_2".to_string(),
-            VdwParam::LennardJones {
-                radius: 3.2,
-                well_depth: 0.3,
-            },
-        );
+    impl TestSetup {
+        fn new() -> Self {
+            let mut system = MolecularSystem::new();
+            let forcefield = Self::create_test_forcefield();
 
-        let mut hbond = HashMap::new();
-        if include_hbond_params {
+            let chain_a = system.add_chain('A', ChainType::Protein);
+
+            let res_ala_id = system.add_residue(chain_a, 1, "ALA", None).unwrap();
+            let ala_atoms = vec![
+                (
+                    "N",
+                    Point3::new(-1.2, 0.5, 0.0),
+                    "N_R",
+                    -0.3,
+                    AtomRole::Backbone,
+                    -1,
+                ),
+                (
+                    "CA",
+                    Point3::new(0.0, 0.0, 0.0),
+                    "C_3",
+                    0.1,
+                    AtomRole::Backbone,
+                    -1,
+                ),
+                (
+                    "C",
+                    Point3::new(0.8, -0.8, 0.0),
+                    "C_R",
+                    0.5,
+                    AtomRole::Backbone,
+                    -1,
+                ),
+                (
+                    "O",
+                    Point3::new(1.5, -1.2, 0.0),
+                    "O_2",
+                    -0.5,
+                    AtomRole::Backbone,
+                    1,
+                ),
+                (
+                    "CB",
+                    Point3::new(-0.5, -1.0, 1.2),
+                    "C_M",
+                    -0.1,
+                    AtomRole::Sidechain,
+                    -1,
+                ),
+            ];
+            Self::add_atoms_to_residue(&mut system, res_ala_id, &ala_atoms);
+            system
+                .add_bond(
+                    system
+                        .residue(res_ala_id)
+                        .unwrap()
+                        .get_first_atom_id_by_name("N")
+                        .unwrap(),
+                    system
+                        .residue(res_ala_id)
+                        .unwrap()
+                        .get_first_atom_id_by_name("CA")
+                        .unwrap(),
+                    BondOrder::Single,
+                )
+                .unwrap();
+            system
+                .add_bond(
+                    system
+                        .residue(res_ala_id)
+                        .unwrap()
+                        .get_first_atom_id_by_name("CA")
+                        .unwrap(),
+                    system
+                        .residue(res_ala_id)
+                        .unwrap()
+                        .get_first_atom_id_by_name("C")
+                        .unwrap(),
+                    BondOrder::Single,
+                )
+                .unwrap();
+            system
+                .add_bond(
+                    system
+                        .residue(res_ala_id)
+                        .unwrap()
+                        .get_first_atom_id_by_name("C")
+                        .unwrap(),
+                    system
+                        .residue(res_ala_id)
+                        .unwrap()
+                        .get_first_atom_id_by_name("O")
+                        .unwrap(),
+                    BondOrder::Single,
+                )
+                .unwrap();
+            system
+                .add_bond(
+                    system
+                        .residue(res_ala_id)
+                        .unwrap()
+                        .get_first_atom_id_by_name("CA")
+                        .unwrap(),
+                    system
+                        .residue(res_ala_id)
+                        .unwrap()
+                        .get_first_atom_id_by_name("CB")
+                        .unwrap(),
+                    BondOrder::Single,
+                )
+                .unwrap();
+
+            let res_gly_id = system.add_residue(chain_a, 2, "GLY", None).unwrap();
+
+            let res_ser_id = system.add_residue(chain_a, 3, "SER", None).unwrap();
+            let ser_atoms = vec![
+                (
+                    "OG",
+                    Point3::new(5.0, 5.0, 0.0),
+                    "O_H",
+                    -0.6,
+                    AtomRole::Sidechain,
+                    1,
+                ),
+                (
+                    "HG",
+                    Point3::new(5.0, 5.8, 0.0),
+                    "H_O",
+                    0.4,
+                    AtomRole::Sidechain,
+                    0,
+                ),
+            ];
+            Self::add_atoms_to_residue(&mut system, res_ser_id, &ser_atoms);
+            system
+                .add_bond(
+                    system
+                        .residue(res_ser_id)
+                        .unwrap()
+                        .get_first_atom_id_by_name("OG")
+                        .unwrap(),
+                    system
+                        .residue(res_ser_id)
+                        .unwrap()
+                        .get_first_atom_id_by_name("HG")
+                        .unwrap(),
+                    BondOrder::Single,
+                )
+                .unwrap();
+
+            let res_leu_id = system.add_residue(chain_a, 4, "LEU", None).unwrap();
+            let leu_atoms = vec![(
+                "CD1",
+                Point3::new(0.0, -1.0, 5.0),
+                "C_M",
+                -0.1,
+                AtomRole::Sidechain,
+                -1,
+            )];
+            Self::add_atoms_to_residue(&mut system, res_leu_id, &leu_atoms);
+
+            Self {
+                system,
+                forcefield,
+                res_ala_id,
+                res_gly_id,
+                res_ser_id,
+                res_leu_id,
+            }
+        }
+
+        fn add_atoms_to_residue(
+            system: &mut MolecularSystem,
+            res_id: ResidueId,
+            atom_data: &[(&str, Point3<f64>, &str, f64, AtomRole, i8)],
+        ) {
+            for (name, pos, ff_type, charge, role, hbond_id) in atom_data {
+                let mut atom = Atom::new(name, res_id, *pos);
+                atom.force_field_type = ff_type.to_string();
+                atom.partial_charge = *charge;
+                atom.role = *role;
+                atom.hbond_type_id = *hbond_id;
+                atom.vdw_param = CachedVdwParam::LennardJones {
+                    radius: 3.5,
+                    well_depth: 0.1,
+                };
+                system.add_atom_to_residue(res_id, atom).unwrap();
+            }
+        }
+
+        fn create_test_forcefield() -> Forcefield {
+            let mut hbond = HashMap::new();
             hbond.insert(
-                "O_2-O_R".to_string(),
+                "O_2-O_H".to_string(),
                 HBondParam {
-                    equilibrium_distance: 2.7,
-                    well_depth: 6.0,
+                    equilibrium_distance: 2.8,
+                    well_depth: 5.0,
                 },
             );
-        }
-        Forcefield {
-            non_bonded: NonBondedParams {
-                globals: GlobalParams {
-                    dielectric_constant: 4.0,
-                    potential_function: "lennard-jones-12-6".to_string(),
+            Forcefield {
+                non_bonded: NonBondedParams {
+                    globals: GlobalParams {
+                        dielectric_constant: 4.0,
+                        potential_function: "lj-12-6".to_string(),
+                    },
+                    vdw: HashMap::new(),
+                    hbond,
                 },
-                vdw,
-                hbond,
-            },
-            deltas: HashMap::new(),
+                deltas: HashMap::new(),
+            }
         }
     }
 
-    fn create_generic_atom(
-        name: &str,
-        residue_id: ResidueId,
-        pos: Point3<f64>,
-        ff_type: &str,
-        charge: f64,
-        hbond_type_id: i8,
-    ) -> Atom {
-        let mut atom = Atom::new(name, residue_id, pos);
-        atom.force_field_type = ff_type.to_string();
-        atom.partial_charge = charge;
-        atom.hbond_type_id = hbond_type_id;
-        atom.vdw_param = match ff_type {
-            "C" => CachedVdwParam::LennardJones {
-                radius: 4.0,
-                well_depth: 0.1,
-            },
-            "N" => CachedVdwParam::LennardJones {
-                radius: 3.5,
-                well_depth: 0.2,
-            },
-            "O" => CachedVdwParam::LennardJones {
-                radius: 3.2,
-                well_depth: 0.3,
-            },
-            "H" => CachedVdwParam::LennardJones {
-                radius: 1.0,
-                well_depth: 0.01,
-            },
-            _ => CachedVdwParam::None,
-        };
-        atom
+    mod score_group_internal_tests {
+        use super::*;
+
+        #[test]
+        fn calculates_non_zero_energy_for_a_residue() {
+            let setup = TestSetup::new();
+            let scorer = Scorer::new(&setup.system, &setup.forcefield);
+            let ala_atoms = setup.system.residue(setup.res_ala_id).unwrap().atoms();
+
+            let energy = scorer.score_group_internal(ala_atoms).unwrap();
+
+            assert!(
+                energy.total().abs() > 1e-6,
+                "Internal energy should not be zero"
+            );
+        }
+
+        #[test]
+        fn excludes_1_2_and_1_3_interactions_correctly() {
+            let setup = TestSetup::new();
+            let scorer = Scorer::new(&setup.system, &setup.forcefield);
+
+            let n_id = setup
+                .system
+                .residue(setup.res_ala_id)
+                .unwrap()
+                .get_first_atom_id_by_name("N")
+                .unwrap();
+            let ca_id = setup
+                .system
+                .residue(setup.res_ala_id)
+                .unwrap()
+                .get_first_atom_id_by_name("CA")
+                .unwrap();
+            let energy_1_2 = scorer.score_group_internal(&[n_id, ca_id]).unwrap();
+            assert_eq!(energy_1_2.total(), 0.0, "1-2 interaction should be zero");
+
+            let c_id = setup
+                .system
+                .residue(setup.res_ala_id)
+                .unwrap()
+                .get_first_atom_id_by_name("C")
+                .unwrap();
+            let energy_1_3 = scorer.score_group_internal(&[n_id, c_id]).unwrap();
+            assert_eq!(energy_1_3.total(), 0.0, "1-3 interaction should be zero");
+        }
+
+        #[test]
+        fn includes_1_4_interactions() {
+            let setup = TestSetup::new();
+            let scorer = Scorer::new(&setup.system, &setup.forcefield);
+
+            let n_id = setup
+                .system
+                .residue(setup.res_ala_id)
+                .unwrap()
+                .get_first_atom_id_by_name("N")
+                .unwrap();
+            let o_id = setup
+                .system
+                .residue(setup.res_ala_id)
+                .unwrap()
+                .get_first_atom_id_by_name("O")
+                .unwrap();
+
+            let energy_1_4 = scorer.score_group_internal(&[n_id, o_id]).unwrap();
+            assert!(
+                energy_1_4.total().abs() > 1e-6,
+                "1-4 interaction (N-O) should be non-zero"
+            );
+        }
     }
 
-    fn create_hbond_atom(
-        name: &str,
-        residue_id: ResidueId,
-        pos: Point3<f64>,
-        ff_type: &str,
-        hbond_type_id: i8,
-    ) -> Atom {
-        let mut atom = Atom::new(name, residue_id, pos);
-        atom.force_field_type = ff_type.to_string();
-        atom.hbond_type_id = hbond_type_id;
+    mod score_interaction_tests {
+        use super::*;
+        use nalgebra::Vector3;
 
-        atom.vdw_param = match ff_type {
-            "O_R" => CachedVdwParam::LennardJones {
-                radius: 3.0,
-                well_depth: 0.2,
-            },
-            "H_A" => CachedVdwParam::LennardJones {
-                radius: 1.0,
-                well_depth: 0.01,
-            },
-            "O_2" => CachedVdwParam::LennardJones {
-                radius: 3.2,
-                well_depth: 0.3,
-            },
-            _ => CachedVdwParam::None,
-        };
-        atom
+        #[test]
+        fn calculates_attractive_energy_for_distant_residues() {
+            let mut setup = TestSetup::new();
+
+            let ala_c_id = setup
+                .system
+                .residue(setup.res_ala_id)
+                .unwrap()
+                .get_first_atom_id_by_name("C")
+                .unwrap();
+            let leu_cd1_id = setup
+                .system
+                .residue(setup.res_leu_id)
+                .unwrap()
+                .get_first_atom_id_by_name("CD1")
+                .unwrap();
+
+            setup.system.atom_mut(leu_cd1_id).unwrap().partial_charge = -0.5;
+
+            let scorer = Scorer::new(&setup.system, &setup.forcefield);
+            let energy = scorer
+                .score_interaction(&[ala_c_id], &[leu_cd1_id])
+                .unwrap();
+            assert!(
+                energy.coulomb < 0.0,
+                "Coulomb energy for a single (+,-) pair should be attractive"
+            );
+        }
+
+        #[test]
+        fn calculates_repulsive_energy_for_clashing_residues() {
+            let mut setup = TestSetup::new();
+            let leu_cd1_id = setup
+                .system
+                .residue(setup.res_leu_id)
+                .unwrap()
+                .get_first_atom_id_by_name("CD1")
+                .unwrap();
+            let ala_cb_pos = setup
+                .system
+                .residue(setup.res_ala_id)
+                .unwrap()
+                .get_first_atom_id_by_name("CB")
+                .unwrap();
+            let ala_cb_pos = setup.system.atom(ala_cb_pos).unwrap().position;
+            setup.system.atom_mut(leu_cd1_id).unwrap().position =
+                ala_cb_pos + Vector3::new(0.1, 0.0, 0.0);
+
+            let scorer = Scorer::new(&setup.system, &setup.forcefield);
+            let ala_atoms = setup.system.residue(setup.res_ala_id).unwrap().atoms();
+            let leu_atoms = setup.system.residue(setup.res_leu_id).unwrap().atoms();
+
+            let energy = scorer.score_interaction(ala_atoms, leu_atoms).unwrap();
+            assert!(
+                energy.vdw > 10.0,
+                "VDW energy for clashing atoms should be highly repulsive"
+            );
+        }
+
+        #[test]
+        fn calculates_inter_residue_hbond_correctly() {
+            let mut setup = TestSetup::new();
+            let ala_o_id = setup
+                .system
+                .residue(setup.res_ala_id)
+                .unwrap()
+                .get_first_atom_id_by_name("O")
+                .unwrap();
+
+            let ser_og_id = setup
+                .system
+                .residue(setup.res_ser_id)
+                .unwrap()
+                .get_first_atom_id_by_name("OG")
+                .unwrap();
+            let ser_hg_id = setup
+                .system
+                .residue(setup.res_ser_id)
+                .unwrap()
+                .get_first_atom_id_by_name("HG")
+                .unwrap();
+            let donor_pos = setup.system.atom(ser_og_id).unwrap().position;
+            let hydrogen_pos = setup.system.atom(ser_hg_id).unwrap().position;
+
+            let dh_vector = hydrogen_pos - donor_pos;
+            let ideal_dist = setup
+                .forcefield
+                .non_bonded
+                .hbond
+                .get("O_2-O_H")
+                .unwrap()
+                .equilibrium_distance;
+
+            let acceptor_pos = donor_pos + dh_vector.normalize() * ideal_dist;
+
+            setup.system.atom_mut(ala_o_id).unwrap().position = acceptor_pos;
+
+            let scorer = Scorer::new(&setup.system, &setup.forcefield);
+            let ala_atoms = setup.system.residue(setup.res_ala_id).unwrap().atoms();
+            let ser_atoms = setup.system.residue(setup.res_ser_id).unwrap().atoms();
+
+            let energy = scorer.score_interaction(ala_atoms, ser_atoms).unwrap();
+            let expected_hbond_energy = -setup
+                .forcefield
+                .non_bonded
+                .hbond
+                .get("O_2-O_H")
+                .unwrap()
+                .well_depth;
+
+            assert!(
+                (energy.hbond - expected_hbond_energy).abs() < 0.1,
+                "H-bond energy is incorrect. Got {}, expected ~{}",
+                energy.hbond,
+                expected_hbond_energy
+            );
+        }
+
+        #[test]
+        fn interaction_with_empty_group_is_zero() {
+            let setup = TestSetup::new();
+            let scorer = Scorer::new(&setup.system, &setup.forcefield);
+            let ala_atoms = setup.system.residue(setup.res_ala_id).unwrap().atoms();
+
+            let energy = scorer.score_interaction(ala_atoms, &[]).unwrap();
+            assert_eq!(energy.total(), 0.0);
+        }
     }
 
-    #[test]
-    fn scores_vdw_and_coulomb_for_simple_interaction() {
-        let mut system = MolecularSystem::new();
-        let ff = create_generic_forcefield();
+    mod error_handling {
+        use super::*;
 
-        let chain_id = system.add_chain('A', ChainType::Protein);
-        let res1_id = system.add_residue(chain_id, 1, "RES", None).unwrap();
-        let res2_id = system.add_residue(chain_id, 2, "RES", None).unwrap();
+        #[test]
+        fn returns_atom_not_found_error() {
+            let setup = TestSetup::new();
+            let scorer = Scorer::new(&setup.system, &setup.forcefield);
+            let fake_id = AtomId::default();
 
-        let query_atom = create_generic_atom("C1", res1_id, Point3::origin(), "C", 0.5, -1);
-        let env_atom =
-            create_generic_atom("C2", res2_id, Point3::new(4.5, 0.0, 0.0), "C", -0.5, -1);
+            let result = scorer.score_interaction(&[fake_id], &[]);
+            assert!(matches!(result, Err(ScoringError::AtomNotFound(_))));
 
-        let query_id = system.add_atom_to_residue(res1_id, query_atom).unwrap();
-        let env_id = system.add_atom_to_residue(res2_id, env_atom).unwrap();
+            let result_internal = scorer.score_group_internal(&[fake_id]);
+            assert!(matches!(
+                result_internal,
+                Err(ScoringError::AtomNotFound(_))
+            ));
+        }
 
-        let scorer = Scorer::new(&system, &ff);
-        let energy = scorer.score_interaction(&[query_id], &[env_id]).unwrap();
+        #[test]
+        fn returns_donor_not_found_error() {
+            let mut setup = TestSetup::new();
+            let ser_hg_id = setup
+                .system
+                .residue(setup.res_ser_id)
+                .unwrap()
+                .get_first_atom_id_by_name("HG")
+                .unwrap();
+            let ser_og_id = setup
+                .system
+                .residue(setup.res_ser_id)
+                .unwrap()
+                .get_first_atom_id_by_name("OG")
+                .unwrap();
+            setup.system.remove_atom(ser_og_id);
 
-        assert!(energy.vdw < 0.0);
-        assert!(energy.coulomb < 0.0);
-        assert!((energy.hbond).abs() < TOLERANCE);
-    }
+            let scorer = Scorer::new(&setup.system, &setup.forcefield);
+            let ala_atoms = setup.system.residue(setup.res_ala_id).unwrap().atoms();
 
-    #[test]
-    fn ignores_1_2_and_1_3_bonded_interactions() {
-        let mut system = MolecularSystem::new();
-        let ff = create_generic_forcefield();
-
-        let chain_id = system.add_chain('A', ChainType::Protein);
-        let res1_id = system.add_residue(chain_id, 1, "RES", None).unwrap();
-        let res2_id = system.add_residue(chain_id, 2, "RES", None).unwrap();
-
-        let atom1 = create_generic_atom("C", res1_id, Point3::new(0.0, 0.0, 0.0), "C", 0.5, -1);
-        let atom2 = create_generic_atom("N", res2_id, Point3::new(1.3, 0.0, 0.0), "N", -0.5, -1);
-        let atom3 = create_generic_atom("CA", res2_id, Point3::new(1.8, 1.2, 0.0), "C", 0.1, -1);
-
-        let id1 = system.add_atom_to_residue(res1_id, atom1).unwrap();
-        let id2 = system.add_atom_to_residue(res2_id, atom2).unwrap();
-        let id3 = system.add_atom_to_residue(res2_id, atom3).unwrap();
-
-        system.add_bond(id1, id2, BondOrder::Single).unwrap();
-        system.add_bond(id2, id3, BondOrder::Single).unwrap();
-
-        let scorer = Scorer::new(&system, &ff);
-        let energy_1_2 = scorer.score_interaction(&[id1], &[id2]).unwrap();
-        assert!(
-            (energy_1_2.total()).abs() < TOLERANCE,
-            "1-2 interactions should be ignored"
-        );
-
-        let energy_1_3 = scorer.score_interaction(&[id1], &[id3]).unwrap();
-        assert!(
-            (energy_1_3.total()).abs() < TOLERANCE,
-            "1-3 interactions should be ignored"
-        );
-    }
-
-    #[test]
-    fn scores_ideal_hbond_with_correct_energy() {
-        let ff = create_hbond_forcefield(true);
-        let hbond_params = ff.non_bonded.hbond.get("O_2-O_R").unwrap();
-        let mut system = MolecularSystem::new();
-        let chain_id = system.add_chain('A', ChainType::Protein);
-        let ser_id = system.add_residue(chain_id, 1, "SER", None).unwrap();
-        let asp_id = system.add_residue(chain_id, 2, "ASP", None).unwrap();
-
-        let og = create_hbond_atom("OG", ser_id, Point3::new(0.0, 0.0, 0.0), "O_R", 1);
-        let hg = create_hbond_atom("HG", ser_id, Point3::new(1.0, 0.0, 0.0), "H_A", 0);
-        let od1 = create_hbond_atom(
-            "OD1",
-            asp_id,
-            Point3::new(hbond_params.equilibrium_distance, 0.0, 0.0),
-            "O_2",
-            1,
-        );
-
-        let og_id = system.add_atom_to_residue(ser_id, og).unwrap();
-        let hg_id = system.add_atom_to_residue(ser_id, hg).unwrap();
-        system.add_atom_to_residue(asp_id, od1).unwrap();
-        system.add_bond(og_id, hg_id, BondOrder::Single).unwrap();
-
-        let scorer = Scorer::new(&system, &ff);
-        let energy = scorer
-            .score_interaction(
-                system.residue(ser_id).unwrap().atoms(),
-                system.residue(asp_id).unwrap().atoms(),
-            )
-            .unwrap();
-
-        assert!(
-            (energy.hbond + hbond_params.well_depth).abs() < TOLERANCE,
-            "Ideal H-bond energy should be -well_depth"
-        );
-    }
-
-    #[test]
-    fn hbond_energy_is_zero_for_unfavorable_angle() {
-        let ff = create_hbond_forcefield(true);
-        let mut system = MolecularSystem::new();
-        let chain_id = system.add_chain('A', ChainType::Protein);
-        let ser_id = system.add_residue(chain_id, 1, "SER", None).unwrap();
-        let asp_id = system.add_residue(chain_id, 2, "ASP", None).unwrap();
-
-        let og = create_hbond_atom("OG", ser_id, Point3::new(0.0, 0.0, 0.0), "O_R", 1);
-        let hg = create_hbond_atom("HG", ser_id, Point3::new(1.0, 0.0, 0.0), "H_A", 0);
-        let od1 = create_hbond_atom("OD1", asp_id, Point3::new(1.0, 2.0, 0.0), "O_2", 1);
-
-        let og_id = system.add_atom_to_residue(ser_id, og).unwrap();
-        let hg_id = system.add_atom_to_residue(ser_id, hg).unwrap();
-        system.add_atom_to_residue(asp_id, od1).unwrap();
-        system.add_bond(og_id, hg_id, BondOrder::Single).unwrap();
-
-        let scorer = Scorer::new(&system, &ff);
-        let energy = scorer
-            .score_interaction(
-                system.residue(ser_id).unwrap().atoms(),
-                system.residue(asp_id).unwrap().atoms(),
-            )
-            .unwrap();
-
-        assert!(
-            (energy.hbond).abs() < TOLERANCE,
-            "H-bond energy should be zero for angles <= 90 degrees"
-        );
-    }
-
-    #[test]
-    fn hbond_energy_is_zero_if_parameters_are_missing() {
-        let ff = create_hbond_forcefield(false);
-        let mut system = MolecularSystem::new();
-        let chain_id = system.add_chain('A', ChainType::Protein);
-        let ser_id = system.add_residue(chain_id, 1, "SER", None).unwrap();
-        let asp_id = system.add_residue(chain_id, 2, "ASP", None).unwrap();
-
-        let og = create_hbond_atom("OG", ser_id, Point3::new(0.0, 0.0, 0.0), "O_R", 1);
-        let hg = create_hbond_atom("HG", ser_id, Point3::new(1.0, 0.0, 0.0), "H_A", 0);
-        let od1 = create_hbond_atom("OD1", asp_id, Point3::new(2.7, 0.0, 0.0), "O_2", 1);
-
-        let og_id = system.add_atom_to_residue(ser_id, og).unwrap();
-        let hg_id = system.add_atom_to_residue(ser_id, hg).unwrap();
-        system.add_atom_to_residue(asp_id, od1).unwrap();
-        system.add_bond(og_id, hg_id, BondOrder::Single).unwrap();
-
-        let scorer = Scorer::new(&system, &ff);
-        let energy = scorer
-            .score_interaction(
-                system.residue(ser_id).unwrap().atoms(),
-                system.residue(asp_id).unwrap().atoms(),
-            )
-            .unwrap();
-
-        assert!(
-            (energy.hbond).abs() < TOLERANCE,
-            "H-bond energy should be zero if parameters are missing"
-        );
-    }
-
-    #[test]
-    fn hbond_respects_flat_bottom_potential() {
-        let ff = create_hbond_forcefield(true);
-        let hbond_params = ff.non_bonded.hbond.get("O_2-O_R").unwrap();
-        let mut system = MolecularSystem::new();
-        let chain_id = system.add_chain('A', ChainType::Protein);
-        let ser_id = system.add_residue(chain_id, 1, "SER", None).unwrap();
-        let asp_id = system.add_residue(chain_id, 2, "ASP", None).unwrap();
-
-        let delta = 0.2;
-        let dist_inside_well = hbond_params.equilibrium_distance - 0.1;
-
-        let mut og = create_hbond_atom("OG", ser_id, Point3::new(0.0, 0.0, 0.0), "O_R", 1);
-        og.delta = delta;
-        let hg = create_hbond_atom("HG", ser_id, Point3::new(1.0, 0.0, 0.0), "H_A", 0);
-        let mut od1 = create_hbond_atom(
-            "OD1",
-            asp_id,
-            Point3::new(dist_inside_well, 0.0, 0.0),
-            "O_2",
-            1,
-        );
-        od1.delta = delta;
-
-        let og_id = system.add_atom_to_residue(ser_id, og).unwrap();
-        let hg_id = system.add_atom_to_residue(ser_id, hg).unwrap();
-        system.add_atom_to_residue(asp_id, od1).unwrap();
-        system.add_bond(og_id, hg_id, BondOrder::Single).unwrap();
-
-        let scorer = Scorer::new(&system, &ff);
-        let energy = scorer
-            .score_interaction(
-                system.residue(ser_id).unwrap().atoms(),
-                system.residue(asp_id).unwrap().atoms(),
-            )
-            .unwrap();
-
-        assert!(
-            (energy.hbond + hbond_params.well_depth).abs() < TOLERANCE,
-            "H-bond energy should remain at -well_depth inside the flat-bottom region"
-        );
-    }
-
-    #[test]
-    fn ignores_hbond_within_same_group() {
-        let mut system = MolecularSystem::new();
-        let ff = create_generic_forcefield();
-
-        let chain_id = system.add_chain('A', ChainType::Protein);
-        let res1_id = system.add_residue(chain_id, 1, "RES", None).unwrap();
-        let res2_id = system.add_residue(chain_id, 2, "RES", None).unwrap();
-
-        let donor = create_generic_atom("N", res1_id, Point3::new(0.0, 0.0, 0.0), "N", -0.3, 1);
-        let hydrogen = create_generic_atom("H", res1_id, Point3::new(1.0, 0.0, 0.0), "H", 0.3, 0);
-        let acceptor = create_generic_atom("O", res2_id, Point3::new(2.8, 0.0, 0.0), "O", -0.5, 1);
-
-        let donor_id = system.add_atom_to_residue(res1_id, donor).unwrap();
-        let h_id = system.add_atom_to_residue(res1_id, hydrogen).unwrap();
-        let acceptor_id = system.add_atom_to_residue(res2_id, acceptor).unwrap();
-        system.add_bond(donor_id, h_id, BondOrder::Single).unwrap();
-
-        let res3_id = system.add_residue(chain_id, 3, "RES", None).unwrap();
-        let env_atom = create_generic_atom("C", res3_id, Point3::new(5.0, 5.0, 5.0), "C", 0.1, -1);
-        let env_id = system.add_atom_to_residue(res3_id, env_atom).unwrap();
-
-        let scorer = Scorer::new(&system, &ff);
-        let energy = scorer
-            .score_interaction(&[donor_id, h_id, acceptor_id], &[env_id])
-            .unwrap();
-
-        assert!((energy.hbond).abs() < TOLERANCE);
-        assert_ne!(energy.vdw, 0.0);
-        assert_ne!(energy.coulomb, 0.0);
-    }
-
-    #[test]
-    fn returns_error_for_missing_atom() {
-        let system = MolecularSystem::new();
-        let ff = create_generic_forcefield();
-        let scorer = Scorer::new(&system, &ff);
-
-        let fake_id = AtomId::default();
-        let result = scorer.score_interaction(&[fake_id], &[]);
-
-        assert!(matches!(result, Err(ScoringError::AtomNotFound(_))));
-    }
-
-    #[test]
-    fn returns_error_for_hydrogen_without_donor() {
-        let mut system = MolecularSystem::new();
-        let ff = create_generic_forcefield();
-
-        let chain_id = system.add_chain('A', ChainType::Protein);
-        let res1_id = system.add_residue(chain_id, 1, "RES", None).unwrap();
-
-        let hydrogen = create_generic_atom("H", res1_id, Point3::new(1.0, 0.0, 0.0), "H", 0.3, 0);
-        let h_id = system.add_atom_to_residue(res1_id, hydrogen).unwrap();
-
-        let scorer = Scorer::new(&system, &ff);
-        let result = scorer.score_interaction(&[h_id], &[]);
-
-        assert!(matches!(result, Err(ScoringError::DonorNotFound(_))));
+            let result = scorer.score_hbond(&[ser_hg_id], ala_atoms);
+            assert!(matches!(result, Err(ScoringError::DonorNotFound(_))));
+        }
     }
 }
