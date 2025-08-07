@@ -475,7 +475,7 @@ mod tests {
             .delta_params_path("delta.dat")
             .s_factor(0.5)
             .rotamer_library_path("rot.lib")
-            .placement_registry_path("reg.json")
+            .topology_registry_path("topology.dat")
             .max_iterations(100)
             .num_solutions(10)
             .include_input_conformation(true)
@@ -505,7 +505,7 @@ mod tests {
             .delta_params_path("delta.dat")
             .s_factor(0.5)
             .rotamer_library_path("rot.lib")
-            .placement_registry_path("reg.json")
+            .topology_registry_path("topology.dat")
             .max_iterations(100)
             .num_solutions(10)
             .convergence_config(ConvergenceConfig {
@@ -531,7 +531,7 @@ mod tests {
             .delta_params_path("delta.dat")
             .s_factor(0.5)
             .rotamer_library_path("rot.lib")
-            .placement_registry_path("reg.json")
+            .topology_registry_path("topology.dat")
             .max_iterations(100)
             .num_solutions(10)
             .convergence_config(convergence.clone())
@@ -561,7 +561,7 @@ mod tests {
             .delta_params_path("delta.dat")
             .s_factor(0.5)
             .rotamer_library_path("rot.lib")
-            .placement_registry_path("reg.json")
+            .topology_registry_path("topology.dat")
             .max_iterations(100)
             .num_solutions(10)
             .include_input_conformation(true)
@@ -587,7 +587,7 @@ mod tests {
             .delta_params_path("delta.dat")
             .s_factor(0.5)
             .rotamer_library_path("rot.lib")
-            .placement_registry_path("reg.json")
+            .topology_registry_path("topology.dat")
             .max_iterations(100)
             .num_solutions(10)
             .convergence_config(ConvergenceConfig {
@@ -609,6 +609,7 @@ mod tests {
             .forcefield_path("ff.dat")
             .delta_params_path("delta.dat")
             .s_factor(0.5)
+            .topology_registry_path("topology.dat")
             .analysis_type(AnalysisType::ClashDetection {
                 threshold_kcal_mol: 1.0,
             });
@@ -616,12 +617,13 @@ mod tests {
         let config = builder.build().unwrap();
 
         assert_eq!(config.forcefield.forcefield_path, Path::new("ff.dat"));
-        assert_eq!(
+        assert_eq!(config.topology_registry_path, Path::new("topology.dat"));
+        assert!(matches!(
             config.analysis_type,
             AnalysisType::ClashDetection {
                 threshold_kcal_mol: 1.0
             }
-        );
+        ));
     }
 
     #[test]
