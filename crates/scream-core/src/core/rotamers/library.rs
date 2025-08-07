@@ -388,17 +388,23 @@ bonds = [ [2, 1], [2, 3], [2, 4] ]
         #[test]
         fn load_fails_if_topology_is_missing() {
             let setup = setup();
-            let rotamer_content = r#"[[LYS]]\natoms=[]\nbonds=[]"#;
+            let rotamer_content = r#"
+[[LYS]]
+atoms = []
+bonds = []
+"#;
             let rotamer_path =
-                write_rotamer_file(&setup.temp_dir.path(), "rot.toml", rotamer_content);
+                write_rotamer_file(setup.temp_dir.path(), "lys_rotamer.toml", rotamer_content);
             let result = RotamerLibrary::load(
                 &rotamer_path,
                 &setup.topology_registry,
                 &setup.forcefield,
-                1.0,
+                0.0,
             );
+
             assert!(
-                matches!(result, Err(LibraryLoadError::MissingTopology(name)) if name == "LYS")
+                matches!(result, Err(LibraryLoadError::MissingTopology(name)) if name == "LYS"),
+                "Expected MissingTopology error for LYS, but got something else or Ok."
             );
         }
 
@@ -420,6 +426,7 @@ bonds = []"#;
                 &setup.forcefield,
                 1.0,
             );
+
             assert!(matches!(
                 result,
                 Err(LibraryLoadError::DuplicateAtomSerial { .. })
@@ -441,6 +448,7 @@ bonds = [[1, 99]]"#;
                 &setup.forcefield,
                 1.0,
             );
+
             assert!(
                 matches!(result, Err(LibraryLoadError::InvalidBondSerial { serial, .. }) if serial == 99)
             );
