@@ -19,6 +19,11 @@ pub enum EngineError {
         source: ScoringError,
     },
 
+    #[error("Topology not found for residue: {residue_name}")]
+    TopologyNotFound{
+        residue_name: String,
+    },
+
     #[error("Rotamer library error for residue {residue_type:?}: {message}")]
     RotamerLibrary {
         residue_type: String,
