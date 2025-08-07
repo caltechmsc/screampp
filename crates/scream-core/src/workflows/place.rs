@@ -267,16 +267,20 @@ fn resolve_clashes_iteratively<'a>(
             .rotamer_library
             .get_rotamers_for(res_a_type)
             .unwrap()[doublet_result.rotamer_idx_a];
-        let p_info_a = context
-            .rotamer_library
-            .get_placement_info_for(res_a_type)
-            .unwrap();
+
+        let res_name_a = res_a_type.to_three_letter();
+        let topology_a = context.topology_registry.get(res_name_a).ok_or_else(|| {
+            EngineError::TopologyNotFound {
+                residue_name: res_name_a.to_string(),
+            }
+        })?;
         place_rotamer_on_system(
             &mut state.working_state.system,
             res_a_id,
             rotamer_a,
-            p_info_a,
+            topology_a,
         )?;
+
         state
             .working_state
             .rotamers
@@ -293,16 +297,20 @@ fn resolve_clashes_iteratively<'a>(
             .rotamer_library
             .get_rotamers_for(res_b_type)
             .unwrap()[doublet_result.rotamer_idx_b];
-        let p_info_b = context
-            .rotamer_library
-            .get_placement_info_for(res_b_type)
-            .unwrap();
+
+        let res_name_b = res_b_type.to_three_letter();
+        let topology_b = context.topology_registry.get(res_name_b).ok_or_else(|| {
+            EngineError::TopologyNotFound {
+                residue_name: res_name_b.to_string(),
+            }
+        })?;
         place_rotamer_on_system(
             &mut state.working_state.system,
             res_b_id,
             rotamer_b,
-            p_info_b,
+            topology_b,
         )?;
+
         state
             .working_state
             .rotamers
