@@ -42,20 +42,20 @@ pub fn place_rotamer_on_system(
     system: &mut MolecularSystem,
     target_residue_id: ResidueId,
     rotamer: &Rotamer,
-    placement_info: &PlacementInfo,
+    topology: &ResidueTopology,
 ) -> Result<(), EngineError> {
     let result = || -> Result<(), PlacementError> {
         // --- Phase 1: Preparation ---
         let (rotation, translation) =
-            calculate_alignment_transform(system, target_residue_id, rotamer, placement_info)?;
+            calculate_alignment_transform(system, target_residue_id, rotamer, topology)?;
 
         // --- Phase 2: Side-Chain Replacement ---
-        remove_old_sidechain(system, target_residue_id, placement_info)?;
+        remove_old_sidechain(system, target_residue_id, topology)?;
         let index_to_id_map = add_new_sidechain_atoms_and_map(
             system,
             target_residue_id,
             rotamer,
-            placement_info,
+            topology,
             rotation,
             translation,
         )?;
