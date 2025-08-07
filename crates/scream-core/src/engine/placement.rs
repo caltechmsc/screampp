@@ -260,7 +260,7 @@ mod tests {
     use super::*;
     use crate::core::{
         models::{atom::Atom, chain::ChainType, residue::ResidueType, topology::BondOrder},
-        rotamers::placement::PlacementInfo,
+        topology::registry::ResidueTopology,
     };
     use nalgebra::{Point3, Vector3};
 
@@ -328,8 +328,8 @@ mod tests {
         Rotamer { atoms, bonds }
     }
 
-    fn leu_placement_info() -> PlacementInfo {
-        PlacementInfo {
+    fn leu_topology() -> ResidueTopology {
+        ResidueTopology {
             anchor_atoms: vec!["N".to_string(), "CA".to_string(), "C".to_string()],
             sidechain_atoms: vec!["CB".to_string(), "CG".to_string()],
         }
@@ -368,7 +368,7 @@ mod tests {
     #[test]
     fn test_remove_old_sidechain_handles_duplicates() {
         let (mut system, residue_id) = create_test_system_with_ala_residue();
-        let placement_info = PlacementInfo {
+        let topology = ResidueTopology {
             anchor_atoms: vec!["N".to_string(), "CA".to_string(), "C".to_string()],
             sidechain_atoms: vec![
                 "CB".to_string(),
@@ -389,7 +389,7 @@ mod tests {
             3
         );
 
-        remove_old_sidechain(&mut system, residue_id, &placement_info).unwrap();
+        remove_old_sidechain(&mut system, residue_id, &topology).unwrap();
 
         let residue = system.residue(residue_id).unwrap();
         assert_eq!(
@@ -411,7 +411,7 @@ mod tests {
     fn test_full_placement_workflow_with_new_api() {
         let (mut system, residue_id) = create_test_system_with_ala_residue();
         let original_atom_count = system.atoms_iter().count();
-        let ala_sidechain_to_remove = PlacementInfo {
+        let ala_sidechain_to_remove = ResidueTopology {
             sidechain_atoms: vec![
                 "CB".to_string(),
                 "HCB".to_string(),
@@ -423,9 +423,9 @@ mod tests {
         remove_old_sidechain(&mut system, residue_id, &ala_sidechain_to_remove).unwrap();
 
         let rotamer = create_leu_rotamer();
-        let placement_info = leu_placement_info();
+        let topology = leu_topology();
 
-        let result = place_rotamer_on_system(&mut system, residue_id, &rotamer, &placement_info);
+        let result = place_rotamer_on_system(&mut system, residue_id, &rotamer, &topology);
         assert!(result.is_ok(), "Placement failed: {:?}", result.err());
 
         let residue = system.residue(residue_id).unwrap();
@@ -463,7 +463,7 @@ mod tests {
             ],
         );
 
-        let gly_placement = PlacementInfo {
+        let gly_topology = ResidueTopology {
             anchor_atoms: vec!["N".to_string(), "CA".to_string(), "HCA".to_string()],
             sidechain_atoms: vec!["HCA".to_string()],
         };
@@ -480,7 +480,7 @@ mod tests {
             Rotamer { atoms, bonds }
         };
 
-        let result = place_rotamer_on_system(&mut system, gly_id, &gly_rotamer, &gly_placement);
+        let result = place_rotamer_on_system(&mut system, gly_id, &gly_rotamer, &gly_topology);
         assert!(result.is_ok(), "GLY placement failed: {:?}", result.err());
 
         let residue = system.residue(gly_id).unwrap();
@@ -520,9 +520,9 @@ mod tests {
         system.remove_atom(n_id);
 
         let rotamer = create_leu_rotamer();
-        let placement_info = leu_placement_info();
+        let topology = leu_topology();
 
-        let result = place_rotamer_on_system(&mut system, residue_id, &rotamer, &placement_info);
+        let result = place_rotamer_on_system(&mut system, residue_id, &rotamer, &topology);
 
         assert!(matches!(result, Err(EngineError::Placement { .. })));
         if let Err(EngineError::Placement { message, .. }) = result {
@@ -535,10 +535,9 @@ mod tests {
         let (mut system, residue_id) = create_test_system_with_ala_residue();
         let mut rotamer = create_leu_rotamer();
         rotamer.atoms.retain(|a| a.name != "N");
+        let topology = leu_topology();
 
-        let placement_info = leu_placement_info();
-
-        let result = place_rotamer_on_system(&mut system, residue_id, &rotamer, &placement_info);
+        let result = place_rotamer_on_system(&mut system, residue_id, &rotamer, &topology);
 
         assert!(matches!(result, Err(EngineError::Placement { .. })));
         if let Err(EngineError::Placement { message, .. }) = result {
@@ -550,10 +549,10 @@ mod tests {
     fn place_rotamer_fails_if_insufficient_anchors() {
         let (mut system, residue_id) = create_test_system_with_ala_residue();
         let rotamer = create_leu_rotamer();
-        let mut placement_info = leu_placement_info();
-        placement_info.anchor_atoms = vec!["N".to_string(), "CA".to_string()];
+        let mut topology = leu_topology();
+        topology.anchor_atoms = vec!["N".to_string(), "CA".to_string()];
 
-        let result = place_rotamer_on_system(&mut system, residue_id, &rotamer, &placement_info);
+        let result = place_rotamer_on_system(&mut system, residue_id, &rotamer, &topology);
 
         assert!(matches!(result, Err(EngineError::Placement { .. })));
         if let Err(EngineError::Placement { message, .. }) = result {
