@@ -71,14 +71,23 @@ where
         index_pairs.len()
     );
 
-    let placement_info_a = context
-        .rotamer_library
-        .get_placement_info_for(res_type_a)
-        .unwrap();
-    let placement_info_b = context
-        .rotamer_library
-        .get_placement_info_for(res_type_b)
-        .unwrap();
+    let res_name_a = res_type_a.to_three_letter();
+    let topology_a =
+        context
+            .topology_registry
+            .get(res_name_a)
+            .ok_or_else(|| EngineError::TopologyNotFound {
+                residue_name: res_name_a.to_string(),
+            })?;
+
+    let res_name_b = res_type_b.to_three_letter();
+    let topology_b =
+        context
+            .topology_registry
+            .get(res_name_b)
+            .ok_or_else(|| EngineError::TopologyNotFound {
+                residue_name: res_name_b.to_string(),
+            })?;
 
     #[cfg(not(feature = "parallel"))]
     let iterator = index_pairs.iter();
