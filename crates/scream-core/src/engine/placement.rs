@@ -76,13 +76,13 @@ fn calculate_alignment_transform(
     system: &MolecularSystem,
     target_residue_id: ResidueId,
     rotamer: &Rotamer,
-    placement_info: &PlacementInfo,
+    topology: &ResidueTopology,
 ) -> Result<(Rotation3<f64>, Vector3<f64>), PlacementError> {
     let target_residue = system.residue(target_residue_id).unwrap();
-    let mut system_points = Vec::with_capacity(placement_info.anchor_atoms.len());
-    let mut rotamer_points = Vec::with_capacity(placement_info.anchor_atoms.len());
+    let mut system_points = Vec::with_capacity(topology.anchor_atoms.len());
+    let mut rotamer_points = Vec::with_capacity(topology.anchor_atoms.len());
 
-    for atom_name in &placement_info.anchor_atoms {
+    for atom_name in &topology.anchor_atoms {
         let system_atom_id = target_residue
             .get_first_atom_id_by_name(atom_name)
             .ok_or_else(|| PlacementError::AnchorAtomNotFoundInSystem {
