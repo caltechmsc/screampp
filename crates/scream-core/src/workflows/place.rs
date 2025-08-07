@@ -414,10 +414,13 @@ fn final_refinement<'a>(
                 .rotamer_library
                 .get_rotamers_for(residue_type)
                 .unwrap();
-            let p_info = context
-                .rotamer_library
-                .get_placement_info_for(residue_type)
-                .unwrap();
+
+            let residue_name = residue_type.to_three_letter();
+            let topology = context.topology_registry.get(residue_name).ok_or_else(|| {
+                EngineError::TopologyNotFound {
+                    residue_name: residue_name.to_string(),
+                }
+            })?;
 
             let current_rot_idx = *state.working_state.rotamers.get(&residue_id).unwrap();
             let mut best_rotamer_idx = current_rot_idx;
@@ -432,7 +435,7 @@ fn final_refinement<'a>(
                     continue;
                 }
 
-                place_rotamer_on_system(&mut temp_system_for_eval, residue_id, rotamer, p_info)?;
+                place_rotamer_on_system(&mut temp_system_for_eval, residue_id, rotamer, topology)?;
                 temp_rotamers_for_eval.insert(residue_id, idx);
 
                 let new_energy = tasks::total_energy::run(
@@ -453,7 +456,7 @@ fn final_refinement<'a>(
                     &mut temp_system_for_eval,
                     residue_id,
                     &rotamers[current_rot_idx],
-                    p_info,
+                    topology,
                 )?;
                 temp_rotamers_for_eval.insert(residue_id, current_rot_idx);
             }
@@ -475,7 +478,7 @@ fn final_refinement<'a>(
                     &mut state.working_state.system,
                     residue_id,
                     best_rotamer,
-                    p_info,
+                    topology,
                 )?;
                 state
                     .working_state
