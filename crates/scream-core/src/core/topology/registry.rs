@@ -47,3 +47,61 @@ pub enum TopologyLoadError {
         source: toml::de::Error,
     },
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+    use tempfile::NamedTempFile;
+
+    fn create_test_registry_file(content: &str) -> NamedTempFile {
+        let mut file = NamedTempFile::new().unwrap();
+        write!(file, "{}", content).unwrap();
+        file
+    }
+
+    #[test]
+    fn loads_registry_successfully_and_get_works() {
+        let content = r#"
+[ALA]
+anchor_atoms = ["N", "CA", "C"]
+sidechain_atoms = ["CB"]
+
+[GLY]
+anchor_atoms = ["N", "CA", "C"]
+sidechain_atoms = ["HA"]
+"#;
+        let file = create_test_registry_file(content);
+
+        let registry = TopologyRegistry::load(file.path()).unwrap();
+
+        assert_eq!(registry.registry.len(), 2);
+
+        let ala_topo = registry.get("ALA").expect("ALA topology should be present");
+        assert_eq!(ala_topo.anchor_atoms, vec!["N", "CA", "C"]);
+        assert_eq!(ala_topo.sidechain_atoms, vec!["CB"]);
+
+        assert!(registry.get("LEU").is_none());
+    }
+
+    #[test]
+    fn loads_empty_registry_from_empty_file() {
+        let file = create_test_registry_file("");
+        let registry = TopologyRegistry::load(file.path()).unwrap();
+        assert!(registry.registry.is_empty());
+    }
+
+    #[test]
+    fn load_returns_io_error_for_nonexistent_file() {
+        let path = Path::new("nonexistent_topology_file.toml");
+        let result = TopologyRegistry::load(path);
+        assert!(matches!(result, Err(TopologyLoadError::Io { .. })));
+    }
+
+    #[test]
+    fn load_returns_toml_error_for_malformed_file() {
+        let file = create_test_registry_file("this is not valid toml");
+        let result = TopologyRegistry::load(file.path());
+        assert!(matches!(result, Err(TopologyLoadError::Toml { .. })));
+    }
+}
