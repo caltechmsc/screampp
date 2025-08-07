@@ -211,7 +211,7 @@ impl MolecularSystem {
         self.atoms.iter().filter(|(_, atom)| {
             matches!(
                 atom.role,
-                AtomRole::Ligand | AtomRole::Water | AtomRole::Ion | AtomRole::Unknown
+                AtomRole::Ligand | AtomRole::Water | AtomRole::Other
             )
         })
     }
@@ -618,7 +618,7 @@ mod tests {
             assert_eq!(ligand_atoms, vec![*id_map.get("LIG_C1").unwrap()]);
 
             let unknown_atoms: Vec<AtomId> = system
-                .atoms_by_role(AtomRole::Unknown)
+                .atoms_by_role(AtomRole::Other)
                 .map(|(id, _)| id)
                 .collect();
             assert_eq!(unknown_atoms, vec![*id_map.get("UNKNOWN").unwrap()]);
