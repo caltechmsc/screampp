@@ -121,13 +121,12 @@ where
             message: "No rotamers found for this residue type.".to_string(),
         })?;
 
-    let placement_info = context
-        .rotamer_library
-        .get_placement_info_for(unit.residue_type)
-        .ok_or_else(|| EngineError::RotamerLibrary {
-            residue_type: unit.residue_type.to_string(),
-            message: "No placement info found for this residue type.".to_string(),
-        })?;
+    let residue_name = unit.residue_type.to_three_letter();
+    let topology = context.topology_registry.get(residue_name).ok_or_else(|| {
+        EngineError::TopologyNotFound {
+            residue_name: residue_name.to_string(),
+        }
+    })?;
 
     let active_residue_ids = context.resolve_all_active_residues()?;
 
@@ -148,7 +147,7 @@ where
     for (rotamer_idx, rotamer) in rotamers.iter().enumerate() {
         let mut temp_system = context.system.clone();
 
-        place_rotamer_on_system(&mut temp_system, unit.residue_id, rotamer, placement_info)?;
+        place_rotamer_on_system(&mut temp_system, unit.residue_id, rotamer, topology)?;
 
         let query_atoms: Vec<AtomId> = temp_system
             .residue(unit.residue_id)
