@@ -254,3 +254,387 @@ impl From<super::params::VdwParam> for CachedVdwParam {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::{
+        forcefield::params::{DeltaParam, Forcefield, NonBondedParams, VdwParam},
+        models::{chain::ChainType, residue::ResidueType, system::MolecularSystem},
+        topology::registry::TopologyRegistry,
+    };
+    use nalgebra::Point3;
+    use std::collections::HashMap;
+    use std::io::Write;
+    use tempfile::NamedTempFile;
+
+    struct TestSetup {
+        system: MolecularSystem,
+        forcefield: Forcefield,
+        topology_registry: TopologyRegistry,
+    }
+
+    fn setup() -> TestSetup {
+        let mut system = MolecularSystem::new();
+
+        let chain_a = system.add_chain('A', ChainType::Protein);
+        let ala_id = system
+            .add_residue(chain_a, 1, "ALA", Some(ResidueType::Alanine))
+            .unwrap();
+        let unk_id = system.add_residue(chain_a, 2, "UNK", None).unwrap();
+
+        let chain_l = system.add_chain('L', ChainType::Ligand);
+        let lig_id = system.add_residue(chain_l, 101, "LIG", None).unwrap();
+
+        let chain_w = system.add_chain('W', ChainType::Water);
+        let hoh_id = system.add_residue(chain_w, 201, "HOH", None).unwrap();
+
+        system
+            .add_atom_to_residue(ala_id, Atom::new("N", ala_id, Point3::origin()))
+            .unwrap();
+        system
+            .add_atom_to_residue(ala_id, Atom::new("CA", ala_id, Point3::origin()))
+            .unwrap();
+        system
+            .add_atom_to_residue(ala_id, Atom::new("C", ala_id, Point3::origin()))
+            .unwrap();
+        system
+            .add_atom_to_residue(ala_id, Atom::new("CB", ala_id, Point3::origin()))
+            .unwrap();
+        system
+            .add_atom_to_residue(unk_id, Atom::new("X", unk_id, Point3::origin()))
+            .unwrap();
+        system
+            .add_atom_to_residue(lig_id, Atom::new("C1", lig_id, Point3::origin()))
+            .unwrap();
+        system
+            .add_atom_to_residue(hoh_id, Atom::new("O", hoh_id, Point3::origin()))
+            .unwrap();
+
+        let mut vdw = HashMap::new();
+        vdw.insert(
+            "C_BB".to_string(),
+            VdwParam::LennardJones {
+                radius: 1.8,
+                well_depth: 0.1,
+            },
+        );
+        vdw.insert(
+            "C_SC".to_string(),
+            VdwParam::LennardJones {
+                radius: 1.9,
+                well_depth: 0.12,
+            },
+        );
+        vdw.insert(
+            "O_H2O".to_string(),
+            VdwParam::LennardJones {
+                radius: 1.6,
+                well_depth: 0.2,
+            },
+        );
+        let mut deltas = HashMap::new();
+        deltas.insert(
+            ("ALA".to_string(), "CB".to_string()),
+            DeltaParam {
+                residue_type: "ALA".to_string(),
+                atom_name: "CB".to_string(),
+                mu: 0.1,
+                sigma: 0.05,
+            },
+        );
+        let forcefield = Forcefield {
+            non_bonded: NonBondedParams {
+                globals: Default::default(),
+                vdw,
+                hbond: HashMap::new(),
+            },
+            deltas,
+        };
+
+        let topo_content = r#"
+[ALA]
+anchor_atoms = ["N", "CA", "C"]
+sidechain_atoms = ["CB"]
+"#;
+        let mut topo_file = NamedTempFile::new().unwrap();
+        write!(topo_file, "{}", topo_content).unwrap();
+        let topology_registry = TopologyRegistry::load(topo_file.path()).unwrap();
+
+        TestSetup {
+            system,
+            forcefield,
+            topology_registry,
+        }
+    }
+
+    mod role_assignment {
+        use super::*;
+
+        #[test]
+        fn assigns_roles_correctly_for_standard_protein_residue() {
+            let TestSetup {
+                mut system,
+                forcefield,
+                topology_registry,
+            } = setup();
+            let parameterizer = Parameterizer::new(&forcefield, &topology_registry, 1.0);
+
+            parameterizer.parameterize_system(&mut system).unwrap();
+
+            let ala_residue = system
+                .residue(
+                    system
+                        .find_residue_by_id(system.find_chain_by_id('A').unwrap(), 1)
+                        .unwrap(),
+                )
+                .unwrap();
+
+            assert_eq!(
+                system
+                    .atom(ala_residue.get_first_atom_id_by_name("N").unwrap())
+                    .unwrap()
+                    .role,
+                AtomRole::Backbone
+            );
+            assert_eq!(
+                system
+                    .atom(ala_residue.get_first_atom_id_by_name("CA").unwrap())
+                    .unwrap()
+                    .role,
+                AtomRole::Backbone
+            );
+            assert_eq!(
+                system
+                    .atom(ala_residue.get_first_atom_id_by_name("C").unwrap())
+                    .unwrap()
+                    .role,
+                AtomRole::Backbone
+            );
+            assert_eq!(
+                system
+                    .atom(ala_residue.get_first_atom_id_by_name("CB").unwrap())
+                    .unwrap()
+                    .role,
+                AtomRole::Sidechain
+            );
+        }
+
+        #[test]
+        fn assigns_roles_correctly_for_ligand_and_water() {
+            let TestSetup {
+                mut system,
+                forcefield,
+                topology_registry,
+            } = setup();
+            let parameterizer = Parameterizer::new(&forcefield, &topology_registry, 1.0);
+
+            parameterizer.parameterize_system(&mut system).unwrap();
+
+            let lig_atom_id = system
+                .residue(
+                    system
+                        .find_residue_by_id(system.find_chain_by_id('L').unwrap(), 101)
+                        .unwrap(),
+                )
+                .unwrap()
+                .get_first_atom_id_by_name("C1")
+                .unwrap();
+            assert_eq!(system.atom(lig_atom_id).unwrap().role, AtomRole::Ligand);
+
+            let hoh_atom_id = system
+                .residue(
+                    system
+                        .find_residue_by_id(system.find_chain_by_id('W').unwrap(), 201)
+                        .unwrap(),
+                )
+                .unwrap()
+                .get_first_atom_id_by_name("O")
+                .unwrap();
+            assert_eq!(system.atom(hoh_atom_id).unwrap().role, AtomRole::Water);
+        }
+
+        #[test]
+        fn assigns_other_role_for_protein_residue_without_topology() {
+            let TestSetup {
+                mut system,
+                forcefield,
+                topology_registry,
+            } = setup();
+            let parameterizer = Parameterizer::new(&forcefield, &topology_registry, 1.0);
+
+            parameterizer.parameterize_system(&mut system).unwrap();
+
+            let unk_atom_id = system
+                .residue(
+                    system
+                        .find_residue_by_id(system.find_chain_by_id('A').unwrap(), 2)
+                        .unwrap(),
+                )
+                .unwrap()
+                .get_first_atom_id_by_name("X")
+                .unwrap();
+            assert_eq!(system.atom(unk_atom_id).unwrap().role, AtomRole::Other);
+        }
+    }
+
+    mod physicochemical_params {
+        use super::*;
+
+        #[test]
+        fn assigns_physicochemical_params_correctly() {
+            let TestSetup {
+                mut system,
+                forcefield,
+                topology_registry,
+            } = setup();
+            let parameterizer = Parameterizer::new(&forcefield, &topology_registry, 1.0);
+
+            let ala_cb_id = system
+                .residue(
+                    system
+                        .find_residue_by_id(system.find_chain_by_id('A').unwrap(), 1)
+                        .unwrap(),
+                )
+                .unwrap()
+                .get_first_atom_id_by_name("CB")
+                .unwrap();
+            system.atom_mut(ala_cb_id).unwrap().force_field_type = "C_SC".to_string();
+
+            parameterizer.parameterize_system(&mut system).unwrap();
+
+            let cb_atom = system.atom(ala_cb_id).unwrap();
+
+            assert!((cb_atom.delta - 0.15).abs() < 1e-9);
+
+            match cb_atom.vdw_param {
+                CachedVdwParam::LennardJones { radius, well_depth } => {
+                    assert_eq!(radius, 1.9);
+                    assert_eq!(well_depth, 0.12);
+                }
+                _ => panic!("Incorrect VDW param type cached"),
+            }
+            assert_eq!(cb_atom.hbond_type_id, -1);
+        }
+    }
+
+    mod error_handling {
+        use super::*;
+
+        #[test]
+        fn fails_on_missing_sidechain_atom_in_system() {
+            let TestSetup {
+                mut system,
+                forcefield,
+                topology_registry,
+            } = setup();
+            let parameterizer = Parameterizer::new(&forcefield, &topology_registry, 1.0);
+
+            let ala_id = system
+                .find_residue_by_id(system.find_chain_by_id('A').unwrap(), 1)
+                .unwrap();
+            let cb_id = system
+                .residue(ala_id)
+                .unwrap()
+                .get_first_atom_id_by_name("CB")
+                .unwrap();
+            system.remove_atom(cb_id);
+
+            let result = parameterizer.parameterize_system(&mut system);
+            assert_eq!(
+                result.unwrap_err(),
+                ParameterizationError::MissingSidechainAtom {
+                    residue_name: "ALA".to_string(),
+                    atom_name: "CB".to_string()
+                }
+            );
+        }
+
+        #[test]
+        fn fails_on_misclassified_anchor_atom() {
+            let TestSetup {
+                mut system,
+                forcefield,
+                ..
+            } = setup();
+            let faulty_topo_content = r#"
+[ALA]
+anchor_atoms = ["N", "CA", "C"]
+sidechain_atoms = ["C", "CB"] # 'C' is an anchor, but listed as sidechain
+"#;
+            let mut faulty_topo_file = NamedTempFile::new().unwrap();
+            write!(faulty_topo_file, "{}", faulty_topo_content).unwrap();
+            let faulty_topology_registry = TopologyRegistry::load(faulty_topo_file.path()).unwrap();
+
+            let parameterizer = Parameterizer::new(&forcefield, &faulty_topology_registry, 1.0);
+
+            let result = parameterizer.parameterize_system(&mut system);
+            assert_eq!(
+                result.unwrap_err(),
+                ParameterizationError::AnchorAtomMisclassified {
+                    residue_name: "ALA".to_string(),
+                    atom_name: "C".to_string()
+                }
+            );
+        }
+
+        #[test]
+        fn fails_on_missing_vdw_params() {
+            let TestSetup {
+                mut system,
+                forcefield,
+                topology_registry,
+            } = setup();
+            let parameterizer = Parameterizer::new(&forcefield, &topology_registry, 1.0);
+
+            let lig_id = system
+                .find_residue_by_id(system.find_chain_by_id('L').unwrap(), 101)
+                .unwrap();
+            let lig_atom_id = system
+                .residue(lig_id)
+                .unwrap()
+                .get_first_atom_id_by_name("C1")
+                .unwrap();
+            system.atom_mut(lig_atom_id).unwrap().force_field_type = "UNKNOWN_TYPE".to_string();
+
+            let result = parameterizer.parameterize_system(&mut system);
+            assert!(
+                matches!(result, Err(ParameterizationError::MissingVdwParams { ff_type, .. }) if ff_type == "UNKNOWN_TYPE")
+            );
+        }
+    }
+
+    mod single_atom_parameterization {
+        use super::*;
+
+        #[test]
+        fn parameterize_protein_atom_works_correctly() {
+            let TestSetup {
+                forcefield,
+                topology_registry,
+                ..
+            } = setup();
+            let parameterizer = Parameterizer::new(&forcefield, &topology_registry, 1.0);
+
+            let ala_topology = topology_registry.get("ALA").unwrap();
+
+            let mut cb_atom = Atom::new("CB", ResidueId::default(), Point3::origin());
+            cb_atom.force_field_type = "C_SC".to_string();
+            parameterizer
+                .parameterize_protein_atom(&mut cb_atom, "ALA", ala_topology)
+                .unwrap();
+
+            assert_eq!(cb_atom.role, AtomRole::Sidechain);
+            assert!((cb_atom.delta - 0.15).abs() < 1e-9);
+
+            let mut ca_atom = Atom::new("CA", ResidueId::default(), Point3::origin());
+            ca_atom.force_field_type = "C_BB".to_string();
+            parameterizer
+                .parameterize_protein_atom(&mut ca_atom, "ALA", ala_topology)
+                .unwrap();
+
+            assert_eq!(ca_atom.role, AtomRole::Backbone);
+            assert_eq!(ca_atom.delta, 0.0);
+        }
+    }
+}
