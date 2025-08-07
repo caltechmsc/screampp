@@ -1,8 +1,10 @@
 use super::config::ResidueSpecifier;
+use crate::core::forcefield::parameterization::ParameterizationError;
 use crate::core::forcefield::params::ParamLoadError;
 use crate::core::forcefield::scoring::ScoringError;
 use crate::core::models::ids::ResidueId;
 use crate::core::rotamers::library::LibraryLoadError;
+use crate::core::topology::registry::TopologyLoadError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -48,4 +50,10 @@ pub enum EngineError {
 
     #[error("Failed to load rotamer library: {0}")]
     LibraryLoad(#[from] LibraryLoadError),
+
+    #[error("Failed to load topology registry: {0}")]
+    TopologyLoad(#[from] TopologyLoadError),
+
+    #[error("Failed to parameterize system: {0}")]
+    Parameterization(#[from] ParameterizationError),
 }
