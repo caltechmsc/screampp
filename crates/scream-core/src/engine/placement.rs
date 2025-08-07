@@ -150,14 +150,13 @@ fn add_new_sidechain_atoms_and_map(
     system: &mut MolecularSystem,
     target_residue_id: ResidueId,
     rotamer: &Rotamer,
-    placement_info: &PlacementInfo,
+    topology: &ResidueTopology,
     rotation: Rotation3<f64>,
     translation: Vector3<f64>,
 ) -> Result<HashMap<usize, AtomId>, PlacementError> {
     let mut index_to_id_map = HashMap::new();
     let target_residue = system.residue(target_residue_id).unwrap();
 
-    // 1. Create a "pool" of rotamer atoms to be consumed during assignment.
     let mut rotamer_atom_pool: HashMap<&str, Vec<(usize, &crate::core::models::atom::Atom)>> =
         HashMap::new();
     for (index, atom) in rotamer.atoms.iter().enumerate() {
@@ -168,26 +167,25 @@ fn add_new_sidechain_atoms_and_map(
     }
 
     // 2. Pre-populate the map with anchor atoms already present in the system.
-    for atom_name in &placement_info.anchor_atoms {
+    for atom_name in &topology.anchor_atoms {
         let (rotamer_atom_index, _) = rotamer_atom_pool
             .get_mut(atom_name.as_str())
-            .and_then(|atoms| {
-                if atoms.is_empty() {
-                    None
-                } else {
-                    Some(atoms.remove(0))
-                }
-            })
+            .and_then(|atoms| atoms.get(0).copied())
             .ok_or_else(|| PlacementError::RotamerAtomNameNotFound {
                 atom_name: atom_name.clone(),
             })?;
 
         let system_atom_id = target_residue.get_first_atom_id_by_name(atom_name).unwrap();
         index_to_id_map.insert(rotamer_atom_index, system_atom_id);
+        if let Some(atoms) = rotamer_atom_pool.get_mut(atom_name.as_str()) {
+            if !atoms.is_empty() {
+                atoms.remove(0);
+            }
+        }
     }
 
     // 3. Add new side-chain atoms, consuming them from the end of the rotamer pool.
-    for atom_name in &placement_info.sidechain_atoms {
+    for atom_name in &topology.sidechain_atoms {
         let (index, rotamer_atom) = rotamer_atom_pool
             .get_mut(atom_name.as_str())
             .and_then(|atoms| atoms.pop())
