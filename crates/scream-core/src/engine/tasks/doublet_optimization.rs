@@ -112,18 +112,8 @@ where
             let el_b_total = el_b_term.total();
 
             let mut temp_system = system.clone();
-            placement::place_rotamer_on_system(
-                &mut temp_system,
-                res_a_id,
-                rot_a,
-                placement_info_a,
-            )?;
-            placement::place_rotamer_on_system(
-                &mut temp_system,
-                res_b_id,
-                rot_b,
-                placement_info_b,
-            )?;
+            placement::place_rotamer_on_system(&mut temp_system, res_a_id, rot_a, topology_a)?;
+            placement::place_rotamer_on_system(&mut temp_system, res_b_id, rot_b, topology_b)?;
 
             let atoms_a_all_ids: Vec<AtomId> =
                 temp_system.residue(res_a_id).unwrap().atoms().to_vec();
