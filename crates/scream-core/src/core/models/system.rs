@@ -36,6 +36,9 @@ impl MolecularSystem {
     pub fn atoms_iter(&self) -> impl Iterator<Item = (AtomId, &Atom)> {
         self.atoms.iter()
     }
+    pub fn atoms_iter_mut(&mut self) -> impl Iterator<Item = (AtomId, &mut Atom)> {
+        self.atoms.iter_mut()
+    }
 
     pub fn residue(&self, id: ResidueId) -> Option<&Residue> {
         self.residues.get(id)
