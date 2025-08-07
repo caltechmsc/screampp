@@ -52,7 +52,6 @@ pub struct ForcefieldConfig {
 #[derive(Debug, Clone, PartialEq)]
 pub struct SamplingConfig {
     pub rotamer_library_path: PathBuf,
-    pub placement_registry_path: PathBuf,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -71,6 +70,7 @@ pub struct PlacementConfig {
     pub sampling: SamplingConfig,
     pub optimization: OptimizationConfig,
     pub residues_to_optimize: ResidueSelection,
+    pub topology_registry_path: PathBuf,
 }
 
 pub type DesignSpec = HashMap<ResidueSpecifier, Vec<ResidueType>>;
@@ -95,6 +95,7 @@ pub struct DesignConfig {
     pub optimization: OptimizationConfig,
     pub design_spec: DesignSpec,
     pub neighbors_to_repack: ResidueSelection,
+    pub topology_registry_path: PathBuf,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -119,6 +120,7 @@ pub enum AnalysisType {
 pub struct AnalyzeConfig {
     pub forcefield: ForcefieldConfig,
     pub analysis_type: AnalysisType,
+    pub topology_registry_path: PathBuf,
 }
 
 #[derive(Default)]
@@ -127,7 +129,7 @@ pub struct PlacementConfigBuilder {
     delta_params_path: Option<PathBuf>,
     s_factor: Option<f64>,
     rotamer_library_path: Option<PathBuf>,
-    placement_registry_path: Option<PathBuf>,
+    topology_registry_path: Option<PathBuf>,
     max_iterations: Option<usize>,
     num_solutions: Option<usize>,
     include_input_conformation: Option<bool>,
@@ -158,8 +160,8 @@ impl PlacementConfigBuilder {
         self.rotamer_library_path = Some(path.into());
         self
     }
-    pub fn placement_registry_path(mut self, path: impl Into<PathBuf>) -> Self {
-        self.placement_registry_path = Some(path.into());
+    pub fn topology_registry_path(mut self, path: impl Into<PathBuf>) -> Self {
+        self.topology_registry_path = Some(path.into());
         self
     }
     pub fn max_iterations(mut self, iterations: usize) -> Self {
@@ -207,9 +209,6 @@ impl PlacementConfigBuilder {
             rotamer_library_path: self
                 .rotamer_library_path
                 .ok_or(ConfigError::MissingParameter("rotamer_library_path"))?,
-            placement_registry_path: self
-                .placement_registry_path
-                .ok_or(ConfigError::MissingParameter("placement_registry_path"))?,
         };
         let optimization = OptimizationConfig {
             max_iterations: self
@@ -223,7 +222,9 @@ impl PlacementConfigBuilder {
                 .convergence_config
                 .ok_or(ConfigError::MissingParameter("convergence_config"))?,
             simulated_annealing: self.simulated_annealing_config,
-            final_refinement_iterations: self.final_refinement_iterations.unwrap_or(0),
+            final_refinement_iterations: self
+                .final_refinement_iterations
+                .ok_or(ConfigError::MissingParameter("final_refinement_iterations"))?,
         };
 
         Ok(PlacementConfig {
@@ -233,6 +234,9 @@ impl PlacementConfigBuilder {
             residues_to_optimize: self
                 .residues_to_optimize
                 .ok_or(ConfigError::MissingParameter("residues_to_optimize"))?,
+            topology_registry_path: self
+                .topology_registry_path
+                .ok_or(ConfigError::MissingParameter("topology_registry_path"))?,
         })
     }
 }
@@ -243,7 +247,7 @@ pub struct DesignConfigBuilder {
     delta_params_path: Option<PathBuf>,
     s_factor: Option<f64>,
     rotamer_library_path: Option<PathBuf>,
-    placement_registry_path: Option<PathBuf>,
+    topology_registry_path: Option<PathBuf>,
     max_iterations: Option<usize>,
     num_solutions: Option<usize>,
     include_input_conformation: Option<bool>,
@@ -276,8 +280,8 @@ impl DesignConfigBuilder {
         self.rotamer_library_path = Some(path.into());
         self
     }
-    pub fn placement_registry_path(mut self, path: impl Into<PathBuf>) -> Self {
-        self.placement_registry_path = Some(path.into());
+    pub fn topology_registry_path(mut self, path: impl Into<PathBuf>) -> Self {
+        self.topology_registry_path = Some(path.into());
         self
     }
 
@@ -331,9 +335,6 @@ impl DesignConfigBuilder {
             rotamer_library_path: self
                 .rotamer_library_path
                 .ok_or(ConfigError::MissingParameter("rotamer_library_path"))?,
-            placement_registry_path: self
-                .placement_registry_path
-                .ok_or(ConfigError::MissingParameter("placement_registry_path"))?,
         };
         let optimization = OptimizationConfig {
             max_iterations: self
@@ -342,12 +343,16 @@ impl DesignConfigBuilder {
             num_solutions: self
                 .num_solutions
                 .ok_or(ConfigError::MissingParameter("num_solutions"))?,
-            include_input_conformation: self.include_input_conformation.unwrap_or(false),
+            include_input_conformation: self
+                .include_input_conformation
+                .ok_or(ConfigError::MissingParameter("include_input_conformation"))?,
             convergence: self
                 .convergence_config
                 .ok_or(ConfigError::MissingParameter("convergence_config"))?,
             simulated_annealing: self.simulated_annealing_config,
-            final_refinement_iterations: self.final_refinement_iterations.unwrap_or(0),
+            final_refinement_iterations: self
+                .final_refinement_iterations
+                .ok_or(ConfigError::MissingParameter("final_refinement_iterations"))?,
         };
 
         Ok(DesignConfig {
@@ -360,6 +365,9 @@ impl DesignConfigBuilder {
             neighbors_to_repack: self
                 .neighbors_to_repack
                 .ok_or(ConfigError::MissingParameter("neighbors_to_repack"))?,
+            topology_registry_path: self
+                .topology_registry_path
+                .ok_or(ConfigError::MissingParameter("topology_registry_path"))?,
         })
     }
 }
@@ -369,6 +377,7 @@ pub struct AnalyzeConfigBuilder {
     forcefield_path: Option<PathBuf>,
     delta_params_path: Option<PathBuf>,
     s_factor: Option<f64>,
+    topology_registry_path: Option<PathBuf>,
     analysis_type: Option<AnalysisType>,
 }
 
@@ -389,8 +398,12 @@ impl AnalyzeConfigBuilder {
         self.s_factor = Some(factor);
         self
     }
-    pub fn analysis_type(mut self, analysis: AnalysisType) -> Self {
-        self.analysis_type = Some(analysis);
+    pub fn topology_registry_path(mut self, path: impl Into<PathBuf>) -> Self {
+        self.topology_registry_path = Some(path.into());
+        self
+    }
+    pub fn analysis_type(mut self, analysis_type: AnalysisType) -> Self {
+        self.analysis_type = Some(analysis_type);
         self
     }
 
@@ -412,6 +425,9 @@ impl AnalyzeConfigBuilder {
             analysis_type: self
                 .analysis_type
                 .ok_or(ConfigError::MissingParameter("analysis_type"))?,
+            topology_registry_path: self
+                .topology_registry_path
+                .ok_or(ConfigError::MissingParameter("topology_registry_path"))?,
         })
     }
 }
