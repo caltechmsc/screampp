@@ -7,9 +7,8 @@ pub enum AtomRole {
     Sidechain, // Sidechain atom (e.g., CH3, OH)
     Ligand,    // Ligand atom (e.g., in a small molecule)
     Water,     // Water molecule atom (e.g., H2O)
-    Ion,       // Ion atom (e.g., Na+, Cl-)
     #[default]
-    Unknown, // Unknown or unclassified atom
+    Other, // Unknown or unclassified atom
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -87,7 +86,7 @@ mod tests {
     fn new_atom_has_correct_default_role() {
         let residue_id = ResidueId::default();
         let atom = Atom::new("CA", residue_id, Point3::new(1.0, 2.0, 3.0));
-        assert_eq!(atom.role, AtomRole::Unknown);
+        assert_eq!(atom.role, AtomRole::Other);
         assert_eq!(atom.role, AtomRole::default());
     }
 
