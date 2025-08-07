@@ -3,6 +3,7 @@ use crate::core::forcefield::params::Forcefield;
 use crate::core::models::ids::ResidueId;
 use crate::core::models::system::MolecularSystem;
 use crate::core::rotamers::library::RotamerLibrary;
+use crate::core::topology::registry::TopologyRegistry;
 use crate::engine::cache::ELCache;
 use crate::engine::config::PlacementConfig;
 use crate::engine::context::{OptimizationContext, resolve_selection_to_ids};
@@ -25,38 +26,71 @@ pub fn run(
     config: &PlacementConfig,
     reporter: &ProgressReporter,
 ) -> Result<Vec<Solution>, EngineError> {
-    // --- Phase 0 & 1: Setup & Pre-computation ---
+    // --- Phase 0: Setup, Resource Loading, and System Initialization ---
+    reporter.report(Progress::PhaseStart { name: "Setup" });
+    info!("Starting workflow setup: loading resources and parameterizing system.");
+
+    let forcefield = Forcefield::load(
+        &config.forcefield.forcefield_path,
+        &config.forcefield.delta_params_path,
+    )?;
+    let topology_registry = TopologyRegistry::load(&config.topology_registry_path)?;
+
+    let parameterizer =
+        Parameterizer::new(&forcefield, &topology_registry, config.forcefield.s_factor);
+
+    let mut rotamer_library = RotamerLibrary::load(
+        &config.sampling.rotamer_library_path,
+        &topology_registry,
+        &forcefield,
+        config.forcefield.s_factor,
+    )?;
     let mut working_system = initial_system.clone();
-    let (forcefield, rotamer_library, active_residues) =
-        setup(&mut working_system, config, reporter)?;
+
+    let active_residues = resolve_selection_to_ids(
+        &working_system,
+        &config.residues_to_optimize,
+        &rotamer_library,
+    )?;
+
+    if config.optimization.include_input_conformation {
+        info!("Including original side-chain conformations in the rotamer library.");
+        rotamer_library.include_system_conformations(
+            &working_system,
+            &active_residues,
+            &topology_registry,
+        );
+    }
+
+    info!("Parameterizing the input molecular system...");
+    parameterizer.parameterize_system(&mut working_system)?;
+
+    reporter.report(Progress::PhaseFinish);
+
+    // --- Phase 1: Pre-computation ---
     let context = OptimizationContext::new(
         &working_system,
         &forcefield,
         reporter,
         config,
         &rotamer_library,
+        &topology_registry,
     );
-    let el_cache = precompute_el_energies(&context, reporter)?;
+    let el_cache = precompute_el_energies(&context)?;
 
     // --- Phase 2: Initialization ---
-    let mut state = initialize_state(
-        &working_system,
-        &active_residues,
-        &context,
-        &el_cache,
-        reporter,
-    )?;
+    let mut state = initialize_state(&working_system, &active_residues, &context, &el_cache)?;
 
     // --- Phase 3: Clash-Driven Optimization ---
-    resolve_clashes_iteratively(&mut state, &active_residues, &context, &el_cache, reporter)?;
+    resolve_clashes_iteratively(&mut state, &active_residues, &context, &el_cache)?;
 
     // --- Phase 4: Optional Global Search (Simulated Annealing) ---
     if context.config.optimization.simulated_annealing.is_some() {
-        run_simulated_annealing(&mut state, &active_residues, &context, &el_cache, reporter)?;
+        run_simulated_annealing(&mut state, &active_residues, &context, &el_cache)?;
     }
 
     // --- Phase 5: Final Refinement (Singlet Optimization) ---
-    final_refinement(&mut state, &active_residues, &context, &el_cache, reporter)?;
+    final_refinement(&mut state, &active_residues, &context, &el_cache)?;
 
     // --- Phase 6: Finalization ---
     let sorted_solutions = state.into_sorted_solutions();
@@ -67,59 +101,15 @@ pub fn run(
     Ok(sorted_solutions)
 }
 
-#[instrument(skip_all, name = "workflow_setup")]
-fn setup<'a>(
-    working_system: &mut MolecularSystem,
-    config: &'a PlacementConfig,
-    reporter: &ProgressReporter,
-) -> Result<(Forcefield, RotamerLibrary, HashSet<ResidueId>), EngineError> {
-    reporter.report(Progress::PhaseStart { name: "Setup" });
-    info!("Starting workflow setup: loading resources.");
-
-    let forcefield = Forcefield::load(
-        &config.forcefield.forcefield_path,
-        &config.forcefield.delta_params_path,
-    )?;
-
-    let parameterizer = Parameterizer::new(forcefield.clone(), config.forcefield.s_factor);
-
-    info!("Parameterizing the input molecular system...");
-    parameterizer
-        .parameterize_system(working_system)
-        .map_err(|e| EngineError::Initialization(e.to_string()))?;
-
-    let mut rotamer_library = RotamerLibrary::load(
-        &config.sampling.rotamer_library_path,
-        &config.sampling.placement_registry_path,
-        &forcefield,
-        config.forcefield.s_factor,
-    )?;
-
-    let active_residues = resolve_selection_to_ids(
-        working_system,
-        &config.residues_to_optimize,
-        &rotamer_library,
-    )?;
-
-    if config.optimization.include_input_conformation {
-        info!("Including original side-chain conformations in the rotamer library.");
-        rotamer_library.include_system_conformations(working_system, &active_residues);
-    }
-
-    reporter.report(Progress::PhaseFinish);
-    Ok((forcefield, rotamer_library, active_residues))
-}
-
 #[instrument(skip_all, name = "el_energy_precomputation")]
 fn precompute_el_energies<'a>(
     context: &OptimizationContext<'a, PlacementConfig>,
-    reporter: &ProgressReporter,
 ) -> Result<ELCache, EngineError> {
-    reporter.report(Progress::PhaseStart {
+    context.reporter.report(Progress::PhaseStart {
         name: "EL Pre-computation",
     });
     let el_cache = tasks::el_energy::run(context)?;
-    reporter.report(Progress::PhaseFinish);
+    context.reporter.report(Progress::PhaseFinish);
     Ok(el_cache)
 }
 
@@ -129,9 +119,8 @@ fn initialize_state<'a>(
     active_residues: &HashSet<ResidueId>,
     context: &OptimizationContext<'a, PlacementConfig>,
     el_cache: &ELCache,
-    reporter: &ProgressReporter,
 ) -> Result<OptimizationState, EngineError> {
-    reporter.report(Progress::PhaseStart {
+    context.reporter.report(Progress::PhaseStart {
         name: "Initialization",
     });
     info!("Initializing system with ground-state rotamers.");
@@ -189,7 +178,7 @@ fn initialize_state<'a>(
         context.config.optimization.num_solutions,
     );
 
-    reporter.report(Progress::PhaseFinish);
+    context.reporter.report(Progress::PhaseFinish);
     Ok(state)
 }
 
@@ -199,9 +188,8 @@ fn resolve_clashes_iteratively<'a>(
     active_residues: &HashSet<ResidueId>,
     context: &OptimizationContext<'a, PlacementConfig>,
     el_cache: &ELCache,
-    reporter: &ProgressReporter,
 ) -> Result<(), EngineError> {
-    reporter.report(Progress::PhaseStart {
+    context.reporter.report(Progress::PhaseStart {
         name: "Clash Resolution",
     });
     info!("Starting iterative clash resolution loop.");
@@ -220,10 +208,10 @@ fn resolve_clashes_iteratively<'a>(
             context.forcefield,
             active_residues,
             CLASH_THRESHOLD,
-            reporter,
+            context.reporter,
         )?;
 
-        reporter.report(Progress::StatusUpdate {
+        context.reporter.report(Progress::StatusUpdate {
             text: format!(
                 "Pass {}/{}, Clashes Found: {}",
                 iteration + 1,
@@ -237,7 +225,7 @@ fn resolve_clashes_iteratively<'a>(
                 "System converged after {} clash resolution iterations (no clashes found).",
                 iteration
             );
-            reporter.report(Progress::Message(format!(
+            context.reporter.report(Progress::Message(format!(
                 "Converged after {} iterations (no clashes).",
                 iteration
             )));
@@ -343,14 +331,14 @@ fn resolve_clashes_iteratively<'a>(
                 "System converged after {} clash resolution iterations (energy stabilized below {}).",
                 iteration, convergence_energy_threshold
             );
-            reporter.report(Progress::Message(format!(
+            context.reporter.report(Progress::Message(format!(
                 "Converged after {} iterations (energy stabilized).",
                 iteration
             )));
             break;
         }
     }
-    reporter.report(Progress::PhaseFinish);
+    context.reporter.report(Progress::PhaseFinish);
     Ok(())
 }
 
@@ -360,9 +348,8 @@ fn final_refinement<'a>(
     active_residues: &HashSet<ResidueId>,
     context: &OptimizationContext<'a, PlacementConfig>,
     el_cache: &ELCache,
-    reporter: &ProgressReporter,
 ) -> Result<(), EngineError> {
-    reporter.report(Progress::PhaseStart {
+    context.reporter.report(Progress::PhaseStart {
         name: "Final Refinement",
     });
     info!("Starting final refinement (singlet optimization).");
@@ -370,7 +357,7 @@ fn final_refinement<'a>(
     let final_refinement_iterations = context.config.optimization.final_refinement_iterations;
     if final_refinement_iterations == 0 {
         info!("Final refinement skipped as configured (0 iterations).");
-        reporter.report(Progress::PhaseFinish);
+        context.reporter.report(Progress::PhaseFinish);
         return Ok(());
     }
 
@@ -383,11 +370,11 @@ fn final_refinement<'a>(
             final_refinement_iterations
         );
 
-        reporter.report(Progress::StatusUpdate {
+        context.reporter.report(Progress::StatusUpdate {
             text: format!("Pass {}/{}", i + 1, final_refinement_iterations),
         });
 
-        reporter.report(Progress::TaskStart {
+        context.reporter.report(Progress::TaskStart {
             total: active_residues.len() as u64,
         });
 
@@ -488,10 +475,12 @@ fn final_refinement<'a>(
                 state.submit_current_solution();
             }
 
-            reporter.report(Progress::TaskIncrement { amount: 1 });
+            context
+                .reporter
+                .report(Progress::TaskIncrement { amount: 1 });
         }
 
-        reporter.report(Progress::TaskFinish);
+        context.reporter.report(Progress::TaskFinish);
 
         if changed_in_cycle {
             info!(
@@ -510,7 +499,7 @@ fn final_refinement<'a>(
 
     state.submit_current_solution();
 
-    reporter.report(Progress::PhaseFinish);
+    context.reporter.report(Progress::PhaseFinish);
     Ok(())
 }
 
@@ -520,9 +509,8 @@ fn run_simulated_annealing<'a>(
     active_residues: &HashSet<ResidueId>,
     context: &OptimizationContext<'a, PlacementConfig>,
     el_cache: &ELCache,
-    reporter: &ProgressReporter,
 ) -> Result<(), EngineError> {
-    reporter.report(Progress::PhaseStart {
+    context.reporter.report(Progress::PhaseStart {
         name: "Simulated Annealing",
     });
     info!("Starting Simulated Annealing exploration.");
@@ -547,14 +535,14 @@ fn run_simulated_annealing<'a>(
     let mut temp_step_current = 0;
     while current_temperature > final_temperature {
         temp_step_current += 1;
-        reporter.report(Progress::StatusUpdate {
+        context.reporter.report(Progress::StatusUpdate {
             text: format!(
                 "SA Temp: {:.4} (Step {})",
                 current_temperature, temp_step_current
             ),
         });
 
-        reporter.report(Progress::TaskStart {
+        context.reporter.report(Progress::TaskStart {
             total: steps_per_temperature as u64,
         });
 
@@ -581,7 +569,9 @@ fn run_simulated_annealing<'a>(
             })?;
 
             if rotamers.len() <= 1 {
-                reporter.report(Progress::TaskIncrement { amount: 1 });
+                context
+                    .reporter
+                    .report(Progress::TaskIncrement { amount: 1 });
                 continue;
             }
 
@@ -646,15 +636,17 @@ fn run_simulated_annealing<'a>(
                     );
                 }
             }
-            reporter.report(Progress::TaskIncrement { amount: 1 });
+            context
+                .reporter
+                .report(Progress::TaskIncrement { amount: 1 });
         }
 
-        reporter.report(Progress::TaskFinish);
+        context.reporter.report(Progress::TaskFinish);
 
         current_temperature *= cooling_rate;
     }
     info!("Simulated Annealing finished. Final temperature reached.");
-    reporter.report(Progress::PhaseFinish);
+    context.reporter.report(Progress::PhaseFinish);
     Ok(())
 }
 
