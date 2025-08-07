@@ -660,6 +660,7 @@ mod tests {
     use crate::core::models::chain::ChainType;
     use crate::core::models::ids::{AtomId, ChainId};
     use crate::core::models::residue::ResidueType;
+    use crate::core::topology::registry::TopologyRegistry;
     use crate::engine::config::{
         ConvergenceConfig, PlacementConfigBuilder, ResidueSelection, ResidueSpecifier,
         SimulatedAnnealingConfig,
@@ -923,19 +924,16 @@ mod tests {
 
         pub struct TestSystemBuilder {
             system: MolecularSystem,
-            parameterizer: Parameterizer,
             last_c_id: Option<AtomId>,
             chain_id: ChainId,
         }
 
         impl TestSystemBuilder {
-            pub fn new(forcefield: Forcefield) -> Self {
+            pub fn new() -> Self {
                 let mut system = MolecularSystem::new();
                 let chain_id = system.add_chain('A', ChainType::Protein);
-                let parameterizer = Parameterizer::new(forcefield, 0.0);
                 Self {
                     system,
-                    parameterizer,
                     last_c_id: None,
                     chain_id,
                 }
@@ -997,15 +995,6 @@ mod tests {
                     atom.force_field_type = atom_template.ff_type.to_string();
                     atom.partial_charge = atom_template.charge;
 
-                    self.parameterizer
-                        .parameterize_atom(&mut atom, residue_type.to_three_letter())
-                        .unwrap_or_else(|e| {
-                            panic!(
-                                "Failed to parameterize atom {} in test setup: {}",
-                                atom_template.name, e
-                            )
-                        });
-
                     let new_id = self.system.add_atom_to_residue(res_id, atom).unwrap();
                     name_to_id.insert(atom_template.name, new_id);
                 }
@@ -1033,37 +1022,49 @@ mod tests {
 
         pub struct TestEnvironment {
             pub temp_dir: TempDir,
-            pub forcefield_path: PathBuf,
-            pub delta_path: PathBuf,
+            pub forcefield: Forcefield,
+            pub topology_registry: TopologyRegistry,
             pub rotamer_lib_path: PathBuf,
-            pub placement_reg_path: PathBuf,
             pub initial_system: MolecularSystem,
+            forcefield_path: PathBuf,
+            delta_path: PathBuf,
+            topology_reg_path: PathBuf,
         }
 
         impl TestEnvironment {
             pub fn new() -> Self {
                 let temp_dir = tempdir().unwrap();
+
                 let forcefield_path = create_dummy_forcefield_file(temp_dir.path());
                 let delta_path = create_dummy_delta_file(temp_dir.path());
+                let topology_reg_path = create_dummy_topology_reg_file(temp_dir.path());
                 let rotamer_lib_path = create_dummy_rotamer_lib_file(temp_dir.path());
-                let placement_reg_path = create_dummy_placement_reg_file(temp_dir.path());
 
                 let forcefield = Forcefield::load(&forcefield_path, &delta_path)
                     .expect("Failed to load dummy forcefield in test setup");
+                let topology_registry = TopologyRegistry::load(&topology_reg_path)
+                    .expect("Failed to load dummy topology in test setup");
 
-                let system = TestSystemBuilder::new(forcefield)
+                let mut system = TestSystemBuilder::new()
                     .add_residue(ResidueType::Alanine, 1)
                     .add_residue(ResidueType::Glycine, 2)
                     .add_residue(ResidueType::Leucine, 3)
                     .build();
 
+                let parameterizer = Parameterizer::new(&forcefield, &topology_registry, 0.0);
+                parameterizer
+                    .parameterize_system(&mut system)
+                    .expect("Parameterization failed in test setup");
+
                 Self {
                     temp_dir,
+                    forcefield,
+                    topology_registry,
+                    rotamer_lib_path,
+                    initial_system: system,
                     forcefield_path,
                     delta_path,
-                    rotamer_lib_path,
-                    placement_reg_path,
-                    initial_system: system,
+                    topology_reg_path,
                 }
             }
 
@@ -1072,7 +1073,7 @@ mod tests {
                     .forcefield_path(&self.forcefield_path)
                     .delta_params_path(&self.delta_path)
                     .rotamer_library_path(&self.rotamer_lib_path)
-                    .placement_registry_path(&self.placement_reg_path)
+                    .topology_registry_path(&self.topology_reg_path)
                     .s_factor(0.8)
                     .max_iterations(20)
                     .num_solutions(1)
@@ -1180,8 +1181,8 @@ mod tests {
             path
         }
 
-        fn create_dummy_placement_reg_file(dir: &Path) -> PathBuf {
-            let path = dir.join("test.placement.toml");
+        fn create_dummy_topology_reg_file(dir: &Path) -> PathBuf {
+            let path = dir.join("test.topology.toml");
             let mut file = File::create(&path).unwrap();
             write!(
                 file,
@@ -1189,16 +1190,15 @@ mod tests {
                 [ALA]
                 anchor_atoms = ["N", "CA", "C"]
                 sidechain_atoms = ["CB", "HB1", "HB2", "HB3"]
-                exact_match_atoms = []
-                connection_points = []
+                [GLY]
+                anchor_atoms = ["N", "CA", "C"]
+                sidechain_atoms = []
                 [LEU]
                 anchor_atoms = ["N", "CA", "C"]
-                sidechain_atoms = ["CB", "HB1", "HB2", "CG", "HG"]
-                exact_match_atoms = []
-                connection_points = []
+                sidechain_atoms = ["CB", "HB1", "HB2", "CG", "HG", "CD1", "HD11", "HD12", "HD13", "CD2", "HD21", "HD22", "HD23"]
             "#
             )
-            .unwrap();
+                .unwrap();
             path
         }
     }
@@ -1237,17 +1237,14 @@ mod tests {
         let reporter = ProgressReporter::new();
 
         let system_to_run = env.initial_system.clone();
+        let chain_a_id = system_to_run.find_chain_by_id('A').unwrap();
         let initial_ala_centroid = get_sidechain_centroid(
             &system_to_run,
-            system_to_run
-                .find_residue_by_id(system_to_run.find_chain_by_id('A').unwrap(), 1)
-                .unwrap(),
+            system_to_run.find_residue_by_id(chain_a_id, 1).unwrap(),
         );
         let initial_gly_centroid = get_sidechain_centroid(
             &system_to_run,
-            system_to_run
-                .find_residue_by_id(system_to_run.find_chain_by_id('A').unwrap(), 2)
-                .unwrap(),
+            system_to_run.find_residue_by_id(chain_a_id, 2).unwrap(),
         );
 
         let result = run(&system_to_run, &config, &reporter);
@@ -1257,16 +1254,17 @@ mod tests {
         assert!(!solutions.is_empty());
 
         let final_system = &solutions[0].state.system;
+        let final_chain_a_id = final_system.find_chain_by_id('A').unwrap();
         let final_ala_centroid = get_sidechain_centroid(
             final_system,
             final_system
-                .find_residue_by_id(final_system.find_chain_by_id('A').unwrap(), 1)
+                .find_residue_by_id(final_chain_a_id, 1)
                 .unwrap(),
         );
         let final_gly_centroid = get_sidechain_centroid(
             final_system,
             final_system
-                .find_residue_by_id(final_system.find_chain_by_id('A').unwrap(), 2)
+                .find_residue_by_id(final_chain_a_id, 2)
                 .unwrap(),
         );
 
@@ -1320,32 +1318,30 @@ mod tests {
         let reporter = ProgressReporter::new();
 
         let system_to_run = env.initial_system.clone();
+        let chain_a_id = system_to_run.find_chain_by_id('A').unwrap();
         let initial_ala_centroid = get_sidechain_centroid(
             &system_to_run,
-            system_to_run
-                .find_residue_by_id(system_to_run.find_chain_by_id('A').unwrap(), 1)
-                .unwrap(),
+            system_to_run.find_residue_by_id(chain_a_id, 1).unwrap(),
         );
         let initial_leu_centroid = get_sidechain_centroid(
             &system_to_run,
-            system_to_run
-                .find_residue_by_id(system_to_run.find_chain_by_id('A').unwrap(), 3)
-                .unwrap(),
+            system_to_run.find_residue_by_id(chain_a_id, 3).unwrap(),
         );
 
         let solutions = run(&system_to_run, &config, &reporter).unwrap();
 
         let final_system = &solutions[0].state.system;
+        let final_chain_a_id = final_system.find_chain_by_id('A').unwrap();
         let final_ala_centroid = get_sidechain_centroid(
             final_system,
             final_system
-                .find_residue_by_id(final_system.find_chain_by_id('A').unwrap(), 1)
+                .find_residue_by_id(final_chain_a_id, 1)
                 .unwrap(),
         );
         let final_leu_centroid = get_sidechain_centroid(
             final_system,
             final_system
-                .find_residue_by_id(final_system.find_chain_by_id('A').unwrap(), 3)
+                .find_residue_by_id(final_chain_a_id, 3)
                 .unwrap(),
         );
 
@@ -1373,14 +1369,14 @@ mod tests {
             .unwrap()
             .get_first_atom_id_by_name("CB")
             .unwrap();
-        let leu_cb_id = clashing_system
+        let leu_cg_id = clashing_system
             .residue(leu_res_id)
             .unwrap()
-            .get_first_atom_id_by_name("CB")
+            .get_first_atom_id_by_name("CG")
             .unwrap();
 
         let ala_pos = clashing_system.atom(ala_cb_id).unwrap().position;
-        clashing_system.atom_mut(leu_cb_id).unwrap().position = ala_pos;
+        clashing_system.atom_mut(leu_cg_id).unwrap().position = ala_pos;
 
         let config = env
             .create_default_config_builder()
@@ -1388,8 +1384,13 @@ mod tests {
             .build()
             .unwrap();
         let reporter = ProgressReporter::new();
-        let forcefield = Forcefield::load(&env.forcefield_path, &env.delta_path).unwrap();
-        let scorer = Scorer::new(&clashing_system, &forcefield);
+
+        let parameterizer = Parameterizer::new(&env.forcefield, &env.topology_registry, 0.0);
+        parameterizer
+            .parameterize_system(&mut clashing_system)
+            .unwrap();
+
+        let scorer = Scorer::new(&clashing_system, &env.forcefield);
 
         let initial_energy = scorer
             .score_interaction(
