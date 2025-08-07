@@ -156,27 +156,58 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::forcefield::params::{Forcefield, GlobalParams, NonBondedParams, VdwParam};
-    use crate::core::models::atom::{Atom, CachedVdwParam};
-    use crate::core::models::chain::ChainType;
-    use crate::core::models::residue::ResidueType;
-    use crate::core::rotamers::library::RotamerLibrary;
-    use crate::core::rotamers::placement::PlacementInfo;
-    use crate::core::rotamers::rotamer::Rotamer;
-    use crate::engine::config::{ConvergenceConfig, PlacementConfigBuilder, ResidueSelection};
-    use crate::engine::context::OptimizationContext;
-    use crate::engine::progress::ProgressReporter;
+    use crate::core::models::atom::CachedVdwParam;
+    use crate::core::{
+        forcefield::{
+            parameterization::Parameterizer,
+            params::{Forcefield, GlobalParams, NonBondedParams, VdwParam},
+        },
+        models::{atom::Atom, chain::ChainType, residue::ResidueType, system::MolecularSystem},
+        rotamers::{library::RotamerLibrary, rotamer::Rotamer},
+        topology::registry::TopologyRegistry,
+    };
+    use crate::engine::{
+        config::{ConvergenceConfig, PlacementConfigBuilder, ResidueSelection},
+        context::OptimizationContext,
+        progress::ProgressReporter,
+    };
     use nalgebra::Point3;
-    use std::collections::HashMap;
+    use std::{collections::HashMap, fs, path::Path};
+    use tempfile::TempDir;
 
-    fn setup_test_data() -> (
-        MolecularSystem,
-        ResidueId,
-        ResidueId,
-        ELCache,
-        Forcefield,
-        RotamerLibrary,
-    ) {
+    struct TestSetup {
+        system: MolecularSystem,
+        res_a_id: ResidueId,
+        res_b_id: ResidueId,
+        el_cache: ELCache,
+        forcefield: Forcefield,
+        rotamer_library: RotamerLibrary,
+        topology_registry: TopologyRegistry,
+        _temp_dir: TempDir,
+    }
+
+    fn write_file(path: &Path, content: &str) {
+        fs::write(path, content).expect("Failed to write temporary file for test");
+    }
+
+    fn setup_test_data() -> TestSetup {
+        let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let dir_path = temp_dir.path();
+
+        let topology_path = dir_path.join("topology.toml");
+        write_file(
+            &topology_path,
+            r#"
+[ALA]
+anchor_atoms = ["N", "CA", "C"]
+sidechain_atoms = ["CB"]
+
+[LEU]
+anchor_atoms = ["N", "CA", "C"]
+sidechain_atoms = ["CB"]
+"#,
+        );
+
         let mut system = MolecularSystem::new();
         let chain_id = system.add_chain('A', ChainType::Protein);
         let res_a_id = system
@@ -228,7 +259,7 @@ mod tests {
                 well_depth: 0.1,
             },
         );
-        let ff = Forcefield {
+        let forcefield = Forcefield {
             non_bonded: NonBondedParams {
                 globals: GlobalParams {
                     dielectric_constant: 1.0,
@@ -239,6 +270,10 @@ mod tests {
             },
             deltas: HashMap::new(),
         };
+
+        let topology_registry = TopologyRegistry::load(&topology_path).unwrap();
+
+        let parameterizer = Parameterizer::new(&forcefield, &topology_registry, 0.0);
 
         let create_rotamer = |residue_id, cb_pos: Point3<f64>| -> Rotamer {
             let mut atoms = Vec::new();
@@ -273,7 +308,16 @@ mod tests {
 
             let bonds = vec![(0, 1), (1, 2), (1, 3)];
 
-            Rotamer { atoms, bonds }
+            let mut rotamer = Rotamer { atoms, bonds };
+
+            let res_name = system.residue(residue_id).unwrap().name.as_str();
+            let topo = topology_registry.get(res_name).unwrap();
+            for atom in &mut rotamer.atoms {
+                parameterizer
+                    .parameterize_protein_atom(atom, res_name, topo)
+                    .unwrap();
+            }
+            rotamer
         };
 
         let rotamer_a0 = create_rotamer(res_a_id, Point3::new(-0.5, -0.8, 0.0));
@@ -284,47 +328,39 @@ mod tests {
         rot_lib_map.insert(ResidueType::Alanine, vec![rotamer_a0]);
         rot_lib_map.insert(ResidueType::Leucine, vec![rotamer_b0, rotamer_b1]);
 
-        let placement_info = PlacementInfo {
-            anchor_atoms: vec!["N".to_string(), "CA".to_string(), "C".to_string()],
-            sidechain_atoms: vec!["CB".to_string()],
-        };
-        let mut placement_map = HashMap::new();
-        placement_map.insert(ResidueType::Alanine, placement_info.clone());
-        placement_map.insert(ResidueType::Leucine, placement_info);
-
-        let mut rot_lib = RotamerLibrary {
+        let rotamer_library = RotamerLibrary {
             rotamers: rot_lib_map,
-            placement_info: placement_map,
         };
 
-        let parameterizer =
-            crate::core::forcefield::parameterization::Parameterizer::new(ff.clone(), 0.0);
-        for rot_vec in rot_lib.rotamers.values_mut() {
-            for rot in rot_vec {
-                for atom in &mut rot.atoms {
-                    parameterizer.parameterize_atom(atom, "ALA").unwrap();
-                }
-            }
-        }
+        parameterizer.parameterize_system(&mut system).unwrap();
 
         let mut el_cache = ELCache::new();
         el_cache.insert(res_a_id, ResidueType::Alanine, 0, Default::default());
         el_cache.insert(res_b_id, ResidueType::Leucine, 0, Default::default());
         el_cache.insert(res_b_id, ResidueType::Leucine, 1, Default::default());
 
-        (system, res_a_id, res_b_id, el_cache, ff, rot_lib)
+        TestSetup {
+            system,
+            res_a_id,
+            res_b_id,
+            el_cache,
+            forcefield,
+            rotamer_library,
+            topology_registry,
+            _temp_dir: temp_dir,
+        }
     }
 
     #[test]
     fn run_finds_optimal_pair_with_less_clash() {
-        let (system, res_a_id, res_b_id, el_cache, ff, rot_lib) = setup_test_data();
+        let setup = setup_test_data();
 
         let config = PlacementConfigBuilder::new()
             .forcefield_path("dummy.ff")
             .delta_params_path("dummy.delta")
             .s_factor(0.0)
             .rotamer_library_path("dummy.rotlib")
-            .placement_registry_path("dummy.reg")
+            .topology_registry_path("dummy.topo")
             .max_iterations(1)
             .convergence_config(ConvergenceConfig {
                 energy_threshold: 0.1,
@@ -334,10 +370,25 @@ mod tests {
             .residues_to_optimize(ResidueSelection::All)
             .build()
             .unwrap();
-        let reporter = ProgressReporter::new();
-        let context = OptimizationContext::new(&system, &ff, &reporter, &config, &rot_lib);
 
-        let result = run(res_a_id, res_b_id, &system, &el_cache, &context).unwrap();
+        let reporter = ProgressReporter::new();
+        let context = OptimizationContext::new(
+            &setup.system,
+            &setup.forcefield,
+            &reporter,
+            &config,
+            &setup.rotamer_library,
+            &setup.topology_registry,
+        );
+
+        let result = run(
+            setup.res_a_id,
+            setup.res_b_id,
+            &setup.system,
+            &setup.el_cache,
+            &context,
+        )
+        .unwrap();
 
         assert_eq!(result.rotamer_idx_a, 0);
         assert_eq!(
@@ -348,8 +399,9 @@ mod tests {
 
     #[test]
     fn run_handles_empty_rotamer_list() {
-        let (system, res_a_id, res_b_id, el_cache, ff, mut rot_lib) = setup_test_data();
-        rot_lib
+        let mut setup = setup_test_data();
+        setup
+            .rotamer_library
             .rotamers
             .get_mut(&ResidueType::Alanine)
             .unwrap()
@@ -360,7 +412,7 @@ mod tests {
             .delta_params_path("dummy.delta")
             .s_factor(0.0)
             .rotamer_library_path("dummy.rotlib")
-            .placement_registry_path("dummy.reg")
+            .topology_registry_path("dummy.topo")
             .max_iterations(1)
             .convergence_config(ConvergenceConfig {
                 energy_threshold: 0.1,
@@ -371,10 +423,23 @@ mod tests {
             .build()
             .unwrap();
 
-        let reporter = ProgressReporter::new();
-        let context = OptimizationContext::new(&system, &ff, &reporter, &config, &rot_lib);
+        let reporter = ProgressReporter::default();
+        let context = OptimizationContext::new(
+            &setup.system,
+            &setup.forcefield,
+            &reporter,
+            &config,
+            &setup.rotamer_library,
+            &setup.topology_registry,
+        );
 
-        let result = run(res_a_id, res_b_id, &system, &el_cache, &context);
+        let result = run(
+            setup.res_a_id,
+            setup.res_b_id,
+            &setup.system,
+            &setup.el_cache,
+            &context,
+        );
 
         assert!(matches!(result, Err(EngineError::RotamerLibrary { .. })));
     }
