@@ -1,11 +1,12 @@
 use super::config::{AnalyzeConfig, DesignConfig, DesignSpec, PlacementConfig, ResidueSelection};
 use super::error::EngineError;
 use super::progress::ProgressReporter;
-use crate::core::forcefield::params::Forcefield;
-use crate::core::models::chain::ChainType;
-use crate::core::models::ids::ResidueId;
-use crate::core::models::system::MolecularSystem;
-use crate::core::rotamers::library::RotamerLibrary;
+use crate::core::{
+    forcefield::params::Forcefield,
+    models::{chain::ChainType, ids::ResidueId, system::MolecularSystem},
+    rotamers::library::RotamerLibrary,
+    topology::registry::TopologyRegistry,
+};
 use kiddo::{KdTree, SquaredEuclidean};
 use std::collections::HashSet;
 
@@ -22,6 +23,7 @@ where
     pub reporter: &'a ProgressReporter<'a>,
     pub config: &'a C,
     pub rotamer_library: &'a RotamerLibrary,
+    pub topology_registry: &'a TopologyRegistry,
 }
 
 impl<'a, C> OptimizationContext<'a, C>
@@ -34,6 +36,7 @@ where
         reporter: &'a ProgressReporter<'a>,
         config: &'a C,
         rotamer_library: &'a RotamerLibrary,
+        topology_registry: &'a TopologyRegistry,
     ) -> Self {
         Self {
             system,
@@ -41,6 +44,7 @@ where
             reporter,
             config,
             rotamer_library,
+            topology_registry,
         }
     }
 
@@ -76,6 +80,7 @@ pub struct AnalysisContext<'a> {
     pub forcefield: &'a Forcefield,
     pub reporter: &'a ProgressReporter<'a>,
     pub config: &'a AnalyzeConfig,
+    pub topology_registry: &'a TopologyRegistry,
 }
 
 impl<'a> AnalysisContext<'a> {
@@ -84,12 +89,14 @@ impl<'a> AnalysisContext<'a> {
         forcefield: &'a Forcefield,
         reporter: &'a ProgressReporter<'a>,
         config: &'a AnalyzeConfig,
+        topology_registry: &'a TopologyRegistry,
     ) -> Self {
         Self {
             system,
             forcefield,
             reporter,
             config,
+            topology_registry,
         }
     }
 }
