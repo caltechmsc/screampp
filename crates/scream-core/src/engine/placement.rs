@@ -5,7 +5,8 @@ use crate::core::{
         system::MolecularSystem,
         topology::BondOrder,
     },
-    rotamers::{placement::PlacementInfo, rotamer::Rotamer},
+    rotamers::rotamer::Rotamer,
+    topology::registry::ResidueTopology,
 };
 use nalgebra::{Matrix3, Point3, Rotation3, Vector3};
 use std::collections::HashMap;
@@ -31,7 +32,7 @@ pub enum PlacementError {
     InsufficientAnchors { found: usize },
 
     #[error(
-        "Placement logic failed for atom '{atom_name}': not enough instances in residue to fulfill placement requirements"
+        "Placement logic failed for atom '{atom_name}': not enough instances in residue to fulfill placement requirements based on its topology definition"
     )]
     InsufficientAtomsInResidue { atom_name: String },
 }
