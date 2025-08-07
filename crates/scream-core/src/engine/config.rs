@@ -595,7 +595,8 @@ mod tests {
                 patience_iterations: 10,
             })
             .final_refinement_iterations(5)
-            .neighbors_to_repack(ResidueSelection::All);
+            .neighbors_to_repack(ResidueSelection::All)
+            .include_input_conformation(false);
 
         assert_eq!(
             builder.build().unwrap_err(),

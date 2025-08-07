@@ -394,7 +394,7 @@ atoms = []
 bonds = []
 "#;
             let rotamer_path =
-                write_rotamer_file(setup.temp_dir.path(), "lys_rotamer.toml", rotamer_content);
+                write_rotamer_file(&setup.temp_dir.path(), "lys_rotamer.toml", rotamer_content);
             let result = RotamerLibrary::load(
                 &rotamer_path,
                 &setup.topology_registry,
