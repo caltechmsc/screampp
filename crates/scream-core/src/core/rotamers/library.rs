@@ -250,3 +250,230 @@ impl RotamerLibrary {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::models::atom::CachedVdwParam;
+    use crate::core::{
+        forcefield::params::{DeltaParam, GlobalParams, NonBondedParams, VdwParam},
+        models::{atom::AtomRole, chain::ChainType, residue::ResidueType},
+        topology::registry::TopologyRegistry,
+    };
+    use std::fs::File;
+    use std::io::Write;
+    use tempfile::TempDir;
+
+    struct TestSetup {
+        forcefield: Forcefield,
+        topology_registry: TopologyRegistry,
+        rotamer_toml_path: std::path::PathBuf,
+        temp_dir: TempDir,
+    }
+
+    fn setup() -> TestSetup {
+        let temp_dir = TempDir::new().unwrap();
+
+        let mut deltas = HashMap::new();
+        deltas.insert(
+            ("ALA".to_string(), "CB".to_string()),
+            DeltaParam {
+                residue_type: "ALA".to_string(),
+                atom_name: "CB".to_string(),
+                mu: 0.1,
+                sigma: 0.05,
+            },
+        );
+        let mut vdw = HashMap::new();
+        vdw.insert(
+            "C_BB".to_string(),
+            VdwParam::LennardJones {
+                radius: 1.8,
+                well_depth: 0.1,
+            },
+        );
+        vdw.insert(
+            "C_SC".to_string(),
+            VdwParam::LennardJones {
+                radius: 1.9,
+                well_depth: 0.12,
+            },
+        );
+        let forcefield = Forcefield {
+            deltas,
+            non_bonded: NonBondedParams {
+                globals: GlobalParams {
+                    dielectric_constant: 1.0,
+                    potential_function: "".to_string(),
+                },
+                vdw,
+                hbond: HashMap::new(),
+            },
+        };
+
+        let topology_toml_path = temp_dir.path().join("topology.toml");
+        let mut topology_file = File::create(&topology_toml_path).unwrap();
+        write!(
+            topology_file,
+            r#"
+[ALA]
+anchor_atoms = ["N", "CA", "C"]
+sidechain_atoms = ["CB"]
+"#
+        )
+        .unwrap();
+        let topology_registry = TopologyRegistry::load(&topology_toml_path).unwrap();
+
+        let rotamer_toml_path = temp_dir.path().join("rotamers.toml");
+        let mut rotamer_file = File::create(&rotamer_toml_path).unwrap();
+        write!(
+            rotamer_file,
+            r#"
+[[ALA]]
+atoms = [
+    {{ serial = 1, atom_name = "N", position = [0.0, 1.0, 0.0], partial_charge = -0.3, force_field_type = "C_BB" }},
+    {{ serial = 2, atom_name = "CA", position = [0.0, 0.0, 0.0], partial_charge = 0.1, force_field_type = "C_BB" }},
+    {{ serial = 3, atom_name = "C", position = [1.0, 0.0, 0.0], partial_charge = 0.5, force_field_type = "C_BB" }},
+    {{ serial = 4, atom_name = "CB", position = [-1.0, -0.5, 0.0], partial_charge = -0.3, force_field_type = "C_SC" }}
+]
+bonds = [ [2, 1], [2, 3], [2, 4] ]
+"#
+        ).unwrap();
+
+        TestSetup {
+            forcefield,
+            topology_registry,
+            rotamer_toml_path,
+            temp_dir,
+        }
+    }
+
+    #[test]
+    fn load_and_parameterize_rotamers_successfully() {
+        let setup = setup();
+        let delta_s_factor = 1.0;
+
+        let library = RotamerLibrary::load(
+            &setup.rotamer_toml_path,
+            &setup.topology_registry,
+            &setup.forcefield,
+            delta_s_factor,
+        )
+        .unwrap();
+
+        assert_eq!(library.rotamers.len(), 1);
+        let ala_rotamers = library.get_rotamers_for(ResidueType::Alanine).unwrap();
+        assert_eq!(ala_rotamers.len(), 1);
+
+        let rotamer = &ala_rotamers[0];
+        assert_eq!(rotamer.atoms.len(), 4);
+
+        let n_atom = rotamer.atoms.iter().find(|a| a.name == "N").unwrap();
+        let ca_atom = rotamer.atoms.iter().find(|a| a.name == "CA").unwrap();
+        let cb_atom = rotamer.atoms.iter().find(|a| a.name == "CB").unwrap();
+
+        assert_eq!(n_atom.role, AtomRole::Backbone);
+        assert_eq!(ca_atom.role, AtomRole::Backbone);
+        assert_eq!(cb_atom.role, AtomRole::Sidechain);
+
+        assert_eq!(n_atom.delta, 0.0);
+        assert!((cb_atom.delta - (0.1 + 1.0 * 0.05)).abs() < 1e-9);
+
+        assert!(
+            matches!(cb_atom.vdw_param, CachedVdwParam::LennardJones { radius, .. } if (radius - 1.9).abs() < 1e-9)
+        );
+    }
+
+    #[test]
+    fn load_fails_if_topology_is_missing() {
+        let setup = setup();
+        let empty_topology_registry = TopologyRegistry::default();
+
+        let result = RotamerLibrary::load(
+            &setup.rotamer_toml_path,
+            &empty_topology_registry,
+            &setup.forcefield,
+            1.0,
+        );
+
+        assert!(
+            matches!(result, Err(LibraryLoadError::MissingTopology(res_name)) if res_name == "ALA")
+        );
+    }
+
+    #[test]
+    fn include_system_conformations_adds_new_rotamer() {
+        let setup = setup();
+        let mut library = RotamerLibrary::default();
+
+        let mut system = MolecularSystem::new();
+        let chain_id = system.add_chain('A', ChainType::Protein);
+        let ala_id = system
+            .add_residue(chain_id, 1, "ALA", Some(ResidueType::Alanine))
+            .unwrap();
+        system
+            .add_atom_to_residue(ala_id, Atom::new("N", ala_id, Default::default()))
+            .unwrap();
+        system
+            .add_atom_to_residue(ala_id, Atom::new("CA", ala_id, Default::default()))
+            .unwrap();
+        system
+            .add_atom_to_residue(ala_id, Atom::new("C", ala_id, Default::default()))
+            .unwrap();
+        system
+            .add_atom_to_residue(ala_id, Atom::new("CB", ala_id, Default::default()))
+            .unwrap();
+
+        let active_residues: HashSet<_> = [ala_id].iter().cloned().collect();
+        library.include_system_conformations(&system, &active_residues, &setup.topology_registry);
+
+        let ala_rotamers = library.get_rotamers_for(ResidueType::Alanine).unwrap();
+        assert_eq!(ala_rotamers.len(), 1);
+
+        let ala_topology = setup.topology_registry.get("ALA").unwrap();
+        let expected_atom_count =
+            ala_topology.anchor_atoms.len() + ala_topology.sidechain_atoms.len();
+        assert_eq!(ala_rotamers[0].atoms.len(), expected_atom_count);
+    }
+
+    #[test]
+    fn load_fails_for_unknown_residue_type() {
+        let setup = setup();
+        let bad_rotamer_path = setup.temp_dir.path().join("bad_rotamer.toml");
+        let mut file = File::create(&bad_rotamer_path).unwrap();
+        write!(file, r#"[[XXX]]\natoms=[]\nbonds=[]"#).unwrap();
+
+        let result = RotamerLibrary::load(
+            &bad_rotamer_path,
+            &setup.topology_registry,
+            &setup.forcefield,
+            1.0,
+        );
+        assert!(matches!(result, Err(LibraryLoadError::UnknownResidueType(name)) if name == "XXX"));
+    }
+
+    #[test]
+    fn load_fails_for_duplicate_atom_serial() {
+        let setup = setup();
+        let bad_rotamer_path = setup.temp_dir.path().join("bad_rotamer.toml");
+        let mut file = File::create(&bad_rotamer_path).unwrap();
+        write!(file, r#"
+[[ALA]]
+atoms = [
+    {{ serial = 1, atom_name = "N", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_BB" }},
+    {{ serial = 1, atom_name = "CA", position = [1.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_BB" }}
+]
+bonds = []
+"#).unwrap();
+
+        let result = RotamerLibrary::load(
+            &bad_rotamer_path,
+            &setup.topology_registry,
+            &setup.forcefield,
+            1.0,
+        );
+        assert!(
+            matches!(result, Err(LibraryLoadError::DuplicateAtomSerial { residue_type, serial }) if residue_type == "ALA" && serial == 1)
+        );
+    }
+}
