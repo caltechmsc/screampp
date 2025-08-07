@@ -572,10 +572,13 @@ fn run_simulated_annealing<'a>(
                 .rotamer_library
                 .get_rotamers_for(residue_type)
                 .unwrap();
-            let p_info = context
-                .rotamer_library
-                .get_placement_info_for(residue_type)
-                .unwrap();
+
+            let residue_name = residue_type.to_three_letter();
+            let topology = context.topology_registry.get(residue_name).ok_or_else(|| {
+                EngineError::TopologyNotFound {
+                    residue_name: residue_name.to_string(),
+                }
+            })?;
 
             if rotamers.len() <= 1 {
                 reporter.report(Progress::TaskIncrement { amount: 1 });
@@ -604,7 +607,7 @@ fn run_simulated_annealing<'a>(
                 &mut temp_system_for_eval,
                 residue_to_perturb_id,
                 new_rotamer,
-                p_info,
+                topology,
             )?;
             temp_rotamers_for_eval.insert(residue_to_perturb_id, new_rot_idx);
 
