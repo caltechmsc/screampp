@@ -112,10 +112,10 @@ fn calculate_alignment_transform(
 fn remove_old_sidechain(
     system: &mut MolecularSystem,
     target_residue_id: ResidueId,
-    placement_info: &PlacementInfo,
+    topology: &ResidueTopology,
 ) -> Result<(), PlacementError> {
     let mut frequency_map = HashMap::new();
-    for name in &placement_info.sidechain_atoms {
+    for name in &topology.sidechain_atoms {
         *frequency_map.entry(name.as_str()).or_insert(0) += 1;
     }
 
@@ -127,7 +127,7 @@ fn remove_old_sidechain(
             if let Some(atom_ids) = target_residue.get_atom_ids_by_name(name) {
                 if atom_ids.len() < count {
                     warn!(
-                        "Residue {:?} has only {} atom(s) named '{}', but placement info requires removing {}. This might indicate a malformed input.",
+                        "Residue {:?} has only {} atom(s) named '{}', but its topology requires removing {}. This might indicate a malformed input.",
                         target_residue_id,
                         atom_ids.len(),
                         name,
