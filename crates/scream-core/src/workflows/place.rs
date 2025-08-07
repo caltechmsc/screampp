@@ -155,12 +155,15 @@ fn initialize_state<'a>(
                 .rotamer_library
                 .get_rotamers_for(residue_type)
                 .unwrap()[ground_state_idx];
-            let p_info = context
-                .rotamer_library
-                .get_placement_info_for(residue_type)
-                .unwrap();
-            place_rotamer_on_system(&mut working_system, residue_id, rotamer, p_info)?;
-            initial_rotamers.insert(residue_id, ground_state_idx);
+
+            let residue_name = residue_type.to_three_letter();
+            let topology = context.topology_registry.get(residue_name).ok_or_else(|| {
+                EngineError::TopologyNotFound {
+                    residue_name: residue_name.to_string(),
+                }
+            })?;
+
+            place_rotamer_on_system(&mut working_system, residue_id, rotamer, topology)?;
         } else {
             warn!(
                 "No ground state found in EL cache for residue {:?}. It may not be placed correctly initially.",
