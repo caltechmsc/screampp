@@ -591,6 +591,7 @@ mod tests {
                     patience_iterations: 10,
                 })
                 .residues_to_optimize(selection)
+                .final_refinement_iterations(0)
                 .build()
                 .unwrap()
         }
