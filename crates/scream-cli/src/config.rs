@@ -201,11 +201,11 @@ impl PartialPlacementConfig {
                 .or(sampling_config.rotamer_library.as_ref()),
             "rotamer-library",
         )?;
-        let placement_registry_path = resolve(
-            args.placement_registry
+        let topology_registry_path = resolve(
+            args.topology_registry
                 .as_ref()
-                .or(sampling_config.placement_registry.as_ref()),
-            "placement-registry",
+                .or(self.topology_registry.as_ref()),
+            "topology-registry",
         )?;
         let s_factor = args
             .s_factor
@@ -221,7 +221,7 @@ impl PartialPlacementConfig {
             .delta_params_path(delta_params_path)
             .s_factor(s_factor)
             .rotamer_library_path(rotamer_library_path)
-            .placement_registry_path(placement_registry_path)
+            .topology_registry_path(topology_registry_path)
             .max_iterations(
                 args.max_iterations
                     .or(opt_config.max_iterations)
