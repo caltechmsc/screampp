@@ -129,35 +129,34 @@ fn initialize_state<'a>(
     let mut working_system = working_system.clone();
 
     for &residue_id in active_residues {
-        let residue_type = working_system
-            .residue(residue_id)
-            .and_then(|r| r.residue_type)
-            .ok_or(EngineError::Internal(format!(
-                "Active residue {:?} has no residue type.",
-                residue_id
-            )))?;
+        let residue = working_system.residue(residue_id).unwrap();
+        if let Some(residue_type) = residue.residue_type {
+            let (ground_state_idx, _) = el_cache
+                .find_ground_state_for(residue_id, residue_type)
+                .ok_or_else(|| {
+                    EngineError::Internal(format!(
+                        "Could not find ground state for active residue {:?} in ELCache.",
+                        residue_id
+                    ))
+                })?;
 
-        if let Some((ground_state_idx, _)) =
-            el_cache.find_ground_state_for(residue_id, residue_type)
-        {
-            let rotamer = &context
+            initial_rotamers.insert(residue_id, ground_state_idx);
+
+            let rotamers = context
                 .rotamer_library
                 .get_rotamers_for(residue_type)
-                .unwrap()[ground_state_idx];
+                .unwrap();
 
-            let residue_name = residue_type.to_three_letter();
-            let topology = context.topology_registry.get(residue_name).ok_or_else(|| {
-                EngineError::TopologyNotFound {
-                    residue_name: residue_name.to_string(),
-                }
-            })?;
+            if let Some(rotamer) = rotamers.get(ground_state_idx) {
+                let residue_name = residue_type.to_three_letter();
+                let topology = context.topology_registry.get(residue_name).ok_or_else(|| {
+                    EngineError::TopologyNotFound {
+                        residue_name: residue_name.to_string(),
+                    }
+                })?;
 
-            place_rotamer_on_system(&mut working_system, residue_id, rotamer, topology)?;
-        } else {
-            warn!(
-                "No ground state found in EL cache for residue {:?}. It may not be placed correctly initially.",
-                residue_id
-            );
+                place_rotamer_on_system(&mut working_system, residue_id, rotamer, topology)?;
+            }
         }
     }
 
