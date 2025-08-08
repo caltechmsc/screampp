@@ -185,7 +185,8 @@ mod tests {
         fs::write(base_path.join("delta/delta-all-torsion.csv"), "").unwrap();
         fs::create_dir_all(base_path.join("forcefield")).unwrap();
         fs::write(base_path.join("forcefield/dreiding-lj-12-6-0.4.toml"), "").unwrap();
-        fs::write(base_path.join("rotamers/placement.toml"), "").unwrap();
+        fs::create_dir_all(base_path.join("topology")).unwrap();
+        fs::write(base_path.join("topology/registry.toml"), "").unwrap();
 
         let manager = DataManager {
             base_path: base_path.to_path_buf(),
@@ -212,9 +213,9 @@ mod tests {
             base_path.join("data/forcefield/dreiding-lj-12-6-0.4.toml")
         );
 
-        let reg_parsed = parser::parse_logical_name("default", "placement-registry").unwrap();
+        let reg_parsed = parser::parse_logical_name("default", "topology-registry").unwrap();
         let reg_path = manager.resolve_logical_name(&reg_parsed).unwrap();
-        assert_eq!(reg_path, base_path.join("data/rotamers/placement.toml"));
+        assert_eq!(reg_path, base_path.join("data/topology/registry.toml"));
     }
 
     #[test]
