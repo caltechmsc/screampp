@@ -8,7 +8,7 @@ use crate::core::{
     },
     topology::registry::{ResidueTopology, TopologyRegistry},
 };
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use thiserror::Error;
 use tracing::warn;
 
@@ -21,13 +21,6 @@ pub enum ParameterizationError {
         ff_type: String,
         atom_name: String,
         residue_name: String,
-    },
-    #[error(
-        "In residue '{residue_name}', a sidechain atom '{atom_name}' defined in the topology registry was not found."
-    )]
-    MissingSidechainAtom {
-        residue_name: String,
-        atom_name: String,
     },
     #[error(
         "In residue '{residue_name}', an anchor atom '{atom_name}' was incorrectly defined as a sidechain atom in the topology registry."
@@ -137,37 +130,45 @@ impl<'a> Parameterizer<'a> {
         residue_name: &str,
         topology: &ResidueTopology,
     ) -> Result<(), ParameterizationError> {
+        // Step 1: Create a mutable "pool" of all atoms present in the system for this residue.
         let mut atom_pool: HashMap<String, Vec<AtomId>> = HashMap::new();
         for &atom_id in atom_ids {
             let atom_name = system.atom(atom_id).unwrap().name.clone();
             atom_pool.entry(atom_name).or_default().push(atom_id);
         }
 
-        for name in &topology.sidechain_atoms {
-            let atom_id = atom_pool.get_mut(name).and_then(|ids| ids.pop()).ok_or(
-                ParameterizationError::MissingSidechainAtom {
-                    residue_name: residue_name.to_string(),
-                    atom_name: name.clone(),
-                },
-            )?;
-            system.atom_mut(atom_id).unwrap().role = AtomRole::Sidechain;
-        }
-
-        let mut backbone_atom_names = HashSet::new();
-        for ids in atom_pool.values() {
-            for &atom_id in ids {
-                let atom = system.atom_mut(atom_id).unwrap();
-                atom.role = AtomRole::Backbone;
-                backbone_atom_names.insert(atom.name.clone());
+        // Step 2: Consume atoms from the pool for sidechain roles.
+        for sidechain_name in &topology.sidechain_atoms {
+            if let Some(ids) = atom_pool.get_mut(sidechain_name) {
+                if let Some(atom_id_to_mark) = ids.pop() {
+                    system.atom_mut(atom_id_to_mark).unwrap().role = AtomRole::Sidechain;
+                }
             }
         }
 
-        for name in &topology.anchor_atoms {
-            if !backbone_atom_names.contains(name) {
-                return Err(ParameterizationError::AnchorAtomMisclassified {
-                    residue_name: residue_name.to_string(),
-                    atom_name: name.clone(),
-                });
+        // Step 3: All remaining atoms in the pool are, by definition, backbone atoms.
+        for ids in atom_pool.values() {
+            for &atom_id in ids {
+                system.atom_mut(atom_id).unwrap().role = AtomRole::Backbone;
+            }
+        }
+
+        if atom_ids.is_empty() {
+            return Ok(());
+        }
+        let parent_residue_id = system.atom(atom_ids[0]).unwrap().residue_id;
+        let parent_residue = system.residue(parent_residue_id).unwrap();
+
+        // Step 4: Validate that all required anchor atoms were correctly identified as backbone.
+        for anchor_name in &topology.anchor_atoms {
+            if let Some(atom_id) = parent_residue.get_first_atom_id_by_name(anchor_name) {
+                let atom = system.atom(atom_id).unwrap();
+                if atom.role != AtomRole::Backbone {
+                    return Err(ParameterizationError::AnchorAtomMisclassified {
+                        residue_name: residue_name.to_string(),
+                        atom_name: anchor_name.clone(),
+                    });
+                }
             }
         }
 
