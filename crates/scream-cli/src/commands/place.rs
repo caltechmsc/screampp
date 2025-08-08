@@ -182,8 +182,6 @@ mod tests {
         }
     }
 
-    const PLACEHOLDERS: &[&str] = &["{n}", "{i}", "{N}", "{total}", "{energy}"];
-
     #[test]
     fn generate_indexed_path_should_add_suffix_to_filename_with_extension() {
         let base_path = PathBuf::from("/path/to/result.bgf");
