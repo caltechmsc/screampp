@@ -126,6 +126,8 @@ pub struct PartialPlacementConfig {
     optimization: Option<PartialOptimizationConfig>,
     #[serde(rename = "residues-to-optimize")]
     residues_to_optimize: Option<PartialResidueSelection>,
+    #[serde(rename = "topology-registry-path")]
+    topology_registry: Option<String>,
 }
 
 impl PartialPlacementConfig {
