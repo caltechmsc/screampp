@@ -93,16 +93,16 @@ pub struct PlaceArgs {
     #[arg(long, value_name = "NAME_OR_PATH")]
     pub delta_params_path: Option<String>,
 
+    /// Override the residue topology registry file.
+    /// Can be a path or a logical name (e.g., 'default').
+    #[arg(short = 't', long = "topology-registry", value_name = "NAME_OR_PATH")]
+    pub topology_registry: Option<String>,
+
     // --- Sampling Overrides ---
     /// Override the rotamer library.
     /// Can be a path or a logical name (e.g., 'charmm@rmsd-1.0').
     #[arg(short = 'l', long = "rotamer-library", value_name = "NAME_OR_PATH")]
     pub rotamer_library: Option<String>,
-
-    /// Override the rotamer placement registry file.
-    /// Can be a path or a logical name (e.g., 'default').
-    #[arg(short = 'p', long = "placement-registry", value_name = "NAME_OR_PATH")]
-    pub placement_registry: Option<String>,
 
     // --- Optimization Overrides ---
     /// Override the number of solutions to generate.
