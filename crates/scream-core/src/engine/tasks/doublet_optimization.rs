@@ -389,7 +389,7 @@ sidechain_atoms = ["CB"]
             &setup.el_cache,
             &context,
         )
-            .unwrap();
+        .unwrap();
 
         assert_eq!(result.rotamer_idx_a, 0);
         assert_eq!(
