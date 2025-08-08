@@ -838,16 +838,28 @@ mod tests {
                     pos: Point3::new(-0.52, 1.36, 0.0),
                 },
                 TemplateAtom {
-                    name: "H",
-                    ff_type: "H_",
-                    charge: 0.31,
-                    pos: Point3::new(-1.31, 1.98, 0.0),
-                },
-                TemplateAtom {
                     name: "CA",
                     ff_type: "C_31",
                     charge: 0.07,
                     pos: Point3::new(0.0, 0.0, 0.0),
+                },
+                TemplateAtom {
+                    name: "C",
+                    ff_type: "C_R",
+                    charge: 0.51,
+                    pos: Point3::new(1.2, -0.1, 0.9),
+                },
+                TemplateAtom {
+                    name: "O",
+                    ff_type: "O_2",
+                    charge: -0.51,
+                    pos: Point3::new(1.8, 0.7, 1.4),
+                },
+                TemplateAtom {
+                    name: "H",
+                    ff_type: "H_",
+                    charge: 0.31,
+                    pos: Point3::new(-1.31, 1.98, 0.0),
                 },
                 TemplateAtom {
                     name: "HA",
@@ -886,29 +898,73 @@ mod tests {
                     pos: Point3::new(-1.0, -2.5, 0.0),
                 },
                 TemplateAtom {
-                    name: "C",
-                    ff_type: "C_R",
-                    charge: 0.51,
-                    pos: Point3::new(1.2, -0.1, 0.9),
+                    name: "CD1",
+                    ff_type: "C_33",
+                    charge: -0.27,
+                    pos: Point3::new(-2.5, -1.0, 0.8),
                 },
                 TemplateAtom {
-                    name: "O",
-                    ff_type: "O_2",
-                    charge: -0.51,
-                    pos: Point3::new(1.8, 0.7, 1.4),
+                    name: "HD11",
+                    ff_type: "H_",
+                    charge: 0.09,
+                    pos: Point3::new(-2.2, -0.5, 1.7),
+                },
+                TemplateAtom {
+                    name: "HD12",
+                    ff_type: "H_",
+                    charge: 0.09,
+                    pos: Point3::new(-3.0, -1.8, 1.2),
+                },
+                TemplateAtom {
+                    name: "HD13",
+                    ff_type: "H_",
+                    charge: 0.09,
+                    pos: Point3::new(-3.3, -0.5, 0.2),
+                },
+                TemplateAtom {
+                    name: "CD2",
+                    ff_type: "C_33",
+                    charge: -0.27,
+                    pos: Point3::new(-2.0, -2.5, -1.0),
+                },
+                TemplateAtom {
+                    name: "HD21",
+                    ff_type: "H_",
+                    charge: 0.09,
+                    pos: Point3::new(-1.5, -3.3, -1.5),
+                },
+                TemplateAtom {
+                    name: "HD22",
+                    ff_type: "H_",
+                    charge: 0.09,
+                    pos: Point3::new(-2.8, -2.9, -0.5),
+                },
+                TemplateAtom {
+                    name: "HD23",
+                    ff_type: "H_",
+                    charge: 0.09,
+                    pos: Point3::new(-2.5, -2.0, -1.8),
                 },
             ],
             bonds: &[
                 ("N", "H"),
                 ("N", "CA"),
                 ("CA", "HA"),
-                ("CA", "CB"),
                 ("CA", "C"),
+                ("C", "O"),
+                ("CA", "CB"),
                 ("CB", "HB1"),
                 ("CB", "HB2"),
                 ("CB", "CG"),
                 ("CG", "HG"),
-                ("C", "O"),
+                ("CG", "CD1"),
+                ("CG", "CD2"),
+                ("CD1", "HD11"),
+                ("CD1", "HD12"),
+                ("CD1", "HD13"),
+                ("CD2", "HD21"),
+                ("CD2", "HD22"),
+                ("CD2", "HD23"),
             ],
             n_anchor: "N",
             ca_anchor: "CA",
@@ -1040,9 +1096,9 @@ mod tests {
                 let rotamer_lib_path = create_dummy_rotamer_lib_file(temp_dir.path());
 
                 let forcefield = Forcefield::load(&forcefield_path, &delta_path)
-                    .expect("Failed to load dummy forcefield in test setup");
+                    .expect("Failed to load dummy forcefield");
                 let topology_registry = TopologyRegistry::load(&topology_reg_path)
-                    .expect("Failed to load dummy topology in test setup");
+                    .expect("Failed to load dummy topology");
 
                 let mut system = TestSystemBuilder::new()
                     .add_residue(ResidueType::Alanine, 1)
@@ -1123,9 +1179,7 @@ mod tests {
         fn create_dummy_rotamer_lib_file(dir: &Path) -> PathBuf {
             let path = dir.join("test.rotlib.toml");
             let mut file = File::create(&path).unwrap();
-            write!(
-                file,
-                r#"
+            write!(file, r#"
                 [[ALA]]
                 atoms = [
                     {{ serial = 1, atom_name = "N", position = [-0.52, 1.36, 0.0], partial_charge = -0.47, force_field_type = "N_R" }},
@@ -1150,6 +1204,16 @@ mod tests {
                 ]
                 bonds = [ [1,2], [2,3], [2,4], [4,5], [4,6], [4,7] ]
 
+                [[GLY]]
+                atoms = [
+                    {{ serial = 1, atom_name = "N", position = [-0.52, 1.36, 0.0], partial_charge = -0.47, force_field_type = "N_R" }},
+                    {{ serial = 2, atom_name = "CA", position = [0.0, 0.0, 0.0], partial_charge = 0.02, force_field_type = "C_32" }},
+                    {{ serial = 3, atom_name = "C", position = [1.2, -0.1, 0.9], partial_charge = 0.51, force_field_type = "C_R" }},
+                    {{ serial = 4, atom_name = "HA1", position = [0.63, -0.47, -0.76], partial_charge = 0.09, force_field_type = "H_" }},
+                    {{ serial = 5, atom_name = "HA2", position = [-0.63, -0.47, 0.76], partial_charge = 0.09, force_field_type = "H_" }}
+                ]
+                bonds = [ [1,2], [2,3], [2,4], [2,5] ]
+
                 [[LEU]]
                 atoms = [
                     {{ serial = 1, atom_name = "N", position = [-0.52, 1.36, 0.0], partial_charge = -0.47, force_field_type = "N_R" }},
@@ -1159,9 +1223,17 @@ mod tests {
                     {{ serial = 5, atom_name = "HB1", position = [-0.2, -1.7, -1.2], partial_charge = 0.09, force_field_type = "H_" }},
                     {{ serial = 6, atom_name = "HB2", position = [-1.6, -0.4, -1.7], partial_charge = 0.09, force_field_type = "H_" }},
                     {{ serial = 7, atom_name = "CG", position = [-1.5, -1.5, 0.0], partial_charge = -0.09, force_field_type = "C_31" }},
-                    {{ serial = 8, atom_name = "HG", position = [-1.0, -2.5, 0.0], partial_charge = 0.09, force_field_type = "H_" }}
+                    {{ serial = 8, atom_name = "HG", position = [-1.0, -2.5, 0.0], partial_charge = 0.09, force_field_type = "H_" }},
+                    {{ serial = 9, atom_name = "CD1", position = [-2.5, -1.0, 0.8], partial_charge = -0.27, force_field_type = "C_33" }},
+                    {{ serial = 10, atom_name = "HD11", position = [-2.2, -0.5, 1.7], partial_charge = 0.09, force_field_type = "H_" }},
+                    {{ serial = 11, atom_name = "HD12", position = [-3.0, -1.8, 1.2], partial_charge = 0.09, force_field_type = "H_" }},
+                    {{ serial = 12, atom_name = "HD13", position = [-3.3, -0.5, 0.2], partial_charge = 0.09, force_field_type = "H_" }},
+                    {{ serial = 13, atom_name = "CD2", position = [-2.0, -2.5, -1.0], partial_charge = -0.27, force_field_type = "C_33" }},
+                    {{ serial = 14, atom_name = "HD21", position = [-1.5, -3.3, -1.5], partial_charge = 0.09, force_field_type = "H_" }},
+                    {{ serial = 15, atom_name = "HD22", position = [-2.8, -2.9, -0.5], partial_charge = 0.09, force_field_type = "H_" }},
+                    {{ serial = 16, atom_name = "HD23", position = [-2.5, -2.0, -1.8], partial_charge = 0.09, force_field_type = "H_" }}
                 ]
-                bonds = [ [1,2], [2,3], [2,4], [4,5], [4,6], [4,7], [7,8] ]
+                bonds = [ [2,1], [2,3], [2,4], [4,5], [4,6], [4,7], [7,8], [7,9], [7,13], [9,10], [9,11], [9,12], [13,14], [13,15], [13,16] ]
 
                 [[LEU]]
                 atoms = [
@@ -1172,57 +1244,59 @@ mod tests {
                     {{ serial = 5, atom_name = "HB1", position = [0.9, 1.8, -0.4], partial_charge = 0.09, force_field_type = "H_" }},
                     {{ serial = 6, atom_name = "HB2", position = [0.2, 1.2, -1.8], partial_charge = 0.09, force_field_type = "H_" }},
                     {{ serial = 7, atom_name = "CG", position = [1.5, 0.0, -0.5], partial_charge = -0.09, force_field_type = "C_31" }},
-                    {{ serial = 8, atom_name = "HG", position = [2.0, 0.2, 0.4], partial_charge = 0.09, force_field_type = "H_" }}
+                    {{ serial = 8, atom_name = "HG", position = [2.0, 0.2, 0.4], partial_charge = 0.09, force_field_type = "H_" }},
+                    {{ serial = 9, atom_name = "CD1", position = [2.5, -0.5, -1.5], partial_charge = -0.27, force_field_type = "C_33" }},
+                    {{ serial = 10, atom_name = "HD11", position = [2.2, -1.5, -1.8], partial_charge = 0.09, force_field_type = "H_" }},
+                    {{ serial = 11, atom_name = "HD12", position = [3.5, -0.5, -1.2], partial_charge = 0.09, force_field_type = "H_" }},
+                    {{ serial = 12, atom_name = "HD13", position = [2.8, 0.2, -2.2], partial_charge = 0.09, force_field_type = "H_" }},
+                    {{ serial = 13, atom_name = "CD2", position = [1.0, -1.0, 0.5], partial_charge = -0.27, force_field_type = "C_33" }},
+                    {{ serial = 14, atom_name = "HD21", position = [1.5, -1.8, 0.8], partial_charge = 0.09, force_field_type = "H_" }},
+                    {{ serial = 15, atom_name = "HD22", position = [0.0, -1.2, 0.8], partial_charge = 0.09, force_field_type = "H_" }},
+                    {{ serial = 16, atom_name = "HD23", position = [0.8, -0.5, -0.4], partial_charge = 0.09, force_field_type = "H_" }}
                 ]
-                bonds = [ [1,2], [2,3], [2,4], [4,5], [4,6], [4,7], [7,8] ]
-                "#
-            ).unwrap();
+                bonds = [ [2,1], [2,3], [2,4], [4,5], [4,6], [4,7], [7,8], [7,9], [7,13], [9,10], [9,11], [9,12], [13,14], [13,15], [13,16] ]
+            "#).unwrap();
             path
         }
 
         fn create_dummy_topology_reg_file(dir: &Path) -> PathBuf {
             let path = dir.join("test.topology.toml");
             let mut file = File::create(&path).unwrap();
-            write!(
-                file,
-                r#"
+            write!(file, r#"
                 [ALA]
                 anchor_atoms = ["N", "CA", "C"]
                 sidechain_atoms = ["CB", "HB1", "HB2", "HB3"]
                 [GLY]
-                anchor_atoms = ["N", "CA", "C"]
-                sidechain_atoms = []
+                anchor_atoms = ["N", "CA", "C", "HA2"]
+                sidechain_atoms = ["HA1"]
                 [LEU]
                 anchor_atoms = ["N", "CA", "C"]
                 sidechain_atoms = ["CB", "HB1", "HB2", "CG", "HG", "CD1", "HD11", "HD12", "HD13", "CD2", "HD21", "HD22", "HD23"]
-            "#
-            )
-                .unwrap();
+            "#).unwrap();
             path
         }
     }
 
     fn get_sidechain_centroid(system: &MolecularSystem, res_id: ResidueId) -> Point3<f64> {
         let residue = system.residue(res_id).unwrap();
-        let sc_atom_ids: Vec<_> = residue
-            .atoms()
-            .iter()
-            .filter(|id| {
-                let atom_name = &system.atom(**id).unwrap().name;
-                !["N", "H", "CA", "HA", "HA1", "HA2", "C", "O"].contains(&atom_name.as_str())
-            })
-            .copied()
-            .collect();
+        let mut sidechain_atoms = Vec::new();
+        for &atom_id in residue.atoms() {
+            if let Some(atom) = system.atom(atom_id) {
+                if atom.role == crate::core::models::atom::AtomRole::Sidechain {
+                    sidechain_atoms.push(atom);
+                }
+            }
+        }
 
-        if sc_atom_ids.is_empty() {
+        if sidechain_atoms.is_empty() {
             return Point3::origin();
         }
 
-        let sum_vec: Vector3<f64> = sc_atom_ids
+        let sum_vec: Vector3<f64> = sidechain_atoms
             .iter()
-            .map(|id| system.atom(*id).unwrap().position.coords)
+            .map(|atom| atom.position.coords)
             .sum();
-        Point3::from(sum_vec / sc_atom_ids.len() as f64)
+        Point3::from(sum_vec / sidechain_atoms.len() as f64)
     }
 
     #[test]
@@ -1377,6 +1451,11 @@ mod tests {
         let ala_pos = clashing_system.atom(ala_cb_id).unwrap().position;
         clashing_system.atom_mut(leu_cg_id).unwrap().position = ala_pos;
 
+        let parameterizer = Parameterizer::new(&env.forcefield, &env.topology_registry, 0.0);
+        parameterizer
+            .parameterize_system(&mut clashing_system)
+            .unwrap();
+
         let config = env
             .create_default_config_builder()
             .residues_to_optimize(ResidueSelection::All)
@@ -1384,13 +1463,7 @@ mod tests {
             .unwrap();
         let reporter = ProgressReporter::new();
 
-        let parameterizer = Parameterizer::new(&env.forcefield, &env.topology_registry, 0.0);
-        parameterizer
-            .parameterize_system(&mut clashing_system)
-            .unwrap();
-
         let scorer = Scorer::new(&clashing_system, &env.forcefield);
-
         let initial_energy = scorer
             .score_interaction(
                 clashing_system.residue(ala_res_id).unwrap().atoms(),
