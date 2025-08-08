@@ -23,9 +23,9 @@ pub enum ParameterizationError {
         residue_name: String,
     },
     #[error(
-        "In residue '{residue_name}', an anchor atom '{atom_name}' was incorrectly defined as a sidechain atom in the topology registry."
+        "Missing or misclassified anchor atom in residue '{residue_name}': Cannot find required anchor atom '{atom_name}', or it was incorrectly defined as a sidechain atom in the topology."
     )]
-    AnchorAtomMisclassified {
+    InvalidAnchorAtom {
         residue_name: String,
         atom_name: String,
     },
