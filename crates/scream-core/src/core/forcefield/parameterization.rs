@@ -573,16 +573,17 @@ sidechain_atoms = ["CB"]
         }
 
         #[test]
-        fn fails_on_misclassified_anchor_atom() {
+        fn fails_when_anchor_atom_is_misclassified_as_sidechain_in_topology() {
             let TestSetup {
                 mut system,
                 forcefield,
                 ..
             } = setup();
+
             let faulty_topo_content = r#"
 [ALA]
 anchor_atoms = ["N", "CA", "C"]
-sidechain_atoms = ["C", "CB"] # 'C' is an anchor, but listed as sidechain
+sidechain_atoms = ["C", "CB"]
 "#;
             let mut faulty_topo_file = NamedTempFile::new().unwrap();
             write!(faulty_topo_file, "{}", faulty_topo_content).unwrap();
@@ -591,9 +592,10 @@ sidechain_atoms = ["C", "CB"] # 'C' is an anchor, but listed as sidechain
             let parameterizer = Parameterizer::new(&forcefield, &faulty_topology_registry, 1.0);
 
             let result = parameterizer.parameterize_system(&mut system);
+
             assert_eq!(
                 result.unwrap_err(),
-                ParameterizationError::AnchorAtomMisclassified {
+                ParameterizationError::InvalidAnchorAtom {
                     residue_name: "ALA".to_string(),
                     atom_name: "C".to_string()
                 }
