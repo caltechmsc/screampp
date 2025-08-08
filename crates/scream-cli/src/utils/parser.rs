@@ -40,7 +40,7 @@ pub enum ParsedLogicalName {
     RotamerLibrary(RotamerLibraryName),
     Forcefield(ForcefieldName),
     DeltaParams { diversity: String },
-    PlacementRegistry,
+    TopologyRegistry,
 }
 
 pub fn parse_logical_name(name: &str, kind: &str) -> Result<ParsedLogicalName, ParseError> {
@@ -50,11 +50,11 @@ pub fn parse_logical_name(name: &str, kind: &str) -> Result<ParsedLogicalName, P
         "delta-params" => Ok(ParsedLogicalName::DeltaParams {
             diversity: name.to_string(),
         }),
-        "placement-registry" => {
+        "topology-registry" => {
             if name == "default" {
-                Ok(ParsedLogicalName::PlacementRegistry)
+                Ok(ParsedLogicalName::TopologyRegistry)
             } else {
-                Err(ParseError::InvalidPlacementRegistryName(name.to_string()))
+                Err(ParseError::InvalidTopologyRegistryName(name.to_string()))
             }
         }
         _ => Err(ParseError::UnknownKind(kind.to_string())),
