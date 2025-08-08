@@ -1,4 +1,5 @@
 use super::error::EngineError;
+use crate::core::models::atom::AtomRole;
 use crate::core::{
     models::{
         ids::{AtomId, ResidueId},
@@ -11,7 +12,6 @@ use crate::core::{
 use nalgebra::{Matrix3, Point3, Rotation3, Vector3};
 use std::collections::HashMap;
 use thiserror::Error;
-use crate::core::models::atom::AtomRole;
 
 #[derive(Debug, Error)]
 pub enum PlacementError {
@@ -78,22 +78,41 @@ fn calculate_alignment_transform(
     rotamer: &Rotamer,
     topology: &ResidueTopology,
 ) -> Result<(Rotation3<f64>, Vector3<f64>), PlacementError> {
-    let target_residue = system.residue(target_residue_id).unwrap();
+    let system_backbone_atoms: HashMap<_, _> = system
+        .residue(target_residue_id)
+        .unwrap()
+        .atoms()
+        .iter()
+        .filter_map(|&atom_id| {
+            let atom = system.atom(atom_id)?;
+            if atom.role == AtomRole::Backbone {
+                Some((atom.name.as_str(), atom_id))
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    let rotamer_backbone_atoms: HashMap<_, _> = rotamer
+        .atoms
+        .iter()
+        .filter(|atom| atom.role == AtomRole::Backbone)
+        .map(|atom| (atom.name.as_str(), atom))
+        .collect();
+
     let mut system_points = Vec::with_capacity(topology.anchor_atoms.len());
     let mut rotamer_points = Vec::with_capacity(topology.anchor_atoms.len());
 
     for atom_name in &topology.anchor_atoms {
-        let system_atom_id = target_residue
-            .get_first_atom_id_by_name(atom_name)
+        let system_atom_id = *system_backbone_atoms
+            .get(atom_name.as_str())
             .ok_or_else(|| PlacementError::AnchorAtomNotFoundInSystem {
                 atom_name: atom_name.clone(),
             })?;
         system_points.push(system.atom(system_atom_id).unwrap().position);
 
-        let rotamer_atom = rotamer
-            .atoms
-            .iter()
-            .find(|a| &a.name == atom_name)
+        let rotamer_atom = *rotamer_backbone_atoms
+            .get(atom_name.as_str())
             .ok_or_else(|| PlacementError::AnchorAtomNotFoundInRotamer {
                 atom_name: atom_name.clone(),
             })?;
@@ -113,11 +132,7 @@ fn remove_old_sidechain(
     system: &mut MolecularSystem,
     target_residue_id: ResidueId,
 ) -> Result<(), PlacementError> {
-    let atom_ids_in_residue = system
-        .residue(target_residue_id)
-        .unwrap()
-        .atoms()
-        .to_vec();
+    let atom_ids_in_residue = system.residue(target_residue_id).unwrap().atoms().to_vec();
 
     for atom_id in atom_ids_in_residue {
         let should_remove = if let Some(atom) = system.atom(atom_id) {
