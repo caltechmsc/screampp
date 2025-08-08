@@ -6,9 +6,10 @@ use crate::core::{
         ids::{AtomId, ResidueId},
         system::MolecularSystem,
     },
+    rotamers::rotamer::Rotamer,
     topology::registry::{ResidueTopology, TopologyRegistry},
 };
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use thiserror::Error;
 use tracing::warn;
 
@@ -54,11 +55,9 @@ impl<'a> Parameterizer<'a> {
         &self,
         system: &mut MolecularSystem,
     ) -> Result<(), ParameterizationError> {
-        let residue_ids: Vec<_> = system.residues_iter().map(|(id, _)| id).collect();
-
-        // Pass 1: Assign Atom Roles for each residue based on topology.
-        for residue_id in &residue_ids {
-            self.assign_atom_roles_for_residue(*residue_id, system)?;
+        // Pass 1: Assign Atom Roles for each residue.
+        for residue_id in system.residues_iter().map(|(id, _)| id).collect::<Vec<_>>() {
+            self.assign_atom_roles_for_residue(residue_id, system)?;
         }
 
         // Pass 2: Assign physicochemical parameters to each atom.
@@ -75,28 +74,59 @@ impl<'a> Parameterizer<'a> {
         Ok(())
     }
 
+    pub fn parameterize_rotamer(
+        &self,
+        rotamer: &mut Rotamer,
+        residue_name: &str,
+        topology: &ResidueTopology,
+    ) -> Result<(), ParameterizationError> {
+        assign_protein_roles_from_pool(
+            &mut rotamer.atoms,
+            |atom| &atom.name,
+            |atom, role| atom.role = role,
+            topology,
+            residue_name,
+        )?;
+
+        for atom in &mut rotamer.atoms {
+            self.assign_physicochemical_params(atom, residue_name)?;
+        }
+
+        Ok(())
+    }
+
     fn assign_atom_roles_for_residue(
         &self,
         residue_id: ResidueId,
         system: &mut MolecularSystem,
     ) -> Result<(), ParameterizationError> {
-        let (chain_type, residue_name, atom_ids) = {
+        let (chain_type, residue_name) = {
             let residue = system.residue(residue_id).unwrap();
             let chain = system.chain(residue.chain_id).unwrap();
-            (
-                chain.chain_type,
-                residue.name.clone(),
-                residue.atoms().to_vec(),
-            )
+            (chain.chain_type, residue.name.clone())
         };
+
+        let atom_ids: Vec<AtomId> = system.residue(residue_id).unwrap().atoms().to_vec();
 
         match chain_type {
             ChainType::Protein | ChainType::DNA | ChainType::RNA => {
                 if let Some(topology) = self.topology_registry.get(&residue_name) {
-                    self.assign_protein_atom_roles(system, &atom_ids, &residue_name, topology)?
+                    let mut atoms_view: Vec<&mut Atom> = system
+                        .atoms_iter_mut()
+                        .filter(|(id, _)| atom_ids.contains(id))
+                        .map(|(_, atom)| atom)
+                        .collect();
+
+                    assign_protein_roles_from_pool(
+                        &mut atoms_view,
+                        |atom| &atom.name,
+                        |atom, role| atom.role = role,
+                        topology,
+                        &residue_name,
+                    )?;
                 } else {
                     warn!(
-                        "Residue '{}' in a protein chain has no topology definition. Treating all its atoms as 'Other'.",
+                        "Residue '{}' has no topology definition. Marking all its atoms as 'Other'.",
                         residue_name
                     );
                     for atom_id in atom_ids {
@@ -120,73 +150,6 @@ impl<'a> Parameterizer<'a> {
                 }
             }
         }
-        Ok(())
-    }
-
-    fn assign_protein_atom_roles(
-        &self,
-        system: &mut MolecularSystem,
-        atom_ids: &[AtomId],
-        residue_name: &str,
-        topology: &ResidueTopology,
-    ) -> Result<(), ParameterizationError> {
-        // Step 1 & 2 remain the same: create pool and mark sidechains
-        let mut atom_pool: HashMap<String, Vec<AtomId>> = HashMap::new();
-        for &atom_id in atom_ids {
-            let atom_name = system.atom(atom_id).unwrap().name.clone();
-            atom_pool.entry(atom_name).or_default().push(atom_id);
-        }
-
-        for sidechain_name in &topology.sidechain_atoms {
-            if let Some(ids) = atom_pool.get_mut(sidechain_name) {
-                if let Some(atom_id_to_mark) = ids.pop() {
-                    system.atom_mut(atom_id_to_mark).unwrap().role = AtomRole::Sidechain;
-                }
-            }
-        }
-
-        // Step 3 remains the same: mark remaining as backbone
-        for ids in atom_pool.values() {
-            for &atom_id in ids {
-                system.atom_mut(atom_id).unwrap().role = AtomRole::Backbone;
-            }
-        }
-
-        if atom_ids.is_empty() {
-            if !topology.anchor_atoms.is_empty() {
-                return Err(ParameterizationError::InvalidAnchorAtom {
-                    residue_name: residue_name.to_string(),
-                    atom_name: topology.anchor_atoms[0].clone(),
-                });
-            }
-            return Ok(());
-        }
-
-        let parent_residue = system
-            .residue(system.atom(atom_ids[0]).unwrap().residue_id)
-            .unwrap();
-
-        // Step 4: Validate that all required anchor atoms exist AND are classified as backbone.
-        for anchor_name in &topology.anchor_atoms {
-            match parent_residue.get_first_atom_id_by_name(anchor_name) {
-                Some(atom_id) => {
-                    let atom = system.atom(atom_id).unwrap();
-                    if atom.role != AtomRole::Backbone {
-                        return Err(ParameterizationError::InvalidAnchorAtom {
-                            residue_name: residue_name.to_string(),
-                            atom_name: anchor_name.clone(),
-                        });
-                    }
-                }
-                None => {
-                    return Err(ParameterizationError::InvalidAnchorAtom {
-                        residue_name: residue_name.to_string(),
-                        atom_name: anchor_name.clone(),
-                    });
-                }
-            }
-        }
-
         Ok(())
     }
 
@@ -231,25 +194,69 @@ impl<'a> Parameterizer<'a> {
 
         Ok(())
     }
+}
 
-    pub fn parameterize_protein_atom(
-        &self,
-        atom: &mut Atom,
-        residue_name: &str,
-        topology: &ResidueTopology,
-    ) -> Result<(), ParameterizationError> {
-        // Step 1: Assign Role
-        if topology.sidechain_atoms.contains(&atom.name) {
-            atom.role = AtomRole::Sidechain;
-        } else {
-            atom.role = AtomRole::Backbone;
-        }
-
-        // Step 2: Assign physicochemical parameters
-        self.assign_physicochemical_params(atom, residue_name)?;
-
-        Ok(())
+fn assign_protein_roles_from_pool<'a, T>(
+    atoms: &'a mut [T],
+    get_name: impl for<'b> Fn(&'b T) -> &'b str,
+    set_role: impl Fn(&mut T, AtomRole),
+    topology: &ResidueTopology,
+    residue_name: &str,
+) -> Result<(), ParameterizationError> {
+    // Step 1: Create a pool mapping atom names to their indices in the slice.
+    let mut atom_pool: HashMap<String, Vec<usize>> = HashMap::new();
+    for (index, atom) in atoms.iter().enumerate() {
+        atom_pool
+            .entry(get_name(atom).to_string())
+            .or_default()
+            .push(index);
     }
+
+    let mut assigned_indices = HashSet::new();
+
+    // Step 2: First pass - identify and reserve anchor atoms. Consume them from the FRONT of the pool.
+    for anchor_name in &topology.anchor_atoms {
+        let indices = atom_pool.get_mut(anchor_name).ok_or_else(|| {
+            ParameterizationError::InvalidAnchorAtom {
+                residue_name: residue_name.to_string(),
+                atom_name: anchor_name.clone(),
+            }
+        })?;
+        if indices.is_empty() {
+            return Err(ParameterizationError::InvalidAnchorAtom {
+                residue_name: residue_name.to_string(),
+                atom_name: anchor_name.clone(),
+            });
+        }
+        let index_to_mark = indices.remove(0);
+        set_role(&mut atoms[index_to_mark], AtomRole::Backbone);
+        assigned_indices.insert(index_to_mark);
+    }
+
+    // Step 3: Second pass - identify and assign sidechain atoms. Consume them from the BACK of the pool.
+    for sidechain_name in &topology.sidechain_atoms {
+        if let Some(indices) = atom_pool.get_mut(sidechain_name) {
+            if let Some(index_to_mark) = indices.pop() {
+                if assigned_indices.contains(&index_to_mark) {
+                    return Err(ParameterizationError::InvalidAnchorAtom {
+                        residue_name: residue_name.to_string(),
+                        atom_name: sidechain_name.clone(),
+                    });
+                }
+                set_role(&mut atoms[index_to_mark], AtomRole::Sidechain);
+                assigned_indices.insert(index_to_mark);
+            }
+        }
+    }
+
+    // Step 4: Final pass - any atom not yet assigned a role is part of the backbone.
+    for (index, atom) in atoms.iter_mut().enumerate() {
+        if !assigned_indices.contains(&index) {
+            set_role(atom, AtomRole::Backbone);
+        }
+    }
+
+    Ok(())
 }
 
 impl From<super::params::VdwParam> for CachedVdwParam {
