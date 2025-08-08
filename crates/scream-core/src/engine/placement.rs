@@ -11,7 +11,7 @@ use crate::core::{
 use nalgebra::{Matrix3, Point3, Rotation3, Vector3};
 use std::collections::HashMap;
 use thiserror::Error;
-use tracing::warn;
+use crate::core::models::atom::AtomRole;
 
 #[derive(Debug, Error)]
 pub enum PlacementError {
@@ -50,7 +50,7 @@ pub fn place_rotamer_on_system(
             calculate_alignment_transform(system, target_residue_id, rotamer, topology)?;
 
         // --- Phase 2: Side-Chain Replacement ---
-        remove_old_sidechain(system, target_residue_id, topology)?;
+        remove_old_sidechain(system, target_residue_id)?;
         let index_to_id_map = add_new_sidechain_atoms_and_map(
             system,
             target_residue_id,
@@ -112,35 +112,23 @@ fn calculate_alignment_transform(
 fn remove_old_sidechain(
     system: &mut MolecularSystem,
     target_residue_id: ResidueId,
-    topology: &ResidueTopology,
 ) -> Result<(), PlacementError> {
-    let mut frequency_map = HashMap::new();
-    for name in &topology.sidechain_atoms {
-        *frequency_map.entry(name.as_str()).or_insert(0) += 1;
-    }
+    let atom_ids_in_residue = system
+        .residue(target_residue_id)
+        .unwrap()
+        .atoms()
+        .to_vec();
 
-    let mut ids_to_remove = Vec::new();
+    for atom_id in atom_ids_in_residue {
+        let should_remove = if let Some(atom) = system.atom(atom_id) {
+            atom.role == AtomRole::Sidechain
+        } else {
+            false
+        };
 
-    {
-        let target_residue = system.residue(target_residue_id).unwrap();
-        for (name, count) in frequency_map {
-            if let Some(atom_ids) = target_residue.get_atom_ids_by_name(name) {
-                if atom_ids.len() < count {
-                    warn!(
-                        "Residue {:?} has only {} atom(s) named '{}', but its topology requires removing {}. This might indicate a malformed input.",
-                        target_residue_id,
-                        atom_ids.len(),
-                        name,
-                        count
-                    );
-                }
-                ids_to_remove.extend(atom_ids.iter().rev().take(count));
-            }
+        if should_remove {
+            system.remove_atom(atom_id);
         }
-    }
-
-    for atom_id in ids_to_remove {
-        system.remove_atom(atom_id);
     }
 
     Ok(())
