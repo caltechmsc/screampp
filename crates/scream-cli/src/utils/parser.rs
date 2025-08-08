@@ -222,17 +222,17 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_placement_registry_success() {
-        let result = parse_logical_name("default", "placement-registry").unwrap();
-        assert_eq!(result, ParsedLogicalName::PlacementRegistry);
+    fn test_parse_topology_registry_success() {
+        let result = parse_logical_name("default", "topology-registry").unwrap();
+        assert_eq!(result, ParsedLogicalName::TopologyRegistry);
     }
 
     #[test]
-    fn test_parse_placement_registry_fails_invalid_name() {
-        let result = parse_logical_name("custom", "placement-registry");
+    fn test_parse_topology_registry_fails_invalid_name() {
+        let result = parse_logical_name("custom", "topology-registry");
         assert!(matches!(
             result,
-            Err(ParseError::InvalidPlacementRegistryName(_))
+            Err(ParseError::InvalidTopologyRegistryName(_))
         ));
     }
 
