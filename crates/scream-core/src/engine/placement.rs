@@ -55,7 +55,6 @@ pub fn place_rotamer_on_system(
             system,
             target_residue_id,
             rotamer,
-            topology,
             rotation,
             translation,
         )?;
@@ -153,58 +152,56 @@ fn add_new_sidechain_atoms_and_map(
     system: &mut MolecularSystem,
     target_residue_id: ResidueId,
     rotamer: &Rotamer,
-    topology: &ResidueTopology,
     rotation: Rotation3<f64>,
     translation: Vector3<f64>,
 ) -> Result<HashMap<usize, AtomId>, PlacementError> {
+    // 1. Create a fast lookup map from backbone atom names in the system to their AtomId.
+    let system_backbone_map: HashMap<_, _> = system
+        .residue(target_residue_id)
+        .unwrap()
+        .atoms()
+        .iter()
+        .filter_map(|&atom_id| {
+            let atom = system.atom(atom_id)?;
+            if atom.role == AtomRole::Backbone {
+                Some((atom.name.clone(), atom_id))
+            } else {
+                None
+            }
+        })
+        .collect();
+
     let mut index_to_id_map = HashMap::new();
-    let target_residue = system.residue(target_residue_id).unwrap();
 
-    // 1. Create a pool of rotamer atoms indexed by their names.
-    let mut rotamer_atom_pool: HashMap<&str, Vec<(usize, &crate::core::models::atom::Atom)>> =
-        HashMap::new();
-    for (index, atom) in rotamer.atoms.iter().enumerate() {
-        rotamer_atom_pool
-            .entry(&atom.name)
-            .or_default()
-            .push((index, atom));
-    }
+    // 2. Iterate over all atoms in the rotamer.
+    for (rotamer_index, rotamer_atom) in rotamer.atoms.iter().enumerate() {
+        match rotamer_atom.role {
+            // 2a. If it is a backbone atom, find the corresponding existing atom in the system and add it to the map.
+            AtomRole::Backbone => {
+                if let Some(&system_atom_id) = system_backbone_map.get(&rotamer_atom.name) {
+                    index_to_id_map.insert(rotamer_index, system_atom_id);
+                } else {
+                    return Err(PlacementError::AnchorAtomNotFoundInSystem {
+                        atom_name: rotamer_atom.name.clone(),
+                    });
+                }
+            }
+            // 2b. If it is a sidechain atom, apply the transformation, create a new atom, and add it to the system and the map.
+            AtomRole::Sidechain => {
+                let mut new_atom = rotamer_atom.clone();
+                new_atom.residue_id = target_residue_id;
+                new_atom.position = rotation * rotamer_atom.position + translation;
 
-    // 2. Pre-populate the map with anchor atoms already present in the system.
-    for atom_name in &topology.anchor_atoms {
-        let (rotamer_atom_index, _) = rotamer_atom_pool
-            .get_mut(atom_name.as_str())
-            .and_then(|atoms| atoms.get(0).copied())
-            .ok_or_else(|| PlacementError::RotamerAtomNameNotFound {
-                atom_name: atom_name.clone(),
-            })?;
+                let new_atom_id = system
+                    .add_atom_to_residue(target_residue_id, new_atom)
+                    .unwrap();
 
-        let system_atom_id = target_residue.get_first_atom_id_by_name(atom_name).unwrap();
-        index_to_id_map.insert(rotamer_atom_index, system_atom_id);
-        if let Some(atoms) = rotamer_atom_pool.get_mut(atom_name.as_str()) {
-            if !atoms.is_empty() {
-                atoms.remove(0);
+                index_to_id_map.insert(rotamer_index, new_atom_id);
+            }
+            _ => {
+                // Do nothing for Ligand, Water, Other roles in this context.
             }
         }
-    }
-
-    // 3. Add new side-chain atoms, consuming them from the end of the rotamer pool.
-    for atom_name in &topology.sidechain_atoms {
-        let (index, rotamer_atom) = rotamer_atom_pool
-            .get_mut(atom_name.as_str())
-            .and_then(|atoms| atoms.pop())
-            .ok_or_else(|| PlacementError::InsufficientAtomsInResidue {
-                atom_name: atom_name.clone(),
-            })?;
-
-        let mut new_atom = rotamer_atom.clone();
-        new_atom.residue_id = target_residue_id;
-        new_atom.position = rotation * rotamer_atom.position + translation;
-
-        let new_atom_id = system
-            .add_atom_to_residue(target_residue_id, new_atom)
-            .unwrap();
-        index_to_id_map.insert(index, new_atom_id);
     }
 
     Ok(index_to_id_map)
