@@ -523,7 +523,7 @@ sidechain_atoms = ["CB"]
         use super::*;
 
         #[test]
-        fn fails_on_missing_sidechain_atom_in_system() {
+        fn parameterizer_is_tolerant_of_missing_sidechain_atom_in_system() {
             let TestSetup {
                 mut system,
                 forcefield,
@@ -534,6 +534,7 @@ sidechain_atoms = ["CB"]
             let ala_id = system
                 .find_residue_by_id(system.find_chain_by_id('A').unwrap(), 1)
                 .unwrap();
+
             let cb_id = system
                 .residue(ala_id)
                 .unwrap()
@@ -542,13 +543,18 @@ sidechain_atoms = ["CB"]
             system.remove_atom(cb_id);
 
             let result = parameterizer.parameterize_system(&mut system);
-            assert_eq!(
-                result.unwrap_err(),
-                ParameterizationError::MissingSidechainAtom {
-                    residue_name: "ALA".to_string(),
-                    atom_name: "CB".to_string()
-                }
+            assert!(
+                result.is_ok(),
+                "Parameterization should succeed even with a missing sidechain atom, but it failed with: {:?}",
+                result.err()
             );
+
+            let n_id = system
+                .residue(ala_id)
+                .unwrap()
+                .get_first_atom_id_by_name("N")
+                .unwrap();
+            assert_eq!(system.atom(n_id).unwrap().role, AtomRole::Backbone);
         }
 
         #[test]
