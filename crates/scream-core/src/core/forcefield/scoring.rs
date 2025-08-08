@@ -190,6 +190,8 @@ mod tests {
     use nalgebra::Point3;
     use std::collections::HashMap;
 
+    const TOLERANCE: f64 = 1e-9;
+
     struct TestSetup {
         system: MolecularSystem,
         forcefield: Forcefield,
@@ -483,6 +485,19 @@ mod tests {
                 "1-4 interaction (N-O) should be non-zero"
             );
         }
+
+        #[test]
+        fn internal_hbond_is_not_counted() {
+            let setup = TestSetup::new();
+            let scorer = Scorer::new(&setup.system, &setup.forcefield);
+            let ser_atoms = setup.system.residue(setup.res_ser_id).unwrap().atoms();
+
+            let energy = scorer.score_group_internal(ser_atoms).unwrap();
+            assert!(
+                (energy.hbond).abs() < TOLERANCE,
+                "Internal H-bond should not be counted in score_group_internal"
+            );
+        }
     }
 
     mod score_interaction_tests {
@@ -490,7 +505,7 @@ mod tests {
         use nalgebra::Vector3;
 
         #[test]
-        fn calculates_attractive_energy_for_distant_residues() {
+        fn calculates_attractive_coulomb_for_distant_residues() {
             let mut setup = TestSetup::new();
 
             let ala_c_id = setup
@@ -519,7 +534,7 @@ mod tests {
         }
 
         #[test]
-        fn calculates_repulsive_energy_for_clashing_residues() {
+        fn calculates_repulsive_vdw_for_clashing_residues() {
             let mut setup = TestSetup::new();
             let leu_cd1_id = setup
                 .system
@@ -527,13 +542,13 @@ mod tests {
                 .unwrap()
                 .get_first_atom_id_by_name("CD1")
                 .unwrap();
-            let ala_cb_pos = setup
+            let ala_cb_id = setup
                 .system
                 .residue(setup.res_ala_id)
                 .unwrap()
                 .get_first_atom_id_by_name("CB")
                 .unwrap();
-            let ala_cb_pos = setup.system.atom(ala_cb_pos).unwrap().position;
+            let ala_cb_pos = setup.system.atom(ala_cb_id).unwrap().position;
             setup.system.atom_mut(leu_cd1_id).unwrap().position =
                 ala_cb_pos + Vector3::new(0.1, 0.0, 0.0);
 
@@ -608,6 +623,73 @@ mod tests {
         }
 
         #[test]
+        fn hbond_is_symmetric() {
+            let mut setup = TestSetup::new();
+            let ala_o_id = setup
+                .system
+                .residue(setup.res_ala_id)
+                .unwrap()
+                .get_first_atom_id_by_name("O")
+                .unwrap();
+
+            let ser_og_id = setup
+                .system
+                .residue(setup.res_ser_id)
+                .unwrap()
+                .get_first_atom_id_by_name("OG")
+                .unwrap();
+            let ser_hg_id = setup
+                .system
+                .residue(setup.res_ser_id)
+                .unwrap()
+                .get_first_atom_id_by_name("HG")
+                .unwrap();
+
+            let donor_pos = setup.system.atom(ser_og_id).unwrap().position;
+            let hydrogen_pos = setup.system.atom(ser_hg_id).unwrap().position;
+            let dh_vector = hydrogen_pos - donor_pos;
+            let ideal_dist = 2.8;
+            let acceptor_pos = donor_pos + dh_vector.normalize() * ideal_dist;
+            setup.system.atom_mut(ala_o_id).unwrap().position = acceptor_pos;
+
+            let scorer = Scorer::new(&setup.system, &setup.forcefield);
+            let ala_atoms = setup.system.residue(setup.res_ala_id).unwrap().atoms();
+            let ser_atoms = setup.system.residue(setup.res_ser_id).unwrap().atoms();
+
+            let energy_ala_ser = scorer
+                .score_interaction(ala_atoms, ser_atoms)
+                .unwrap()
+                .hbond;
+            let energy_ser_ala = scorer
+                .score_interaction(ser_atoms, ala_atoms)
+                .unwrap()
+                .hbond;
+
+            assert!(
+                (energy_ala_ser - energy_ser_ala).abs() < TOLERANCE,
+                "H-bond calculation should be symmetric"
+            );
+            assert!(
+                energy_ala_ser < -4.0,
+                "H-bond energy should be significantly attractive"
+            );
+        }
+
+        #[test]
+        fn interaction_is_symmetric_for_vdw_coulomb() {
+            let setup = TestSetup::new();
+            let scorer = Scorer::new(&setup.system, &setup.forcefield);
+            let ala_atoms = setup.system.residue(setup.res_ala_id).unwrap().atoms();
+            let leu_atoms = setup.system.residue(setup.res_leu_id).unwrap().atoms();
+
+            let energy1 = scorer.score_interaction(ala_atoms, leu_atoms).unwrap();
+            let energy2 = scorer.score_interaction(leu_atoms, ala_atoms).unwrap();
+
+            assert!((energy1.vdw - energy2.vdw).abs() < TOLERANCE);
+            assert!((energy1.coulomb - energy2.coulomb).abs() < TOLERANCE);
+        }
+
+        #[test]
         fn interaction_with_empty_group_is_zero() {
             let setup = TestSetup::new();
             let scorer = Scorer::new(&setup.system, &setup.forcefield);
@@ -638,7 +720,7 @@ mod tests {
         }
 
         #[test]
-        fn returns_donor_not_found_error() {
+        fn returns_donor_not_found_error_for_hbond() {
             let mut setup = TestSetup::new();
             let ser_hg_id = setup
                 .system
