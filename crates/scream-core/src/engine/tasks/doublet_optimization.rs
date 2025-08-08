@@ -217,32 +217,32 @@ sidechain_atoms = ["CB"]
             .add_residue(chain_id, 2, "LEU", Some(ResidueType::Leucine))
             .unwrap();
 
-        let backbone_atoms_data = |offset: f64| {
-            vec![
+        let add_residue_atoms = |system: &mut MolecularSystem, res_id: ResidueId, offset: f64| {
+            let backbone_atoms_data = vec![
                 ("N", Point3::new(offset, 1.0, 0.0)),
                 ("CA", Point3::new(offset, 0.0, 0.0)),
                 ("C", Point3::new(offset + 1.0, 0.0, 0.0)),
-            ]
+            ];
+            for (name, pos) in backbone_atoms_data {
+                let mut atom = Atom::new(name, res_id, pos);
+                atom.force_field_type = "BB".to_string();
+                atom.vdw_param = CachedVdwParam::LennardJones {
+                    radius: 1.0,
+                    well_depth: 0.0,
+                };
+                system.add_atom_to_residue(res_id, atom).unwrap();
+            }
+            let mut cb_atom = Atom::new("CB", res_id, Point3::new(offset, -0.5, 1.2));
+            cb_atom.force_field_type = "C_SC".to_string();
+            cb_atom.vdw_param = CachedVdwParam::LennardJones {
+                radius: 3.8,
+                well_depth: 0.1,
+            };
+            system.add_atom_to_residue(res_id, cb_atom).unwrap();
         };
 
-        for (name, pos) in backbone_atoms_data(0.0) {
-            let mut atom = Atom::new(name, res_a_id, pos);
-            atom.force_field_type = "BB".to_string();
-            atom.vdw_param = CachedVdwParam::LennardJones {
-                radius: 1.0,
-                well_depth: 0.0,
-            };
-            system.add_atom_to_residue(res_a_id, atom).unwrap();
-        }
-        for (name, pos) in backbone_atoms_data(2.0) {
-            let mut atom = Atom::new(name, res_b_id, pos);
-            atom.force_field_type = "BB".to_string();
-            atom.vdw_param = CachedVdwParam::LennardJones {
-                radius: 1.0,
-                well_depth: 0.0,
-            };
-            system.add_atom_to_residue(res_b_id, atom).unwrap();
-        }
+        add_residue_atoms(&mut system, res_a_id, 0.0);
+        add_residue_atoms(&mut system, res_b_id, 2.0);
 
         let mut vdw = HashMap::new();
         vdw.insert(
@@ -362,6 +362,7 @@ sidechain_atoms = ["CB"]
             .rotamer_library_path("dummy.rotlib")
             .topology_registry_path("dummy.topo")
             .max_iterations(1)
+            .final_refinement_iterations(0)
             .convergence_config(ConvergenceConfig {
                 energy_threshold: 0.1,
                 patience_iterations: 1,
@@ -388,7 +389,7 @@ sidechain_atoms = ["CB"]
             &setup.el_cache,
             &context,
         )
-        .unwrap();
+            .unwrap();
 
         assert_eq!(result.rotamer_idx_a, 0);
         assert_eq!(
@@ -414,6 +415,7 @@ sidechain_atoms = ["CB"]
             .rotamer_library_path("dummy.rotlib")
             .topology_registry_path("dummy.topo")
             .max_iterations(1)
+            .final_refinement_iterations(0)
             .convergence_config(ConvergenceConfig {
                 energy_threshold: 0.1,
                 patience_iterations: 1,
