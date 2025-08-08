@@ -128,11 +128,11 @@ impl DataManager {
                 .join("delta")
                 .join(format!("delta-{}.csv", diversity)),
 
-            ParsedLogicalName::PlacementRegistry => self
+            ParsedLogicalName::TopologyRegistry => self
                 .base_path
                 .join("data")
-                .join("rotamers")
-                .join("placement.toml"),
+                .join("topology")
+                .join("registry.toml"),
         };
 
         Ok(resolved_path)
