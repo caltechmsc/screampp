@@ -156,7 +156,6 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::models::atom::CachedVdwParam;
     use crate::core::{
         forcefield::{
             parameterization::Parameterizer,
@@ -226,18 +225,10 @@ sidechain_atoms = ["CB"]
             for (name, pos) in backbone_atoms_data {
                 let mut atom = Atom::new(name, res_id, pos);
                 atom.force_field_type = "BB".to_string();
-                atom.vdw_param = CachedVdwParam::LennardJones {
-                    radius: 1.0,
-                    well_depth: 0.0,
-                };
                 system.add_atom_to_residue(res_id, atom).unwrap();
             }
             let mut cb_atom = Atom::new("CB", res_id, Point3::new(offset, -0.5, 1.2));
             cb_atom.force_field_type = "C_SC".to_string();
-            cb_atom.vdw_param = CachedVdwParam::LennardJones {
-                radius: 3.8,
-                well_depth: 0.1,
-            };
             system.add_atom_to_residue(res_id, cb_atom).unwrap();
         };
 
@@ -272,51 +263,37 @@ sidechain_atoms = ["CB"]
         };
 
         let topology_registry = TopologyRegistry::load(&topology_path).unwrap();
-
         let parameterizer = Parameterizer::new(&forcefield, &topology_registry, 0.0);
 
         let create_rotamer = |residue_id, cb_pos: Point3<f64>| -> Rotamer {
-            let mut atoms = Vec::new();
-            let mut n = Atom::new("N", residue_id, Point3::new(0.0, 1.0, 0.0));
-            n.force_field_type = "BB".to_string();
-            n.vdw_param = CachedVdwParam::LennardJones {
-                radius: 1.0,
-                well_depth: 0.0,
-            };
-            atoms.push(n);
-            let mut ca = Atom::new("CA", residue_id, Point3::new(0.0, 0.0, 0.0));
-            ca.force_field_type = "BB".to_string();
-            ca.vdw_param = CachedVdwParam::LennardJones {
-                radius: 1.0,
-                well_depth: 0.0,
-            };
-            atoms.push(ca);
-            let mut c = Atom::new("C", residue_id, Point3::new(1.0, 0.0, 0.0));
-            c.force_field_type = "BB".to_string();
-            c.vdw_param = CachedVdwParam::LennardJones {
-                radius: 1.0,
-                well_depth: 0.0,
-            };
-            atoms.push(c);
-            let mut cb = Atom::new("CB", residue_id, cb_pos);
-            cb.force_field_type = "C_SC".to_string();
-            cb.vdw_param = CachedVdwParam::LennardJones {
-                radius: 3.8,
-                well_depth: 0.1,
-            };
-            atoms.push(cb);
+            let placeholder_residue_id = ResidueId::default();
+            let atoms = vec![
+                Atom::new("N", placeholder_residue_id, Point3::new(0.0, 1.0, 0.0)),
+                Atom::new("CA", placeholder_residue_id, Point3::new(0.0, 0.0, 0.0)),
+                Atom::new("C", placeholder_residue_id, Point3::new(1.0, 0.0, 0.0)),
+                Atom::new("CB", placeholder_residue_id, cb_pos),
+            ];
 
-            let bonds = vec![(0, 1), (1, 2), (1, 3)];
+            let mut rotamer = Rotamer {
+                atoms,
+                bonds: vec![(0, 1), (1, 2), (1, 3)],
+            };
 
-            let mut rotamer = Rotamer { atoms, bonds };
+            rotamer.atoms.iter_mut().for_each(|a| {
+                a.force_field_type = if a.name == "CB" {
+                    "C_SC".to_string()
+                } else {
+                    "BB".to_string()
+                };
+            });
 
             let res_name = system.residue(residue_id).unwrap().name.as_str();
             let topo = topology_registry.get(res_name).unwrap();
-            for atom in &mut rotamer.atoms {
-                parameterizer
-                    .parameterize_protein_atom(atom, res_name, topo)
-                    .unwrap();
-            }
+
+            parameterizer
+                .parameterize_rotamer(&mut rotamer, res_name, topo)
+                .unwrap();
+
             rotamer
         };
 
