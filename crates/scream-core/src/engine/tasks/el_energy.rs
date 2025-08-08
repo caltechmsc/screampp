@@ -216,6 +216,7 @@ potential_function = "lennard-jones-12-6"
 C_BB = { radius = 1.0, well_depth = 1.0 }
 N_BB = { radius = 1.0, well_depth = 1.0 }
 C_SC = { radius = 1.0, well_depth = 1.0 }
+H_ = { radius = 1.0, well_depth = 1.0 }
 [hbond]
 "#,
         );
@@ -261,7 +262,13 @@ atoms = [
 ]
 bonds = []
 [[GLY]]
-atoms = []
+atoms = [
+    { serial = 1, atom_name = "N", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "N_BB" },
+    { serial = 2, atom_name = "CA", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_BB" },
+    { serial = 3, atom_name = "C", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_BB" },
+    { serial = 4, atom_name = "HA1", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "H_" },
+    { serial = 5, atom_name = "HA2", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "H_" }
+]
 bonds = []
 "#,
         );
