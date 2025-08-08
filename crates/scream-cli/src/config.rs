@@ -459,6 +459,8 @@ mod tests {
 
         let config_content = format!(
             r#"
+        topology-registry-path = "{}"
+
         [forcefield]
         s-factor = 0.8
         forcefield-path = "lj-12-6@0.4"
@@ -466,13 +468,12 @@ mod tests {
 
         [sampling]
         rotamer-library = "amber@rmsd-1.0"
-        placement-registry = "{}"
 
         [residues-to-optimize]
         type = "all"
         "#,
-            delta_csv_path.to_str().unwrap(),
-            reg_toml_path.to_str().unwrap()
+            reg_toml_path.to_str().unwrap(),
+            delta_csv_path.to_str().unwrap()
         );
 
         let config_path = write_config_file("config_defaults.toml", &config_content);
@@ -523,6 +524,8 @@ mod tests {
 
         let config_content = format!(
             r#"
+        topology-registry-path = "{}"
+
         [forcefield]
         s-factor = 0.5 # Will be overridden
         forcefield-path = "lj-12-6@0.4"
@@ -530,7 +533,6 @@ mod tests {
 
         [sampling]
         rotamer-library = "amber@rmsd-1.0"
-        placement-registry = "{}"
 
         [optimization]
         num-solutions = 5 # Will be overridden
@@ -538,8 +540,8 @@ mod tests {
         [residues-to-optimize]
         type = "all"
         "#,
-            delta_csv_path.to_str().unwrap(),
-            reg_toml_path.to_str().unwrap()
+            reg_toml_path.to_str().unwrap(),
+            delta_csv_path.to_str().unwrap()
         );
 
         let config_path = write_config_file("config_override.toml", &config_content);
@@ -582,6 +584,8 @@ mod tests {
 
         let config_content = format!(
             r#"
+        topology-registry-path = "{}"
+
         [forcefield]
         s-factor = 0.8
         forcefield-path = "lj-12-6@0.4"
@@ -589,7 +593,6 @@ mod tests {
 
         [sampling]
         rotamer-library = "amber@rmsd-1.0"
-        placement-registry = "{}"
 
         [optimization]
         num-solutions = 5 # Will be overridden by --set
@@ -597,8 +600,8 @@ mod tests {
         [residues-to-optimize]
         type = "all"
         "#,
-            delta_csv_path.to_str().unwrap(),
-            reg_toml_path.to_str().unwrap()
+            reg_toml_path.to_str().unwrap(),
+            delta_csv_path.to_str().unwrap()
         );
 
         let config_path = write_config_file("config_set.toml", &config_content);
@@ -639,9 +642,10 @@ mod tests {
 
         let config_content = format!(
             r#"
+        topology-registry-path = "{}"
+
         [sampling]
         rotamer-library = "amber@rmsd-1.0"
-        placement-registry = "{}"
         [residues-to-optimize]
         type = "all"
         "#,
