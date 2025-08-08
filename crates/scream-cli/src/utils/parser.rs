@@ -10,8 +10,8 @@ pub enum ParseError {
     #[error("Invalid forcefield format for '{0}'. Expected 'type@version' (e.g., 'lj-12-6@0.3').")]
     InvalidForcefieldFormat(String),
 
-    #[error("Invalid placement registry name '{0}'. Only 'default' is recognized.")]
-    InvalidPlacementRegistryName(String),
+    #[error("Invalid topology registry name '{0}'. Only 'default' is recognized.")]
+    InvalidTopologyRegistryName(String),
 
     #[error("Unknown logical name kind: '{0}'. Expected 'rotamer-library', 'forcefield', etc.")]
     UnknownKind(String),
