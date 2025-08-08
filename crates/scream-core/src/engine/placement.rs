@@ -30,11 +30,6 @@ pub enum PlacementError {
         "Insufficient anchor atoms for stable alignment: requires at least 3, but found {found}"
     )]
     InsufficientAnchors { found: usize },
-
-    #[error(
-        "Placement logic failed for atom '{atom_name}': not enough instances in residue to fulfill placement requirements based on its topology definition"
-    )]
-    InsufficientAtomsInResidue { atom_name: String },
 }
 
 #[inline]
