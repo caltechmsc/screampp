@@ -78,8 +78,6 @@ struct PartialForcefieldConfig {
 struct PartialSamplingConfig {
     #[serde(rename = "rotamer-library")]
     rotamer_library: Option<String>,
-    #[serde(rename = "placement-registry")]
-    placement_registry: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Default)]
