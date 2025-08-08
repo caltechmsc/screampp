@@ -130,14 +130,13 @@ impl<'a> Parameterizer<'a> {
         residue_name: &str,
         topology: &ResidueTopology,
     ) -> Result<(), ParameterizationError> {
-        // Step 1: Create a mutable "pool" of all atoms present in the system for this residue.
+        // Step 1 & 2 remain the same: create pool and mark sidechains
         let mut atom_pool: HashMap<String, Vec<AtomId>> = HashMap::new();
         for &atom_id in atom_ids {
             let atom_name = system.atom(atom_id).unwrap().name.clone();
             atom_pool.entry(atom_name).or_default().push(atom_id);
         }
 
-        // Step 2: Consume atoms from the pool for sidechain roles.
         for sidechain_name in &topology.sidechain_atoms {
             if let Some(ids) = atom_pool.get_mut(sidechain_name) {
                 if let Some(atom_id_to_mark) = ids.pop() {
@@ -146,7 +145,7 @@ impl<'a> Parameterizer<'a> {
             }
         }
 
-        // Step 3: All remaining atoms in the pool are, by definition, backbone atoms.
+        // Step 3 remains the same: mark remaining as backbone
         for ids in atom_pool.values() {
             for &atom_id in ids {
                 system.atom_mut(atom_id).unwrap().role = AtomRole::Backbone;
@@ -154,17 +153,33 @@ impl<'a> Parameterizer<'a> {
         }
 
         if atom_ids.is_empty() {
+            if !topology.anchor_atoms.is_empty() {
+                return Err(ParameterizationError::InvalidAnchorAtom {
+                    residue_name: residue_name.to_string(),
+                    atom_name: topology.anchor_atoms[0].clone(),
+                });
+            }
             return Ok(());
         }
-        let parent_residue_id = system.atom(atom_ids[0]).unwrap().residue_id;
-        let parent_residue = system.residue(parent_residue_id).unwrap();
 
-        // Step 4: Validate that all required anchor atoms were correctly identified as backbone.
+        let parent_residue = system
+            .residue(system.atom(atom_ids[0]).unwrap().residue_id)
+            .unwrap();
+
+        // Step 4: Validate that all required anchor atoms exist AND are classified as backbone.
         for anchor_name in &topology.anchor_atoms {
-            if let Some(atom_id) = parent_residue.get_first_atom_id_by_name(anchor_name) {
-                let atom = system.atom(atom_id).unwrap();
-                if atom.role != AtomRole::Backbone {
-                    return Err(ParameterizationError::AnchorAtomMisclassified {
+            match parent_residue.get_first_atom_id_by_name(anchor_name) {
+                Some(atom_id) => {
+                    let atom = system.atom(atom_id).unwrap();
+                    if atom.role != AtomRole::Backbone {
+                        return Err(ParameterizationError::InvalidAnchorAtom {
+                            residue_name: residue_name.to_string(),
+                            atom_name: anchor_name.clone(),
+                        });
+                    }
+                }
+                None => {
+                    return Err(ParameterizationError::InvalidAnchorAtom {
                         residue_name: residue_name.to_string(),
                         atom_name: anchor_name.clone(),
                     });
