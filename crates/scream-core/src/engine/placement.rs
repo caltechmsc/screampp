@@ -258,43 +258,77 @@ mod tests {
         models::{atom::Atom, chain::ChainType, residue::ResidueType},
         topology::registry::ResidueTopology,
     };
+    use nalgebra::{Point3, Rotation3, UnitQuaternion, Vector3};
+    use std::f64::consts::PI;
 
     struct TestSetup {
         system: MolecularSystem,
-        residue_id: ResidueId,
-        topology: ResidueTopology,
+        ala_residue_id: ResidueId,
+        gly_residue_id: ResidueId,
+        ala_topology: ResidueTopology,
+        gly_topology: ResidueTopology,
     }
 
-    fn setup_ala_system() -> TestSetup {
+    fn setup() -> TestSetup {
         let mut system = MolecularSystem::new();
         let chain_id = system.add_chain('A', ChainType::Protein);
-        let residue_id = system
+        let ala_residue_id = system
             .add_residue(chain_id, 1, "ALA", Some(ResidueType::Alanine))
             .unwrap();
+        let gly_residue_id = system
+            .add_residue(chain_id, 2, "GLY", Some(ResidueType::Glycine))
+            .unwrap();
 
-        let atoms_to_add = vec![
-            ("N", AtomRole::Backbone, [0.0, 1.4, 0.0]),
-            ("CA", AtomRole::Backbone, [0.0, 0.0, 0.0]),
-            ("C", AtomRole::Backbone, [1.4, 0.0, 0.0]),
-            ("CB", AtomRole::Sidechain, [0.0, -0.7, 1.2]),
-            ("HB", AtomRole::Sidechain, [0.5, -1.5, 1.5]),
-        ];
+        add_atoms_to_residue(
+            &mut system,
+            ala_residue_id,
+            &[
+                ("N", AtomRole::Backbone, [-1.213, 0.826, 0.0]),
+                ("CA", AtomRole::Backbone, [0.0, 0.0, 0.0]),
+                ("C", AtomRole::Backbone, [0.553, -0.831, -1.132]),
+                ("CB", AtomRole::Sidechain, [1.0, 0.9, 0.8]),
+                ("HB", AtomRole::Sidechain, [1.5, 1.5, 1.5]),
+            ],
+        );
 
-        for (name, role, pos) in atoms_to_add {
-            let mut atom = Atom::new(name, residue_id, Point3::from(pos));
-            atom.role = role;
-            system.add_atom_to_residue(residue_id, atom).unwrap();
-        }
+        add_atoms_to_residue(
+            &mut system,
+            gly_residue_id,
+            &[
+                ("N", AtomRole::Backbone, [10.0, 11.4, 10.0]),
+                ("CA", AtomRole::Backbone, [10.0, 10.0, 10.0]),
+                ("C", AtomRole::Backbone, [11.4, 10.0, 10.0]),
+                ("HA1", AtomRole::Sidechain, [9.5, 9.5, 9.5]),
+            ],
+        );
 
-        let topology = ResidueTopology {
+        let ala_topology = ResidueTopology {
             anchor_atoms: vec!["N".to_string(), "CA".to_string(), "C".to_string()],
             sidechain_atoms: vec!["CB".to_string(), "HB".to_string()],
+        };
+        let gly_topology = ResidueTopology {
+            anchor_atoms: vec!["N".to_string(), "CA".to_string(), "C".to_string()],
+            sidechain_atoms: vec![],
         };
 
         TestSetup {
             system,
-            residue_id,
-            topology,
+            ala_residue_id,
+            gly_residue_id,
+            ala_topology,
+            gly_topology,
+        }
+    }
+
+    fn add_atoms_to_residue(
+        system: &mut MolecularSystem,
+        res_id: ResidueId,
+        atom_data: &[(&str, AtomRole, [f64; 3])],
+    ) {
+        for (name, role, pos) in atom_data {
+            let mut atom = Atom::new(name, res_id, Point3::from(*pos));
+            atom.role = *role;
+            system.add_atom_to_residue(res_id, atom).unwrap();
         }
     }
 
@@ -306,17 +340,17 @@ mod tests {
             Atom::new("CB", ResidueId::default(), Point3::new(5.0, 4.3, 3.8)),
             Atom::new("CG", ResidueId::default(), Point3::new(4.3, 3.1, 3.5)),
         ];
-
-        for atom in &mut atoms {
-            atom.role = if ["N", "CA", "C"].contains(&atom.name.as_str()) {
+        atoms.iter_mut().for_each(|a| {
+            a.role = if ["N", "CA", "C"].contains(&a.name.as_str()) {
                 AtomRole::Backbone
             } else {
                 AtomRole::Sidechain
-            };
+            }
+        });
+        Rotamer {
+            atoms,
+            bonds: vec![(0, 1), (1, 2), (1, 3), (3, 4)],
         }
-
-        let bonds = vec![(0, 1), (1, 2), (1, 3), (3, 4)];
-        Rotamer { atoms, bonds }
     }
 
     fn bond_exists(system: &MolecularSystem, res_id: ResidueId, name1: &str, name2: &str) -> bool {
@@ -333,231 +367,344 @@ mod tests {
         }
     }
 
-    #[test]
-    fn remove_old_sidechain_correctly_removes_only_sidechain_atoms() {
-        let TestSetup {
-            mut system,
-            residue_id,
-            ..
-        } = setup_ala_system();
-        assert_eq!(system.residue(residue_id).unwrap().atoms().len(), 5);
+    mod remove_old_sidechain_tests {
+        use super::*;
 
-        let result = remove_old_sidechain(&mut system, residue_id);
-        assert!(result.is_ok());
+        #[test]
+        fn correctly_removes_sidechain_from_standard_residue() {
+            let TestSetup {
+                mut system,
+                ala_residue_id,
+                ..
+            } = setup();
+            remove_old_sidechain(&mut system, ala_residue_id).unwrap();
+            let residue = system.residue(ala_residue_id).unwrap();
+            assert_eq!(residue.atoms().len(), 3);
+            assert!(residue.get_first_atom_id_by_name("CB").is_none());
+        }
 
-        let residue = system.residue(residue_id).unwrap();
-        assert_eq!(residue.atoms().len(), 3);
-        assert!(residue.get_first_atom_id_by_name("N").is_some());
-        assert!(residue.get_first_atom_id_by_name("CA").is_some());
-        assert!(residue.get_first_atom_id_by_name("C").is_some());
-        assert!(residue.get_first_atom_id_by_name("CB").is_none());
-        assert!(residue.get_first_atom_id_by_name("HB").is_none());
-    }
+        #[test]
+        fn does_nothing_for_residue_without_sidechain_atoms() {
+            let TestSetup {
+                mut system,
+                gly_residue_id,
+                ..
+            } = setup();
+            let ha1_id = system
+                .residue(gly_residue_id)
+                .unwrap()
+                .get_first_atom_id_by_name("HA1")
+                .unwrap();
+            system.atom_mut(ha1_id).unwrap().role = AtomRole::Backbone;
 
-    #[test]
-    fn calculate_transformation_pure_translation() {
-        let from = vec![
-            Point3::new(0.0, 0.0, 0.0),
-            Point3::new(1.0, 0.0, 0.0),
-            Point3::new(0.0, 1.0, 0.0),
-        ];
-        let to = vec![
-            Point3::new(10.0, 20.0, 30.0),
-            Point3::new(11.0, 20.0, 30.0),
-            Point3::new(10.0, 21.0, 30.0),
-        ];
-
-        let (rot, trans) = calculate_transformation(&from, &to).unwrap();
-
-        assert!(
-            (rot.angle()).abs() < 1e-9,
-            "Rotation should be near zero for pure translation"
-        );
-        assert!(
-            (trans - Vector3::new(10.0, 20.0, 30.0)).norm() < 1e-9,
-            "Translation vector is incorrect"
-        );
-    }
-
-    #[test]
-    fn add_new_sidechain_atoms_maps_backbone_and_adds_sidechain() {
-        let TestSetup {
-            mut system,
-            residue_id,
-            ..
-        } = setup_ala_system();
-        remove_old_sidechain(&mut system, residue_id).unwrap();
-
-        let leu_rotamer = create_leu_rotamer();
-        let (rotation, translation) = (Rotation3::identity(), Vector3::zeros());
-
-        let map = add_new_sidechain_atoms_and_map(
-            &mut system,
-            residue_id,
-            &leu_rotamer,
-            rotation,
-            translation,
-        )
-        .unwrap();
-
-        assert_eq!(
-            map.len(),
-            5,
-            "Map should contain all 5 atoms from the rotamer"
-        );
-        assert_eq!(
-            system.residue(residue_id).unwrap().atoms().len(),
-            5,
-            "System residue should now have 5 atoms"
-        );
-
-        let cg_atom_id = system
-            .residue(residue_id)
-            .unwrap()
-            .get_first_atom_id_by_name("CG");
-        assert!(cg_atom_id.is_some());
-
-        let ca_id_in_system = system
-            .residue(residue_id)
-            .unwrap()
-            .get_first_atom_id_by_name("CA")
-            .unwrap();
-        let ca_index_in_rotamer = leu_rotamer
-            .atoms
-            .iter()
-            .position(|a| a.name == "CA")
-            .unwrap();
-        assert_eq!(map.get(&ca_index_in_rotamer), Some(&ca_id_in_system));
-    }
-
-    #[test]
-    fn rebuild_topology_creates_correct_bonds() {
-        let TestSetup {
-            mut system,
-            residue_id,
-            ..
-        } = setup_ala_system();
-        remove_old_sidechain(&mut system, residue_id).unwrap();
-
-        let leu_rotamer = create_leu_rotamer();
-        let (rotation, translation) = (Rotation3::identity(), Vector3::zeros());
-        let map = add_new_sidechain_atoms_and_map(
-            &mut system,
-            residue_id,
-            &leu_rotamer,
-            rotation,
-            translation,
-        )
-        .unwrap();
-
-        rebuild_topology(&mut system, &leu_rotamer, &map).unwrap();
-
-        assert!(
-            bond_exists(&system, residue_id, "CA", "CB"),
-            "CA-CB bond missing"
-        );
-        assert!(
-            bond_exists(&system, residue_id, "CB", "CG"),
-            "CB-CG bond missing"
-        );
-        assert!(
-            !bond_exists(&system, residue_id, "N", "C"),
-            "N-C bond should not exist"
-        );
-    }
-
-    #[test]
-    fn place_rotamer_on_system_full_workflow() {
-        let TestSetup {
-            mut system,
-            residue_id,
-            topology,
-        } = setup_ala_system();
-        let original_atom_count = system.atoms_iter().count();
-
-        let leu_rotamer = create_leu_rotamer();
-
-        let result = place_rotamer_on_system(&mut system, residue_id, &leu_rotamer, &topology);
-        assert!(result.is_ok(), "Placement failed: {:?}", result.err());
-
-        let residue = system.residue(residue_id).unwrap();
-        assert_eq!(
-            residue.atoms().len(),
-            5,
-            "Residue should have 3 backbone + 2 LEU sidechain atoms"
-        );
-        assert_eq!(
-            system.atoms_iter().count(),
-            original_atom_count - 2 + 2,
-            "System atom count should be updated"
-        );
-        assert!(
-            residue.get_first_atom_id_by_name("CG").is_some(),
-            "CG from LEU should be present"
-        );
-        assert!(
-            residue.get_first_atom_id_by_name("HB").is_none(),
-            "HB from ALA should be gone"
-        );
-        assert!(bond_exists(&system, residue_id, "CA", "CB"));
-    }
-
-    #[test]
-    fn place_rotamer_fails_if_system_anchor_is_missing() {
-        let TestSetup {
-            mut system,
-            residue_id,
-            topology,
-        } = setup_ala_system();
-        let n_id = system
-            .residue(residue_id)
-            .unwrap()
-            .get_first_atom_id_by_name("N")
-            .unwrap();
-        system.remove_atom(n_id);
-
-        let leu_rotamer = create_leu_rotamer();
-        let result = place_rotamer_on_system(&mut system, residue_id, &leu_rotamer, &topology);
-
-        assert!(matches!(result, Err(EngineError::Placement { .. })));
-        if let Err(EngineError::Placement { message, .. }) = result {
-            assert!(message.contains("Anchor atom 'N' not found in the target residue"));
+            let initial_atom_count = system.residue(gly_residue_id).unwrap().atoms().len();
+            remove_old_sidechain(&mut system, gly_residue_id).unwrap();
+            assert_eq!(
+                system.residue(gly_residue_id).unwrap().atoms().len(),
+                initial_atom_count
+            );
         }
     }
 
-    #[test]
-    fn place_rotamer_fails_if_rotamer_anchor_is_missing() {
-        let TestSetup {
-            mut system,
-            residue_id,
-            topology,
-        } = setup_ala_system();
-        let mut leu_rotamer = create_leu_rotamer();
-        leu_rotamer.atoms.retain(|a| a.name != "CA");
+    mod calculate_transformation_tests {
+        use super::*;
 
-        let result = place_rotamer_on_system(&mut system, residue_id, &leu_rotamer, &topology);
+        #[test]
+        fn handles_pure_translation_correctly() {
+            let from = vec![
+                Point3::new(0.0, 0.0, 0.0),
+                Point3::new(1.0, 0.0, 0.0),
+                Point3::new(0.0, 1.0, 0.0),
+            ];
+            let to = vec![
+                Point3::new(10.0, 20.0, 30.0),
+                Point3::new(11.0, 20.0, 30.0),
+                Point3::new(10.0, 21.0, 30.0),
+            ];
+            let (rot, trans) = calculate_transformation(&from, &to).unwrap();
+            assert!((rot.angle()).abs() < 1e-9);
+            assert!((trans - Vector3::new(10.0, 20.0, 30.0)).norm() < 1e-9);
+        }
 
-        assert!(matches!(result, Err(EngineError::Placement { .. })));
-        if let Err(EngineError::Placement { message, .. }) = result {
-            assert!(message.contains("Anchor atom 'CA' not found in the rotamer template"));
+        #[test]
+        fn handles_pure_rotation_correctly() {
+            let from = vec![
+                Point3::new(1.0, 0.0, 0.0),
+                Point3::new(0.0, 1.0, 0.0),
+                Point3::new(0.0, 0.0, 1.0),
+            ];
+            let rot_90_z = Rotation3::from_axis_angle(&Vector3::z_axis(), PI / 2.0);
+            let to: Vec<Point3<f64>> = from.iter().map(|p| rot_90_z * p).collect();
+
+            let (rot, trans) = calculate_transformation(&from, &to).unwrap();
+
+            assert!((trans.norm()) < 1e-9);
+            let diff = UnitQuaternion::from_rotation_matrix(&rot).inverse()
+                * UnitQuaternion::from_rotation_matrix(&rot_90_z);
+            assert!(diff.angle() < 1e-9, "Rotation matrix is incorrect");
         }
     }
 
-    #[test]
-    fn place_rotamer_fails_if_insufficient_anchors() {
-        let TestSetup {
-            mut system,
-            residue_id,
-            mut topology,
-        } = setup_ala_system();
-        topology.anchor_atoms = vec!["N".to_string(), "CA".to_string()];
+    mod add_new_sidechain_atoms_and_map_tests {
+        use super::*;
 
-        let leu_rotamer = create_leu_rotamer();
-        let result = place_rotamer_on_system(&mut system, residue_id, &leu_rotamer, &topology);
+        #[test]
+        fn maps_backbone_and_adds_sidechain_correctly() {
+            let TestSetup {
+                mut system,
+                ala_residue_id,
+                ..
+            } = setup();
+            remove_old_sidechain(&mut system, ala_residue_id).unwrap();
 
-        assert!(matches!(result, Err(EngineError::Placement { .. })));
-        if let Err(EngineError::Placement { message, .. }) = result {
-            assert!(message.contains("requires at least 3, but found 2"));
+            let leu_rotamer = create_leu_rotamer();
+            let (rotation, translation) = (Rotation3::identity(), Vector3::new(1.0, 2.0, 3.0));
+            let map = add_new_sidechain_atoms_and_map(
+                &mut system,
+                ala_residue_id,
+                &leu_rotamer,
+                rotation,
+                translation,
+            )
+            .unwrap();
+
+            assert_eq!(
+                map.len(),
+                5,
+                "Map should contain all 5 atoms from the rotamer"
+            );
+            assert_eq!(
+                system.residue(ala_residue_id).unwrap().atoms().len(),
+                5,
+                "System residue should now have 5 atoms"
+            );
+
+            let cg_id = system
+                .residue(ala_residue_id)
+                .unwrap()
+                .get_first_atom_id_by_name("CG")
+                .unwrap();
+            let cg_atom = system.atom(cg_id).unwrap();
+            let expected_cg_pos = leu_rotamer
+                .atoms
+                .iter()
+                .find(|a| a.name == "CG")
+                .unwrap()
+                .position
+                + translation;
+            assert!((cg_atom.position - expected_cg_pos).norm() < 1e-9);
+
+            let ca_id_in_system = system
+                .residue(ala_residue_id)
+                .unwrap()
+                .get_first_atom_id_by_name("CA")
+                .unwrap();
+            let ca_index_in_rotamer = leu_rotamer
+                .atoms
+                .iter()
+                .position(|a| a.name == "CA")
+                .unwrap();
+            assert_eq!(map.get(&ca_index_in_rotamer), Some(&ca_id_in_system));
+        }
+
+        #[test]
+        fn returns_error_if_rotamer_backbone_atom_not_in_system() {
+            let TestSetup {
+                mut system,
+                ala_residue_id,
+                ..
+            } = setup();
+            let ca_id = system
+                .residue(ala_residue_id)
+                .unwrap()
+                .get_first_atom_id_by_name("CA")
+                .unwrap();
+            system.remove_atom(ca_id);
+
+            let leu_rotamer = create_leu_rotamer();
+            let (rot, trans) = (Rotation3::identity(), Vector3::zeros());
+
+            let result = add_new_sidechain_atoms_and_map(
+                &mut system,
+                ala_residue_id,
+                &leu_rotamer,
+                rot,
+                trans,
+            );
+
+            assert!(
+                matches!(result, Err(PlacementError::AnchorAtomNotFoundInSystem { atom_name, .. }) if atom_name == "CA")
+            );
+        }
+    }
+
+    mod rebuild_topology_tests {
+        use super::*;
+
+        #[test]
+        fn creates_correct_bonds_after_placement() {
+            let TestSetup {
+                mut system,
+                ala_residue_id,
+                ..
+            } = setup();
+            remove_old_sidechain(&mut system, ala_residue_id).unwrap();
+
+            let leu_rotamer = create_leu_rotamer();
+            let (rotation, translation) = (Rotation3::identity(), Vector3::zeros());
+            let map = add_new_sidechain_atoms_and_map(
+                &mut system,
+                ala_residue_id,
+                &leu_rotamer,
+                rotation,
+                translation,
+            )
+            .unwrap();
+
+            rebuild_topology(&mut system, &leu_rotamer, &map).unwrap();
+
+            assert!(
+                bond_exists(&system, ala_residue_id, "CA", "CB"),
+                "CA-CB bond missing"
+            );
+            assert!(
+                bond_exists(&system, ala_residue_id, "CB", "CG"),
+                "CB-CG bond missing"
+            );
+            assert!(
+                !bond_exists(&system, ala_residue_id, "N", "C"),
+                "N-C bond should not exist"
+            );
+        }
+    }
+
+    mod place_rotamer_on_system_integration_tests {
+        use super::*;
+
+        #[test]
+        fn successfully_replaces_ala_with_leu() {
+            let TestSetup {
+                mut system,
+                ala_residue_id,
+                ..
+            } = setup();
+            let leu_topology = ResidueTopology {
+                anchor_atoms: vec!["N".to_string(), "CA".to_string(), "C".to_string()],
+                sidechain_atoms: vec!["CB".to_string(), "CG".to_string()],
+            };
+
+            let leu_rotamer = create_leu_rotamer();
+            place_rotamer_on_system(&mut system, ala_residue_id, &leu_rotamer, &leu_topology)
+                .unwrap();
+
+            let residue = system.residue(ala_residue_id).unwrap();
+            assert_eq!(
+                residue.atoms().len(),
+                5,
+                "Residue should have 3 backbone + 2 LEU sidechain atoms"
+            );
+            assert!(
+                residue.get_first_atom_id_by_name("CG").is_some(),
+                "CG from LEU should be present"
+            );
+            assert!(
+                residue.get_first_atom_id_by_name("HB").is_none(),
+                "HB from ALA should be gone"
+            );
+            assert!(bond_exists(&system, ala_residue_id, "CA", "CB"));
+        }
+
+        #[test]
+        fn successfully_replaces_ala_with_gly() {
+            let TestSetup {
+                mut system,
+                ala_residue_id,
+                gly_topology,
+                ..
+            } = setup();
+
+            let mut gly_rotamer = create_leu_rotamer();
+            gly_rotamer.atoms.retain(|a| a.role == AtomRole::Backbone);
+
+            place_rotamer_on_system(&mut system, ala_residue_id, &gly_rotamer, &gly_topology)
+                .unwrap();
+
+            let residue = system.residue(ala_residue_id).unwrap();
+            assert_eq!(
+                residue.atoms().len(),
+                3,
+                "Residue should only have backbone atoms left"
+            );
+            assert!(residue.get_first_atom_id_by_name("CB").is_none());
+        }
+    }
+
+    mod error_handling_tests {
+        use super::*;
+
+        #[test]
+        fn place_rotamer_fails_if_system_anchor_is_missing() {
+            let TestSetup {
+                mut system,
+                ala_residue_id,
+                ala_topology,
+                ..
+            } = setup();
+            let n_id = system
+                .residue(ala_residue_id)
+                .unwrap()
+                .get_first_atom_id_by_name("N")
+                .unwrap();
+            system.remove_atom(n_id);
+
+            let leu_rotamer = create_leu_rotamer();
+            let result =
+                place_rotamer_on_system(&mut system, ala_residue_id, &leu_rotamer, &ala_topology);
+
+            assert!(matches!(result, Err(EngineError::Placement { .. })));
+            if let Err(EngineError::Placement { message, .. }) = result {
+                assert!(message.contains("Anchor atom 'N' not found in the target residue"));
+            }
+        }
+
+        #[test]
+        fn place_rotamer_fails_if_rotamer_anchor_is_missing() {
+            let TestSetup {
+                mut system,
+                ala_residue_id,
+                ala_topology,
+                ..
+            } = setup();
+            let mut leu_rotamer = create_leu_rotamer();
+            leu_rotamer.atoms.retain(|a| a.name != "CA");
+
+            let result =
+                place_rotamer_on_system(&mut system, ala_residue_id, &leu_rotamer, &ala_topology);
+
+            assert!(matches!(result, Err(EngineError::Placement { .. })));
+            if let Err(EngineError::Placement { message, .. }) = result {
+                assert!(message.contains("Anchor atom 'CA' not found in the rotamer template"));
+            }
+        }
+
+        #[test]
+        fn place_rotamer_fails_if_insufficient_anchors() {
+            let TestSetup {
+                mut system,
+                ala_residue_id,
+                mut ala_topology,
+                ..
+            } = setup();
+            ala_topology.anchor_atoms = vec!["N".to_string(), "CA".to_string()];
+
+            let leu_rotamer = create_leu_rotamer();
+            let result =
+                place_rotamer_on_system(&mut system, ala_residue_id, &leu_rotamer, &ala_topology);
+
+            assert!(matches!(result, Err(EngineError::Placement { .. })));
+            if let Err(EngineError::Placement { message, .. }) = result {
+                assert!(message.contains("requires at least 3, but found 2"));
+            }
         }
     }
 }
