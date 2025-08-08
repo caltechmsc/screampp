@@ -142,18 +142,10 @@ impl RotamerLibrary {
             atom.partial_charge = atom_data.partial_charge;
             atom.force_field_type = atom_data.force_field_type.clone();
 
-            parameterizer
-                .parameterize_protein_atom(&mut atom, res_name, topology)
-                .map_err(|e| LibraryLoadError::Parameterization {
-                    path: path_for_error.to_string_lossy().to_string(),
-                    residue_type: res_name.to_string(),
-                    source: e,
-                })?;
-
             atoms.push(atom);
         }
 
-        let mut bonds = Vec::new();
+        let mut bonds = Vec::with_capacity(raw_rotamer_data.bonds.len());
         for bond_serials in &raw_rotamer_data.bonds {
             let index1 = *serial_to_index_map.get(&bond_serials[0]).ok_or_else(|| {
                 LibraryLoadError::InvalidBondSerial {
@@ -170,7 +162,17 @@ impl RotamerLibrary {
             bonds.push((index1, index2));
         }
 
-        Ok(Rotamer { atoms, bonds })
+        let mut rotamer = Rotamer { atoms, bonds };
+
+        parameterizer
+            .parameterize_rotamer(&mut rotamer, res_name, topology)
+            .map_err(|e| LibraryLoadError::Parameterization {
+                path: path_for_error.to_string_lossy().to_string(),
+                residue_type: res_name.to_string(),
+                source: e,
+            })?;
+
+        Ok(rotamer)
     }
 
     pub fn get_rotamers_for(&self, residue_type: ResidueType) -> Option<&Vec<Rotamer>> {

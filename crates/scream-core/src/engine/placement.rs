@@ -157,6 +157,7 @@ fn add_new_sidechain_atoms_and_map(
     let mut index_to_id_map = HashMap::new();
     let target_residue = system.residue(target_residue_id).unwrap();
 
+    // 1. Create a pool of rotamer atoms indexed by their names.
     let mut rotamer_atom_pool: HashMap<&str, Vec<(usize, &crate::core::models::atom::Atom)>> =
         HashMap::new();
     for (index, atom) in rotamer.atoms.iter().enumerate() {
