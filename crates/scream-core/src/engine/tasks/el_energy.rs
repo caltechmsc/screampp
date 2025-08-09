@@ -207,9 +207,9 @@ where
 mod tests {
     use super::*;
     use crate::core::{
-        forcefield::{parameterization::Parameterizer, params::Forcefield},
-        models::{atom::Atom, chain::ChainType, system::MolecularSystem},
-        rotamers::library::RotamerLibrary,
+        forcefield::params::{Forcefield, GlobalParams, NonBondedParams, VdwParam},
+        models::{atom::Atom, chain::ChainType, residue::ResidueType, system::MolecularSystem},
+        rotamers::{library::RotamerLibrary, rotamer::Rotamer},
         topology::registry::TopologyRegistry,
     };
     use crate::engine::{
@@ -218,209 +218,573 @@ mod tests {
             PlacementConfigBuilder, ResidueSelection, ResidueSpecifier,
         },
         context::OptimizationContext,
-        progress::ProgressReporter,
+        progress::{Progress, ProgressReporter},
     };
     use nalgebra::Point3;
-    use std::{fs, path::Path};
-    use tempfile::TempDir;
+    use std::collections::{HashMap, HashSet};
+    use std::sync::{Arc, Mutex};
+    use tempfile::tempdir;
 
     struct TestSetup {
         system: MolecularSystem,
         forcefield: Forcefield,
         rotamer_library: RotamerLibrary,
         topology_registry: TopologyRegistry,
-        _temp_dir: TempDir,
+        progress_events: Arc<Mutex<Vec<Progress>>>,
     }
 
-    fn write_file(path: &Path, content: &str) {
-        fs::write(path, content).expect("Failed to write temporary file for test");
-    }
+    impl TestSetup {
+        fn new() -> Self {
+            let mut system = MolecularSystem::new();
+            let forcefield = Self::create_forcefield();
+            let topology_registry = Self::create_topology_registry();
 
-    fn setup() -> TestSetup {
-        let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
-        let dir = temp_dir.path();
+            let chain_a = system.add_chain('A', ChainType::Protein);
 
-        let ff_path = dir.join("ff.toml");
-        write_file(
-            &ff_path,
-            r#"
-[globals]
-dielectric_constant = 1.0
-potential_function = "lennard-jones-12-6"
-[vdw]
-C_BB = { radius = 1.0, well_depth = 1.0 }
-N_BB = { radius = 1.0, well_depth = 1.0 }
-C_SC = { radius = 1.0, well_depth = 1.0 }
-H_ = { radius = 1.0, well_depth = 1.0 }
-[hbond]
-"#,
-        );
+            let ala_id = system
+                .add_residue(chain_a, 1, "ALA", Some(ResidueType::Alanine))
+                .unwrap();
+            Self::add_atom(&mut system, ala_id, "N", [0.0, 1.4, 0.0]);
+            Self::add_atom(&mut system, ala_id, "CA", [0.0, 0.0, 0.0]);
+            Self::add_atom(&mut system, ala_id, "C", [1.4, 0.0, 0.0]);
+            Self::add_atom(&mut system, ala_id, "CB", [0.0, -1.5, 0.0]);
 
-        let delta_path = dir.join("delta.csv");
-        write_file(&delta_path, "residue_type,atom_name,mu,sigma\n");
+            let ser_id = system
+                .add_residue(chain_a, 2, "SER", Some(ResidueType::Serine))
+                .unwrap();
+            Self::add_atom(&mut system, ser_id, "N", [10.0, 0.0, 0.0]);
+            Self::add_atom(&mut system, ser_id, "CA", [11.0, 0.0, 0.0]);
+            Self::add_atom(&mut system, ser_id, "C", [12.0, 0.0, 0.0]);
+            Self::add_atom(&mut system, ser_id, "CB", [11.0, 1.5, 0.0]);
 
-        let topo_path = dir.join("topo.toml");
-        write_file(
-            &topo_path,
-            r#"
-[ALA]
-anchor_atoms = ["N", "CA", "C"]
-sidechain_atoms = ["CB"]
-[GLY]
-anchor_atoms = ["N", "CA", "C"]
-sidechain_atoms = []
-[LEU]
-anchor_atoms = ["N", "CA", "C"]
-sidechain_atoms = ["CB", "CG"]
-"#,
-        );
+            let leu_id = system
+                .add_residue(chain_a, 3, "LEU", Some(ResidueType::Leucine))
+                .unwrap();
+            Self::add_atom(&mut system, leu_id, "N", [19.0, 0.0, 0.0]);
+            Self::add_atom(&mut system, leu_id, "CA", [20.0, 0.0, 0.0]);
+            Self::add_atom(&mut system, leu_id, "C", [21.0, 0.0, 0.0]);
 
-        let rot_path = dir.join("rot.toml");
-        write_file(
-            &rot_path,
-            r#"
-[[ALA]]
-atoms = [
-    { serial = 1, atom_name = "N", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "N_BB" },
-    { serial = 2, atom_name = "CA", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_BB" },
-    { serial = 3, atom_name = "C", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_BB" },
-    { serial = 4, atom_name = "CB", position = [0.0, -1.0, -1.0], partial_charge = 0.0, force_field_type = "C_SC" }
-]
-bonds = []
-[[LEU]]
-atoms = [
-    { serial = 1, atom_name = "N", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "N_BB" },
-    { serial = 2, atom_name = "CA", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_BB" },
-    { serial = 3, atom_name = "C", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_BB" },
-    { serial = 4, atom_name = "CB", position = [0.0, -1.0, -1.0], partial_charge = 0.0, force_field_type = "C_SC" },
-    { serial = 5, atom_name = "CG", position = [0.0, -2.0, -2.0], partial_charge = 0.0, force_field_type = "C_SC" }
-]
-bonds = []
-[[GLY]]
-atoms = [
-    { serial = 1, atom_name = "N", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "N_BB" },
-    { serial = 2, atom_name = "CA", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_BB" },
-    { serial = 3, atom_name = "C", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "C_BB" },
-    { serial = 4, atom_name = "HA1", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "H_" },
-    { serial = 5, atom_name = "HA2", position = [0.0, 0.0, 0.0], partial_charge = 0.0, force_field_type = "H_" }
-]
-bonds = []
-"#,
-        );
+            let chain_b = system.add_chain('B', ChainType::Water);
+            let hoh_id = system.add_residue(chain_b, 1, "HOH", None).unwrap();
+            Self::add_atom(&mut system, hoh_id, "O", [5.0, 5.0, 5.0]);
 
-        let forcefield = Forcefield::load(&ff_path, &delta_path).unwrap();
-        let topology_registry = TopologyRegistry::load(&topo_path).unwrap();
+            let rotamer_library = Self::create_rotamer_library(&topology_registry, &forcefield);
 
-        let rotamer_library =
-            RotamerLibrary::load(&rot_path, &topology_registry, &forcefield, 0.0).unwrap();
+            let parameterizer = crate::core::forcefield::parameterization::Parameterizer::new(
+                &forcefield,
+                &topology_registry,
+                0.0,
+            );
+            parameterizer.parameterize_system(&mut system).unwrap();
 
-        let mut system = MolecularSystem::new();
-        let chain_a = system.add_chain('A', ChainType::Protein);
+            let progress_events = Arc::new(Mutex::new(Vec::new()));
 
-        let ala_id = system
-            .add_residue(chain_a, 1, "ALA", Some(ResidueType::Alanine))
-            .unwrap();
-        for name in ["N", "CA", "C"].iter() {
-            let mut atom = Atom::new(name, ala_id, Point3::origin());
-            atom.force_field_type = "C_BB".to_string();
-            system.add_atom_to_residue(ala_id, atom).unwrap();
-        }
-        let mut cb_atom = Atom::new("CB", ala_id, Point3::origin());
-        cb_atom.force_field_type = "C_SC".to_string();
-        system.add_atom_to_residue(ala_id, cb_atom).unwrap();
-
-        let gly_id = system
-            .add_residue(chain_a, 2, "GLY", Some(ResidueType::Glycine))
-            .unwrap();
-        for name in ["N", "CA", "C"].iter() {
-            let mut atom = Atom::new(name, gly_id, Point3::origin());
-            atom.force_field_type = "C_BB".to_string();
-            system.add_atom_to_residue(gly_id, atom).unwrap();
+            Self {
+                system,
+                forcefield,
+                rotamer_library,
+                topology_registry,
+                progress_events,
+            }
         }
 
-        let leu_id = system
-            .add_residue(chain_a, 3, "LEU", Some(ResidueType::Leucine))
-            .unwrap();
-        for name in ["N", "CA", "C", "CB", "CG"].iter() {
-            let mut atom = Atom::new(name, leu_id, Point3::origin());
-            atom.force_field_type = if name.len() == 1 {
-                "C_BB".to_string()
-            } else {
-                "C_SC".to_string()
+        fn create_forcefield() -> Forcefield {
+            let mut vdw = HashMap::new();
+            vdw.insert(
+                "N_BB".to_string(),
+                VdwParam::LennardJones {
+                    radius: 2.8,
+                    well_depth: 0.15,
+                },
+            );
+            vdw.insert(
+                "C_BB".to_string(),
+                VdwParam::LennardJones {
+                    radius: 3.0,
+                    well_depth: 0.1,
+                },
+            );
+            vdw.insert(
+                "C_SC".to_string(),
+                VdwParam::LennardJones {
+                    radius: 4.0,
+                    well_depth: 0.2,
+                },
+            );
+            vdw.insert(
+                "O_W".to_string(),
+                VdwParam::LennardJones {
+                    radius: 3.2,
+                    well_depth: 0.3,
+                },
+            );
+            Forcefield {
+                non_bonded: NonBondedParams {
+                    globals: GlobalParams {
+                        dielectric_constant: 1.0,
+                        ..Default::default()
+                    },
+                    vdw,
+                    hbond: HashMap::new(),
+                },
+                deltas: HashMap::new(),
+            }
+        }
+
+        fn create_topology_registry() -> TopologyRegistry {
+            let dir = tempdir().unwrap();
+            let file_path = dir.path().join("registry.toml");
+            let registry_content = r#"
+                [ALA]
+                anchor_atoms = ["N", "CA", "C"]
+                sidechain_atoms = ["CB"]
+
+                [SER]
+                anchor_atoms = ["N", "CA", "C"]
+                sidechain_atoms = ["CB"]
+
+                [LEU]
+                anchor_atoms = ["N", "CA", "C"]
+                sidechain_atoms = ["CB", "CG"]
+            "#;
+            std::fs::write(&file_path, registry_content).unwrap();
+            TopologyRegistry::load(&file_path).unwrap()
+        }
+
+        fn create_rotamer_library(
+            topology_registry: &TopologyRegistry,
+            forcefield: &Forcefield,
+        ) -> RotamerLibrary {
+            let parameterizer = crate::core::forcefield::parameterization::Parameterizer::new(
+                forcefield,
+                topology_registry,
+                0.0,
+            );
+            let mut rotamers = HashMap::new();
+            let ala_rotamers = vec![
+                Self::build_parameterized_rotamer(
+                    "ALA",
+                    &parameterizer,
+                    topology_registry,
+                    &[("CB", [0.0, -0.7, 1.2])],
+                ),
+                Self::build_parameterized_rotamer(
+                    "ALA",
+                    &parameterizer,
+                    topology_registry,
+                    &[("CB", [0.0, -1.5, 0.0])],
+                ),
+            ];
+            rotamers.insert(ResidueType::Alanine, ala_rotamers);
+
+            let ser_rotamers = vec![Self::build_parameterized_rotamer(
+                "SER",
+                &parameterizer,
+                topology_registry,
+                &[("CB", [11.0, 1.5, 0.0])],
+            )];
+            rotamers.insert(ResidueType::Serine, ser_rotamers);
+
+            RotamerLibrary { rotamers }
+        }
+
+        fn build_parameterized_rotamer(
+            res_name: &str,
+            parameterizer: &crate::core::forcefield::parameterization::Parameterizer,
+            topology_registry: &TopologyRegistry,
+            sidechain_atoms_data: &[(&str, [f64; 3])],
+        ) -> Rotamer {
+            let mut atoms = vec![
+                Atom::new("N", ResidueId::default(), [0.0, 1.4, 0.0].into()),
+                Atom::new("CA", ResidueId::default(), [0.0, 0.0, 0.0].into()),
+                Atom::new("C", ResidueId::default(), [1.4, 0.0, 0.0].into()),
+            ];
+            for (name, pos) in sidechain_atoms_data {
+                atoms.push(Atom::new(name, ResidueId::default(), (*pos).into()));
+            }
+
+            atoms.iter_mut().for_each(|a| {
+                a.force_field_type = match a.name.as_str() {
+                    "N" => "N_BB".to_string(),
+                    "CA" | "C" => "C_BB".to_string(),
+                    _ => "C_SC".to_string(),
+                }
+            });
+
+            let bonds = match res_name {
+                "ALA" => vec![(0, 1), (1, 2), (1, 3)],
+                "SER" => vec![(0, 1), (1, 2), (1, 3)],
+                _ => vec![],
             };
-            system.add_atom_to_residue(leu_id, atom).unwrap();
+
+            let topology = topology_registry.get(res_name).unwrap();
+            let mut rotamer = Rotamer { atoms, bonds };
+            parameterizer
+                .parameterize_rotamer(&mut rotamer, res_name, topology)
+                .unwrap();
+            rotamer
         }
 
-        let parameterizer = Parameterizer::new(&forcefield, &topology_registry, 0.0);
-        parameterizer.parameterize_system(&mut system).unwrap();
-
-        TestSetup {
-            system,
-            forcefield,
-            rotamer_library,
-            topology_registry,
-            _temp_dir: temp_dir,
+        fn add_atom(system: &mut MolecularSystem, res_id: ResidueId, name: &str, pos: [f64; 3]) {
+            let mut atom = Atom::new(name, res_id, pos.into());
+            atom.force_field_type = match name {
+                "N" => "N_BB".to_string(),
+                "CA" | "C" => "C_BB".to_string(),
+                "CB" => "C_SC".to_string(),
+                "O" => "O_W".to_string(),
+                _ => "UNKNOWN".to_string(),
+            };
+            system.add_atom_to_residue(res_id, atom).unwrap();
         }
-    }
 
-    fn create_test_placement_config(selection: ResidueSelection) -> PlacementConfig {
-        PlacementConfigBuilder::new()
-            .forcefield_path("")
-            .delta_params_path("")
-            .rotamer_library_path("")
-            .topology_registry_path("")
-            .s_factor(0.0)
-            .max_iterations(1)
-            .num_solutions(1)
-            .convergence_config(ConvergenceConfig {
-                energy_threshold: 0.1,
-                patience_iterations: 1,
-            })
-            .residues_to_optimize(selection)
-            .final_refinement_iterations(0)
-            .build()
-            .unwrap()
-    }
+        fn create_placement_config(selection: ResidueSelection) -> PlacementConfig {
+            PlacementConfigBuilder::new()
+                .forcefield_path("dummy.ff")
+                .delta_params_path("dummy.delta")
+                .s_factor(0.0)
+                .rotamer_library_path("dummy.rotlib")
+                .topology_registry_path("dummy.topo")
+                .max_iterations(10)
+                .num_solutions(1)
+                .convergence_config(ConvergenceConfig {
+                    energy_threshold: 0.01,
+                    patience_iterations: 3,
+                })
+                .final_refinement_iterations(2)
+                .include_input_conformation(false)
+                .residues_to_optimize(selection)
+                .build()
+                .unwrap()
+        }
 
-    fn create_test_design_config(spec: DesignSpec, repack: ResidueSelection) -> DesignConfig {
-        DesignConfigBuilder::new()
-            .forcefield_path("")
-            .delta_params_path("")
-            .rotamer_library_path("")
-            .topology_registry_path("")
-            .s_factor(0.0)
-            .max_iterations(1)
-            .num_solutions(1)
-            .include_input_conformation(false)
-            .convergence_config(ConvergenceConfig {
-                energy_threshold: 0.1,
-                patience_iterations: 1,
-            })
-            .design_spec(spec)
-            .neighbors_to_repack(repack)
-            .final_refinement_iterations(0)
-            .build()
-            .unwrap()
+        fn create_design_config(
+            design_spec: DesignSpec,
+            repack_selection: ResidueSelection,
+        ) -> DesignConfig {
+            DesignConfigBuilder::new()
+                .forcefield_path("dummy.ff")
+                .delta_params_path("dummy.delta")
+                .s_factor(0.0)
+                .rotamer_library_path("dummy.rotlib")
+                .topology_registry_path("dummy.topo")
+                .max_iterations(10)
+                .num_solutions(1)
+                .include_input_conformation(false)
+                .convergence_config(ConvergenceConfig {
+                    energy_threshold: 0.01,
+                    patience_iterations: 3,
+                })
+                .final_refinement_iterations(2)
+                .design_spec(design_spec)
+                .neighbors_to_repack(repack_selection)
+                .build()
+                .unwrap()
+        }
+
+        fn get_residue_id(&self, chain: char, res_num: isize) -> ResidueId {
+            let chain_id = self.system.find_chain_by_id(chain).unwrap();
+            self.system.find_residue_by_id(chain_id, res_num).unwrap()
+        }
+
+        fn reporter(&self) -> ProgressReporter {
+            let events = self.progress_events.clone();
+            ProgressReporter::with_callback(Box::new(move |p: Progress| {
+                events.lock().unwrap().push(p);
+            }))
+        }
     }
 
     #[test]
-    fn build_work_list_for_placement_works() {
-        let setup = setup();
-        let reporter = ProgressReporter::default();
-        let selection = ResidueSelection::List {
-            include: vec![
-                ResidueSpecifier {
-                    chain_id: 'A',
-                    residue_number: 1,
-                },
-                ResidueSpecifier {
-                    chain_id: 'A',
-                    residue_number: 2,
-                },
-            ],
+    fn precompute_environment_atoms_is_correct() {
+        let setup = TestSetup::new();
+        let config = TestSetup::create_placement_config(ResidueSelection::All);
+        let reporter = setup.reporter();
+        let context = OptimizationContext::new(
+            &setup.system,
+            &setup.forcefield,
+            &reporter,
+            &config,
+            &setup.rotamer_library,
+            &setup.topology_registry,
+        );
+
+        let env_atoms = precompute_environment_atoms(&context).unwrap();
+
+        let env_atom_info: HashSet<(isize, String)> = env_atoms
+            .iter()
+            .map(|id| {
+                let atom = context.system.atom(*id).unwrap();
+                let res = context.system.residue(atom.residue_id).unwrap();
+                (res.residue_number, atom.name.clone())
+            })
+            .collect();
+
+        assert!(!env_atom_info.contains(&(1, "CB".to_string())));
+        assert!(!env_atom_info.contains(&(2, "CB".to_string())));
+
+        assert!(env_atom_info.contains(&(1, "N".to_string())));
+        assert!(env_atom_info.contains(&(1, "CA".to_string())));
+        assert!(env_atom_info.contains(&(1, "C".to_string())));
+        assert!(env_atom_info.contains(&(2, "N".to_string())));
+        assert!(env_atom_info.contains(&(2, "CA".to_string())));
+        assert!(env_atom_info.contains(&(1, "O".to_string())));
+    }
+
+    #[test]
+    fn run_calculates_correct_el_energy_value() {
+        let setup = TestSetup::new();
+        let ala_id = setup.get_residue_id('A', 1);
+        let config = TestSetup::create_placement_config(ResidueSelection::List {
+            include: vec![ResidueSpecifier {
+                chain_id: 'A',
+                residue_number: 1,
+            }],
             exclude: vec![],
-        };
-        let config = create_test_placement_config(selection);
+        });
+        let reporter = setup.reporter();
+        let context = OptimizationContext::new(
+            &setup.system,
+            &setup.forcefield,
+            &reporter,
+            &config,
+            &setup.rotamer_library,
+            &setup.topology_registry,
+        );
+
+        let cache = run(&context).unwrap();
+        let energies = cache
+            .get_energies_for(ala_id, ResidueType::Alanine)
+            .unwrap();
+
+        let rotamer = &setup
+            .rotamer_library
+            .get_rotamers_for(ResidueType::Alanine)
+            .unwrap()[1];
+        let rot_n_pos = rotamer
+            .atoms
+            .iter()
+            .find(|a| a.name == "N")
+            .unwrap()
+            .position;
+        let rot_ca_pos = rotamer
+            .atoms
+            .iter()
+            .find(|a| a.name == "CA")
+            .unwrap()
+            .position;
+        let rot_c_pos = rotamer
+            .atoms
+            .iter()
+            .find(|a| a.name == "C")
+            .unwrap()
+            .position;
+        let rot_cb_pos = rotamer
+            .atoms
+            .iter()
+            .find(|a| a.name == "CB")
+            .unwrap()
+            .position;
+
+        let ser_res_id = setup.get_residue_id('A', 2);
+        let ser_n = setup
+            .system
+            .atom(
+                setup
+                    .system
+                    .residue(ser_res_id)
+                    .unwrap()
+                    .get_first_atom_id_by_name("N")
+                    .unwrap(),
+            )
+            .unwrap();
+        let ser_ca = setup
+            .system
+            .atom(
+                setup
+                    .system
+                    .residue(ser_res_id)
+                    .unwrap()
+                    .get_first_atom_id_by_name("CA")
+                    .unwrap(),
+            )
+            .unwrap();
+        let ser_c = setup
+            .system
+            .atom(
+                setup
+                    .system
+                    .residue(ser_res_id)
+                    .unwrap()
+                    .get_first_atom_id_by_name("C")
+                    .unwrap(),
+            )
+            .unwrap();
+        let ser_cb = setup
+            .system
+            .atom(
+                setup
+                    .system
+                    .residue(ser_res_id)
+                    .unwrap()
+                    .get_first_atom_id_by_name("CB")
+                    .unwrap(),
+            )
+            .unwrap();
+
+        let leu_res_id = setup.get_residue_id('A', 3);
+        let leu_n = setup
+            .system
+            .atom(
+                setup
+                    .system
+                    .residue(leu_res_id)
+                    .unwrap()
+                    .get_first_atom_id_by_name("N")
+                    .unwrap(),
+            )
+            .unwrap();
+        let leu_ca = setup
+            .system
+            .atom(
+                setup
+                    .system
+                    .residue(leu_res_id)
+                    .unwrap()
+                    .get_first_atom_id_by_name("CA")
+                    .unwrap(),
+            )
+            .unwrap();
+        let leu_c = setup
+            .system
+            .atom(
+                setup
+                    .system
+                    .residue(leu_res_id)
+                    .unwrap()
+                    .get_first_atom_id_by_name("C")
+                    .unwrap(),
+            )
+            .unwrap();
+
+        let hoh_o = setup
+            .system
+            .atom(
+                setup
+                    .system
+                    .residue(setup.get_residue_id('B', 1))
+                    .unwrap()
+                    .get_first_atom_id_by_name("O")
+                    .unwrap(),
+            )
+            .unwrap();
+
+        let params = HashMap::from([
+            ("N_BB", (2.8, 0.15)),
+            ("C_BB", (3.0, 0.1)),
+            ("C_SC", (4.0, 0.2)),
+            ("O_W", (3.2, 0.3)),
+        ]);
+        let (n_r, n_d) = params["N_BB"];
+        let (ca_r, ca_d) = params["C_BB"];
+        let (c_r, c_d) = params["C_BB"];
+        let (cb_r, cb_d) = params["C_SC"];
+
+        let env_atoms = [ser_n, ser_ca, ser_c, ser_cb, leu_n, leu_ca, leu_c, hoh_o];
+
+        let mut expected_vdw_by_scorer = 0.0;
+
+        fn calc_vdw(
+            pos1: Point3<f64>,
+            pos2: Point3<f64>,
+            r1: f64,
+            d1: f64,
+            r2: f64,
+            d2: f64,
+        ) -> f64 {
+            let dist = (pos1 - pos2).norm();
+            let r_min = (r1 + r2) / 2.0;
+            let well_depth = (d1 * d2).sqrt();
+            let rho = r_min / dist;
+            let rho6 = rho.powi(6);
+            well_depth * (rho6 * rho6 - 2.0 * rho6)
+        }
+
+        for env_atom in &env_atoms {
+            expected_vdw_by_scorer += calc_vdw(
+                rot_n_pos,
+                env_atom.position,
+                n_r,
+                n_d,
+                params[env_atom.force_field_type.as_str()].0,
+                params[env_atom.force_field_type.as_str()].1,
+            );
+        }
+        for env_atom in &env_atoms {
+            expected_vdw_by_scorer += calc_vdw(
+                rot_ca_pos,
+                env_atom.position,
+                ca_r,
+                ca_d,
+                params[env_atom.force_field_type.as_str()].0,
+                params[env_atom.force_field_type.as_str()].1,
+            );
+        }
+        for env_atom in &env_atoms {
+            expected_vdw_by_scorer += calc_vdw(
+                rot_c_pos,
+                env_atom.position,
+                c_r,
+                c_d,
+                params[env_atom.force_field_type.as_str()].0,
+                params[env_atom.force_field_type.as_str()].1,
+            );
+        }
+        for env_atom in &env_atoms {
+            expected_vdw_by_scorer += calc_vdw(
+                rot_cb_pos,
+                env_atom.position,
+                cb_r,
+                cb_d,
+                params[env_atom.force_field_type.as_str()].0,
+                params[env_atom.force_field_type.as_str()].1,
+            );
+        }
+
+        let calculated_energy = energies.get(&1).unwrap();
+
+        assert!(
+            (calculated_energy.vdw - expected_vdw_by_scorer).abs() < 1e-9,
+            "Calculated VDW energy differs from manual calculation. Got {}, expected {}",
+            calculated_energy.vdw,
+            expected_vdw_by_scorer
+        );
+        assert!(
+            (calculated_energy.coulomb).abs() < 1e-9,
+            "Coulomb energy should be near zero for this test setup"
+        );
+    }
+
+    #[test]
+    fn build_work_list_handles_design_site_correctly() {
+        let setup = TestSetup::new();
+        let reporter = setup.reporter();
+
+        let mut design_spec = DesignSpec::new();
+        design_spec.insert(
+            ResidueSpecifier {
+                chain_id: 'A',
+                residue_number: 1,
+            },
+            vec![ResidueType::Serine],
+        );
+        let config = TestSetup::create_design_config(
+            design_spec,
+            ResidueSelection::List {
+                include: vec![],
+                exclude: vec![],
+            },
+        );
+
         let context = OptimizationContext::new(
             &setup.system,
             &setup.forcefield,
@@ -432,46 +796,30 @@ bonds = []
 
         let work_list = build_work_list(&context).unwrap();
 
-        assert_eq!(work_list.len(), 2);
-
-        let has_ala = work_list
-            .iter()
-            .any(|w| w.residue_type == ResidueType::Alanine);
-        let has_gly = work_list
-            .iter()
-            .any(|w| w.residue_type == ResidueType::Glycine);
-
-        assert!(has_ala, "Work list should include Alanine");
-        assert!(has_gly, "Work list should include Glycine");
+        assert_eq!(
+            work_list.len(),
+            1,
+            "Should only have one work unit for the design site"
+        );
+        let work_unit = &work_list[0];
+        assert_eq!(work_unit.residue_id, setup.get_residue_id('A', 1));
+        assert_eq!(
+            work_unit.residue_type,
+            ResidueType::Serine,
+            "Work unit should be for SER, not the native ALA"
+        );
     }
 
     #[test]
-    fn build_work_list_for_design_works() {
-        let setup = setup();
-        let reporter = ProgressReporter::default();
-        let system = &setup.system;
-
-        let mut design_spec = DesignSpec::new();
-        design_spec.insert(
-            ResidueSpecifier {
-                chain_id: 'A',
-                residue_number: 2,
-            },
-            vec![ResidueType::Alanine],
-        );
-
-        let config = create_test_design_config(
-            design_spec,
-            ResidueSelection::List {
-                include: vec![ResidueSpecifier {
-                    chain_id: 'A',
-                    residue_number: 3,
-                }],
-                exclude: vec![],
-            },
-        );
+    fn run_with_no_active_residues_returns_empty_cache() {
+        let setup = TestSetup::new();
+        let config = TestSetup::create_placement_config(ResidueSelection::List {
+            include: vec![],
+            exclude: vec![],
+        });
+        let reporter = setup.reporter();
         let context = OptimizationContext::new(
-            system,
+            &setup.system,
             &setup.forcefield,
             &reporter,
             &config,
@@ -479,49 +827,22 @@ bonds = []
             &setup.topology_registry,
         );
 
-        let work_list = build_work_list(&context).unwrap();
-
-        assert_eq!(work_list.len(), 2);
-
-        let has_design_site = work_list.iter().any(|w| {
-            w.residue_type == ResidueType::Alanine
-                && w.residue_id
-                    == system
-                        .find_residue_by_id(system.find_chain_by_id('A').unwrap(), 2)
-                        .unwrap()
-        });
-        let has_repack_site = work_list.iter().any(|w| {
-            w.residue_type == ResidueType::Leucine
-                && w.residue_id
-                    == system
-                        .find_residue_by_id(system.find_chain_by_id('A').unwrap(), 3)
-                        .unwrap()
-        });
-
-        assert!(has_design_site, "Work list should contain the design site");
-        assert!(has_repack_site, "Work list should contain the repack site");
+        let cache = run(&context).unwrap();
+        assert!(cache.is_empty());
+        assert_eq!(setup.progress_events.lock().unwrap().len(), 2);
     }
 
     #[test]
-    fn run_with_simple_config_succeeds() {
-        let setup = setup();
-
-        let reporter = ProgressReporter::default();
-        let selection = ResidueSelection::List {
-            include: vec![
-                ResidueSpecifier {
-                    chain_id: 'A',
-                    residue_number: 1,
-                },
-                ResidueSpecifier {
-                    chain_id: 'A',
-                    residue_number: 3,
-                },
-            ],
+    fn run_handles_residue_with_no_rotamers_in_library() {
+        let setup = TestSetup::new();
+        let config = TestSetup::create_placement_config(ResidueSelection::List {
+            include: vec![ResidueSpecifier {
+                chain_id: 'A',
+                residue_number: 3,
+            }],
             exclude: vec![],
-        };
-        let config = create_test_placement_config(selection);
-
+        });
+        let reporter = setup.reporter();
         let context = OptimizationContext::new(
             &setup.system,
             &setup.forcefield,
@@ -533,32 +854,9 @@ bonds = []
 
         let cache = run(&context).unwrap();
 
-        assert!(!cache.is_empty());
-        assert_eq!(
-            cache.len(),
-            2,
-            "Should have EL energies for ALA and LEU, which were active."
+        assert!(
+            cache.is_empty(),
+            "Cache should be empty as LEU has no rotamers to process"
         );
-    }
-
-    #[test]
-    fn run_with_empty_work_list_returns_empty_cache() {
-        let setup = setup();
-        let reporter = ProgressReporter::default();
-        let config = create_test_placement_config(ResidueSelection::List {
-            include: vec![],
-            exclude: vec![],
-        });
-        let context = OptimizationContext::new(
-            &setup.system,
-            &setup.forcefield,
-            &reporter,
-            &config,
-            &setup.rotamer_library,
-            &setup.topology_registry,
-        );
-
-        let result = run(&context).unwrap();
-        assert!(result.is_empty());
     }
 }
