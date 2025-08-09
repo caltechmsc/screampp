@@ -1,5 +1,6 @@
 use crate::core::forcefield::scoring::Scorer;
 use crate::core::forcefield::term::EnergyTerm;
+use crate::core::models::atom::AtomRole;
 use crate::core::models::ids::{AtomId, ResidueId};
 use crate::core::models::residue::ResidueType;
 use crate::engine::cache::ELCache;
@@ -36,8 +37,11 @@ where
 
     if work_list.is_empty() {
         warn!("No work to be done for EL energy calculation. Returning empty cache.");
+        context.reporter.report(Progress::PhaseFinish);
         return Ok(ELCache::new());
     }
+
+    let environment_atom_ids = precompute_environment_atoms(context)?;
 
     context.reporter.report(Progress::TaskStart {
         total: work_list.len() as u64,
@@ -50,7 +54,7 @@ where
     let iterator = work_list.par_iter();
 
     let results: Vec<WorkResult> = iterator
-        .map(|unit| compute_energies_for_unit(unit, context))
+        .map(|unit| compute_energies_for_unit(unit, &environment_atom_ids, context))
         .collect();
 
     context.reporter.report(Progress::TaskFinish);
@@ -67,6 +71,7 @@ where
         cached_combinations = cache.len(),
         "EL pre-computation finished."
     );
+    context.reporter.report(Progress::PhaseFinish);
     Ok(cache)
 }
 
@@ -86,30 +91,73 @@ where
             if let Some(allowed_types) =
                 design_spec.get_by_specifier(chain.id, residue.residue_number)
             {
-                for &residue_type in allowed_types {
-                    work_list.push(WorkUnit {
-                        residue_id,
-                        residue_type,
-                    });
-                }
                 is_design_site = true;
+                for &residue_type in allowed_types {
+                    if context
+                        .rotamer_library
+                        .get_rotamers_for(residue_type)
+                        .is_some()
+                    {
+                        work_list.push(WorkUnit {
+                            residue_id,
+                            residue_type,
+                        });
+                    }
+                }
             }
         }
 
         if !is_design_site {
             if let Some(native_type) = residue.residue_type {
-                work_list.push(WorkUnit {
-                    residue_id,
-                    residue_type: native_type,
-                });
+                if context
+                    .rotamer_library
+                    .get_rotamers_for(native_type)
+                    .is_some()
+                {
+                    work_list.push(WorkUnit {
+                        residue_id,
+                        residue_type: native_type,
+                    });
+                }
             }
         }
     }
     Ok(work_list)
 }
 
+fn precompute_environment_atoms<C>(
+    context: &OptimizationContext<C>,
+) -> Result<Vec<AtomId>, EngineError>
+where
+    C: ProvidesResidueSelections + Sync,
+{
+    let active_residue_ids = context.resolve_all_active_residues()?;
+
+    let environment_atom_ids = context
+        .system
+        .atoms_iter()
+        .filter_map(|(atom_id, atom)| match atom.role {
+            AtomRole::Ligand | AtomRole::Water | AtomRole::Other => Some(atom_id),
+            AtomRole::Backbone => Some(atom_id),
+            AtomRole::Sidechain => {
+                if !active_residue_ids.contains(&atom.residue_id) {
+                    Some(atom_id)
+                } else {
+                    None
+                }
+            }
+        })
+        .collect();
+
+    Ok(environment_atom_ids)
+}
+
 #[instrument(skip_all, fields(residue_id = ?unit.residue_id, residue_type = %unit.residue_type))]
-fn compute_energies_for_unit<C>(unit: &WorkUnit, context: &OptimizationContext<C>) -> WorkResult
+fn compute_energies_for_unit<C>(
+    unit: &WorkUnit,
+    environment_atom_ids: &[AtomId],
+    context: &OptimizationContext<C>,
+) -> WorkResult
 where
     C: ProvidesResidueSelections + Sync,
 {
@@ -118,7 +166,7 @@ where
         .get_rotamers_for(unit.residue_type)
         .ok_or_else(|| EngineError::RotamerLibrary {
             residue_type: unit.residue_type.to_string(),
-            message: "No rotamers found for this residue type.".to_string(),
+            message: "No rotamers found for this residue type during EL calculation.".to_string(),
         })?;
 
     let residue_name = unit.residue_type.to_three_letter();
@@ -127,20 +175,6 @@ where
             residue_name: residue_name.to_string(),
         }
     })?;
-
-    let active_residue_ids = context.resolve_all_active_residues()?;
-
-    let environment_atoms: Vec<AtomId> = context
-        .system
-        .atoms_iter()
-        .filter_map(|(atom_id, atom)| {
-            if !active_residue_ids.contains(&atom.residue_id) {
-                Some(atom_id)
-            } else {
-                None
-            }
-        })
-        .collect();
 
     let mut energy_map = HashMap::with_capacity(rotamers.len());
 
@@ -156,9 +190,10 @@ where
             .to_vec();
 
         let scorer = Scorer::new(&temp_system, context.forcefield);
-        let energy = scorer.score_interaction(&query_atoms, &environment_atoms)?;
 
-        energy_map.insert(rotamer_idx, energy);
+        let interaction_energy = scorer.score_interaction(&query_atoms, environment_atom_ids)?;
+
+        energy_map.insert(rotamer_idx, interaction_energy);
     }
 
     context
