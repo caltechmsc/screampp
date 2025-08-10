@@ -7,10 +7,11 @@ use crate::core::models::system::MolecularSystem;
 use crate::engine::error::EngineError;
 use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
-use tracing::instrument;
 
-#[cfg(feature = "parallel")]
 use rayon::prelude::*;
+#[cfg(feature = "parallel")]
+use std::sync::Mutex;
+use tracing::instrument;
 
 #[instrument(skip_all, name = "interaction_energy_task")]
 pub fn run(
@@ -33,6 +34,7 @@ pub fn run(
     #[cfg(feature = "parallel")]
     let iterator = residue_pairs.par_bridge();
 
+    #[cfg(not(feature = "parallel"))]
     let total_interaction_energy = iterator
         .map(|pair| {
             let res_a_id = *pair[0];
@@ -52,7 +54,46 @@ pub fn run(
             let scorer = Scorer::new(system, forcefield);
             scorer.score_interaction(atoms_a, atoms_b)
         })
-        .try_reduce(EnergyTerm::default, |acc, term| Ok(acc + term))?;
+        .try_fold(
+            EnergyTerm::default(),
+            |acc, term_res| -> Result<EnergyTerm, EngineError> {
+                let term = term_res?;
+                Ok(acc + term)
+            },
+        )?;
+
+    #[cfg(feature = "parallel")]
+    let total_interaction_energy = {
+        let acc = Mutex::new(EnergyTerm::default());
+
+        iterator
+            .map(|pair| {
+                let res_a_id = *pair[0];
+                let res_b_id = *pair[1];
+
+                let atoms_a = sidechain_atoms_map
+                    .get(&res_a_id)
+                    .map_or([].as_slice(), |v| v.as_slice());
+                let atoms_b = sidechain_atoms_map
+                    .get(&res_b_id)
+                    .map_or([].as_slice(), |v| v.as_slice());
+
+                if atoms_a.is_empty() || atoms_b.is_empty() {
+                    return Ok(EnergyTerm::default());
+                }
+
+                let scorer = Scorer::new(system, forcefield);
+                scorer.score_interaction(atoms_a, atoms_b)
+            })
+            .try_for_each(|term_res| -> Result<(), EngineError> {
+                let term = term_res?;
+                let mut guard = acc.lock().expect("mutex poisoned");
+                *guard = *guard + term;
+                Ok(())
+            })?;
+
+        acc.into_inner().expect("mutex poisoned")
+    };
 
     Ok(total_interaction_energy)
 }
