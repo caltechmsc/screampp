@@ -88,6 +88,7 @@ mod tests {
     use crate::core::models::ids::{AtomId, ResidueId};
     use crate::core::models::residue::ResidueType;
     use crate::core::models::system::MolecularSystem;
+    use crate::core::models::topology::BondOrder;
     use crate::core::rotamers::library::RotamerLibrary;
     use crate::core::rotamers::rotamer::Rotamer;
     use crate::core::topology::registry::TopologyRegistry;
@@ -260,49 +261,13 @@ mod tests {
         set(hoh_o, "O_HOH", -0.4);
         set(lig_c1, "C_LIG", -0.1);
 
-        system
-            .add_bond(
-                ala_n,
-                ala_ca,
-                crate::core::models::topology::BondOrder::Single,
-            )
-            .unwrap();
-        system
-            .add_bond(
-                ala_ca,
-                ala_c,
-                crate::core::models::topology::BondOrder::Single,
-            )
-            .unwrap();
-        system
-            .add_bond(
-                ala_ca,
-                ala_cb,
-                crate::core::models::topology::BondOrder::Single,
-            )
-            .unwrap();
+        system.add_bond(ala_n, ala_ca, BondOrder::Single).unwrap();
+        system.add_bond(ala_ca, ala_c, BondOrder::Single).unwrap();
+        system.add_bond(ala_ca, ala_cb, BondOrder::Single).unwrap();
 
-        system
-            .add_bond(
-                ser_n,
-                ser_ca,
-                crate::core::models::topology::BondOrder::Single,
-            )
-            .unwrap();
-        system
-            .add_bond(
-                ser_ca,
-                ser_c,
-                crate::core::models::topology::BondOrder::Single,
-            )
-            .unwrap();
-        system
-            .add_bond(
-                ser_ca,
-                ser_og,
-                crate::core::models::topology::BondOrder::Single,
-            )
-            .unwrap();
+        system.add_bond(ser_n, ser_ca, BondOrder::Single).unwrap();
+        system.add_bond(ser_ca, ser_c, BondOrder::Single).unwrap();
+        system.add_bond(ser_ca, ser_og, BondOrder::Single).unwrap();
 
         let parameterizer = Parameterizer::new(&forcefield, &topology_registry, 0.0);
         parameterizer.parameterize_system(&mut system).unwrap();
@@ -420,7 +385,6 @@ mod tests {
         set(c, "C_BB", 0.5);
         set(o, "O_2", -0.5);
 
-        use crate::core::models::topology::BondOrder;
         system.add_bond(n, ca, BondOrder::Single).unwrap();
         system.add_bond(ca, c, BondOrder::Single).unwrap();
         system.add_bond(c, o, BondOrder::Single).unwrap();
