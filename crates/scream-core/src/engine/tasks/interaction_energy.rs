@@ -8,8 +8,8 @@ use crate::engine::error::EngineError;
 use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 
-use rayon::prelude::*;
 #[cfg(feature = "parallel")]
+use rayon::prelude::*;
 use std::sync::Mutex;
 use tracing::instrument;
 
