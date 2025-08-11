@@ -200,6 +200,11 @@ where
             })
             .collect();
 
+        if query_atoms.is_empty() {
+            energy_map.insert(rotamer_idx, EnergyTerm::default());
+            continue;
+        }
+
         let scorer = Scorer::new(&temp_system, context.forcefield);
         let interaction_energy = scorer.score_interaction(&query_atoms, environment_atom_ids)?;
 
