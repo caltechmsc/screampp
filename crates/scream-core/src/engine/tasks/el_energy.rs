@@ -23,7 +23,7 @@ struct WorkUnit {
 
 type WorkResult = Result<((ResidueId, ResidueType), HashMap<usize, EnergyTerm>), EngineError>;
 
-#[instrument(skip_all, name = "el_energy_task")]
+#[instrument(skip_all, name = "el_energy_cache_generation_task")]
 pub fn run<C>(context: &OptimizationContext<C>) -> Result<ELCache, EngineError>
 where
     C: ProvidesResidueSelections + Sync,
@@ -63,6 +63,7 @@ where
     for result in results {
         let ((residue_id, residue_type), energy_map) = result?;
         for (rotamer_idx, energy_term) in energy_map {
+            // TODO: Add pre-calculated internal energy from rotamer library to `energy_term`.
             cache.insert(residue_id, residue_type, rotamer_idx, energy_term);
         }
     }
