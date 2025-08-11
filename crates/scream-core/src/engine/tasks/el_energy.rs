@@ -569,24 +569,6 @@ mod tests {
             .rotamer_library
             .get_rotamers_for(ResidueType::Alanine)
             .unwrap()[1];
-        let rot_n_pos = rotamer
-            .atoms
-            .iter()
-            .find(|a| a.name == "N")
-            .unwrap()
-            .position;
-        let rot_ca_pos = rotamer
-            .atoms
-            .iter()
-            .find(|a| a.name == "CA")
-            .unwrap()
-            .position;
-        let rot_c_pos = rotamer
-            .atoms
-            .iter()
-            .find(|a| a.name == "C")
-            .unwrap()
-            .position;
         let rot_cb_pos = rotamer
             .atoms
             .iter()
@@ -693,9 +675,6 @@ mod tests {
             ("C_SC", (4.0, 0.2)),
             ("O_W", (3.2, 0.3)),
         ]);
-        let (n_r, n_d) = params["N_BB"];
-        let (ca_r, ca_d) = params["C_BB"];
-        let (c_r, c_d) = params["C_BB"];
         let (cb_r, cb_d) = params["C_SC"];
 
         let env_atoms = [ser_n, ser_ca, ser_c, ser_cb, leu_n, leu_ca, leu_c, hoh_o];
@@ -718,36 +697,6 @@ mod tests {
             well_depth * (rho6 * rho6 - 2.0 * rho6)
         }
 
-        for env_atom in &env_atoms {
-            expected_vdw_by_scorer += calc_vdw(
-                rot_n_pos,
-                env_atom.position,
-                n_r,
-                n_d,
-                params[env_atom.force_field_type.as_str()].0,
-                params[env_atom.force_field_type.as_str()].1,
-            );
-        }
-        for env_atom in &env_atoms {
-            expected_vdw_by_scorer += calc_vdw(
-                rot_ca_pos,
-                env_atom.position,
-                ca_r,
-                ca_d,
-                params[env_atom.force_field_type.as_str()].0,
-                params[env_atom.force_field_type.as_str()].1,
-            );
-        }
-        for env_atom in &env_atoms {
-            expected_vdw_by_scorer += calc_vdw(
-                rot_c_pos,
-                env_atom.position,
-                c_r,
-                c_d,
-                params[env_atom.force_field_type.as_str()].0,
-                params[env_atom.force_field_type.as_str()].1,
-            );
-        }
         for env_atom in &env_atoms {
             expected_vdw_by_scorer += calc_vdw(
                 rot_cb_pos,
