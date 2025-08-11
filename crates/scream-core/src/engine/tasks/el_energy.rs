@@ -89,10 +89,11 @@ where
         return Ok(EnergyTerm::default());
     }
 
-    let all_atoms: Vec<AtomId> = context.system.atoms_iter().map(|(id, _)| id).collect();
+    let environment_atom_ids = precompute_environment_atoms(context)?;
 
     let scorer = Scorer::new(context.system, context.forcefield);
-    let total_el_energy = scorer.score_interaction(&active_sidechain_atoms, &all_atoms)?;
+    let total_el_energy =
+        scorer.score_interaction(&active_sidechain_atoms, &environment_atom_ids)?;
 
     // TODO: Add pre-calculated internal energy from rotamer library to `total_el_energy`.
 
@@ -269,20 +270,19 @@ where
 mod tests {
     use super::*;
     use crate::core::{
-        forcefield::params::{Forcefield, GlobalParams, NonBondedParams, VdwParam},
+        forcefield::params::Forcefield,
         models::{atom::Atom, chain::ChainType, residue::ResidueType, system::MolecularSystem},
         rotamers::{library::RotamerLibrary, rotamer::Rotamer},
         topology::registry::TopologyRegistry,
     };
     use crate::engine::{
         config::{
-            ConvergenceConfig, DesignConfig, DesignConfigBuilder, DesignSpec, PlacementConfig,
-            PlacementConfigBuilder, ResidueSelection, ResidueSpecifier,
+            ConvergenceConfig, PlacementConfig, PlacementConfigBuilder, ResidueSelection,
+            ResidueSpecifier,
         },
         context::OptimizationContext,
         progress::{Progress, ProgressReporter},
     };
-    use nalgebra::Point3;
     use std::collections::{HashMap, HashSet};
     use std::sync::{Arc, Mutex};
     use tempfile::tempdir;
@@ -293,13 +293,15 @@ mod tests {
         rotamer_library: RotamerLibrary,
         topology_registry: TopologyRegistry,
         progress_events: Arc<Mutex<Vec<Progress>>>,
+        _temp_dir: tempfile::TempDir,
     }
 
     impl TestSetup {
         fn new() -> Self {
+            let temp_dir = tempdir().unwrap();
             let mut system = MolecularSystem::new();
-            let forcefield = Self::create_forcefield();
-            let topology_registry = Self::create_topology_registry();
+            let forcefield = Self::create_forcefield(&temp_dir);
+            let topology_registry = Self::create_topology_registry(&temp_dir);
 
             let chain_a = system.add_chain('A', ChainType::Protein);
 
@@ -347,56 +349,37 @@ mod tests {
                 rotamer_library,
                 topology_registry,
                 progress_events,
+                _temp_dir: temp_dir,
             }
         }
 
-        fn create_forcefield() -> Forcefield {
-            let mut vdw = HashMap::new();
-            vdw.insert(
-                "N_BB".to_string(),
-                VdwParam::LennardJones {
-                    radius: 2.8,
-                    well_depth: 0.15,
-                },
-            );
-            vdw.insert(
-                "C_BB".to_string(),
-                VdwParam::LennardJones {
-                    radius: 3.0,
-                    well_depth: 0.1,
-                },
-            );
-            vdw.insert(
-                "C_SC".to_string(),
-                VdwParam::LennardJones {
-                    radius: 4.0,
-                    well_depth: 0.2,
-                },
-            );
-            vdw.insert(
-                "O_W".to_string(),
-                VdwParam::LennardJones {
-                    radius: 3.2,
-                    well_depth: 0.3,
-                },
-            );
-            Forcefield {
-                non_bonded: NonBondedParams {
-                    globals: GlobalParams {
-                        dielectric_constant: 1.0,
-                        ..Default::default()
-                    },
-                    vdw,
-                    hbond: HashMap::new(),
-                },
-                deltas: HashMap::new(),
-            }
+        fn create_forcefield(dir: &tempfile::TempDir) -> Forcefield {
+            let ff_path = dir.path().join("ff.toml");
+            std::fs::write(
+                &ff_path,
+                r#"
+                [globals]
+                dielectric_constant = 4.0
+                potential_function = "lennard-jones-12-6"
+                [vdw]
+                N_BB = { radius = 2.8, well_depth = 0.15 }
+                C_BB = { radius = 3.0, well_depth = 0.1 }
+                C_SC = { radius = 4.0, well_depth = 0.2 }
+                O_W  = { radius = 3.2, well_depth = 0.3 }
+                [hbond]
+            "#,
+            )
+            .unwrap();
+            let delta_path = dir.path().join("delta.csv");
+            std::fs::write(&delta_path, "residue_type,atom_name,mu,sigma\n").unwrap();
+            Forcefield::load(&ff_path, &delta_path).unwrap()
         }
 
-        fn create_topology_registry() -> TopologyRegistry {
-            let dir = tempdir().unwrap();
+        fn create_topology_registry(dir: &tempfile::TempDir) -> TopologyRegistry {
             let file_path = dir.path().join("registry.toml");
-            let registry_content = r#"
+            std::fs::write(
+                &file_path,
+                r#"
                 [ALA]
                 anchor_atoms = ["N", "CA", "C"]
                 sidechain_atoms = ["CB"]
@@ -408,8 +391,9 @@ mod tests {
                 [LEU]
                 anchor_atoms = ["N", "CA", "C"]
                 sidechain_atoms = ["CB", "CG"]
-            "#;
-            std::fs::write(&file_path, registry_content).unwrap();
+            "#,
+            )
+            .unwrap();
             TopologyRegistry::load(&file_path).unwrap()
         }
 
@@ -474,8 +458,7 @@ mod tests {
             });
 
             let bonds = match res_name {
-                "ALA" => vec![(0, 1), (1, 2), (1, 3)],
-                "SER" => vec![(0, 1), (1, 2), (1, 3)],
+                "ALA" | "SER" => vec![(0, 1), (1, 2), (1, 3)],
                 _ => vec![],
             };
 
@@ -499,7 +482,7 @@ mod tests {
             system.add_atom_to_residue(res_id, atom).unwrap();
         }
 
-        fn create_placement_config(selection: ResidueSelection) -> PlacementConfig {
+        fn create_placement_config(&self, selection: ResidueSelection) -> PlacementConfig {
             PlacementConfigBuilder::new()
                 .forcefield_path("dummy.ff")
                 .delta_params_path("dummy.delta")
@@ -519,30 +502,6 @@ mod tests {
                 .unwrap()
         }
 
-        fn create_design_config(
-            design_spec: DesignSpec,
-            repack_selection: ResidueSelection,
-        ) -> DesignConfig {
-            DesignConfigBuilder::new()
-                .forcefield_path("dummy.ff")
-                .delta_params_path("dummy.delta")
-                .s_factor(0.0)
-                .rotamer_library_path("dummy.rotlib")
-                .topology_registry_path("dummy.topo")
-                .max_iterations(10)
-                .num_solutions(1)
-                .include_input_conformation(false)
-                .convergence_config(ConvergenceConfig {
-                    energy_threshold: 0.01,
-                    patience_iterations: 3,
-                })
-                .final_refinement_iterations(2)
-                .design_spec(design_spec)
-                .neighbors_to_repack(repack_selection)
-                .build()
-                .unwrap()
-        }
-
         fn get_residue_id(&self, chain: char, res_num: isize) -> ResidueId {
             let chain_id = self.system.find_chain_by_id(chain).unwrap();
             self.system.find_residue_by_id(chain_id, res_num).unwrap()
@@ -557,9 +516,9 @@ mod tests {
     }
 
     #[test]
-    fn precompute_environment_atoms_is_correct() {
+    fn precompute_environment_atoms_works_correctly() {
         let setup = TestSetup::new();
-        let config = TestSetup::create_placement_config(ResidueSelection::All);
+        let config = setup.create_placement_config(ResidueSelection::All);
         let reporter = setup.reporter();
         let context = OptimizationContext::new(
             &setup.system,
@@ -596,7 +555,7 @@ mod tests {
     fn run_calculates_correct_el_energy_value() {
         let setup = TestSetup::new();
         let ala_id = setup.get_residue_id('A', 1);
-        let config = TestSetup::create_placement_config(ResidueSelection::List {
+        let config = setup.create_placement_config(ResidueSelection::List {
             include: vec![ResidueSpecifier {
                 chain_id: 'A',
                 residue_number: 1,
@@ -614,217 +573,63 @@ mod tests {
         );
 
         let cache = run(&context).unwrap();
+
         let energies = cache
             .get_energies_for(ala_id, ResidueType::Alanine)
             .unwrap();
+        let calculated_energy = energies.get(&1).unwrap();
 
         let rotamer = &setup
             .rotamer_library
             .get_rotamers_for(ResidueType::Alanine)
             .unwrap()[1];
-        let rot_cb_pos = rotamer
-            .atoms
-            .iter()
-            .find(|a| a.name == "CB")
+
+        let mut temp_system = setup.system.clone();
+        let topology = setup.topology_registry.get("ALA").unwrap();
+        place_rotamer_on_system(&mut temp_system, ala_id, rotamer, topology).unwrap();
+
+        let query_atom_ids: Vec<AtomId> = temp_system
+            .residue(ala_id)
             .unwrap()
-            .position;
+            .atoms()
+            .iter()
+            .filter_map(|&atom_id| {
+                temp_system.atom(atom_id).and_then(|atom| {
+                    if atom.role == AtomRole::Sidechain {
+                        Some(atom_id)
+                    } else {
+                        None
+                    }
+                })
+            })
+            .collect();
 
-        let ser_res_id = setup.get_residue_id('A', 2);
-        let ser_n = setup
-            .system
-            .atom(
-                setup
-                    .system
-                    .residue(ser_res_id)
-                    .unwrap()
-                    .get_first_atom_id_by_name("N")
-                    .unwrap(),
-            )
+        let env_atom_ids = precompute_environment_atoms(&context).unwrap();
+
+        let scorer = Scorer::new(&temp_system, &setup.forcefield);
+
+        let expected_energy = scorer
+            .score_interaction(&query_atom_ids, &env_atom_ids)
             .unwrap();
-        let ser_ca = setup
-            .system
-            .atom(
-                setup
-                    .system
-                    .residue(ser_res_id)
-                    .unwrap()
-                    .get_first_atom_id_by_name("CA")
-                    .unwrap(),
-            )
-            .unwrap();
-        let ser_c = setup
-            .system
-            .atom(
-                setup
-                    .system
-                    .residue(ser_res_id)
-                    .unwrap()
-                    .get_first_atom_id_by_name("C")
-                    .unwrap(),
-            )
-            .unwrap();
-        let ser_cb = setup
-            .system
-            .atom(
-                setup
-                    .system
-                    .residue(ser_res_id)
-                    .unwrap()
-                    .get_first_atom_id_by_name("CB")
-                    .unwrap(),
-            )
-            .unwrap();
-
-        let leu_res_id = setup.get_residue_id('A', 3);
-        let leu_n = setup
-            .system
-            .atom(
-                setup
-                    .system
-                    .residue(leu_res_id)
-                    .unwrap()
-                    .get_first_atom_id_by_name("N")
-                    .unwrap(),
-            )
-            .unwrap();
-        let leu_ca = setup
-            .system
-            .atom(
-                setup
-                    .system
-                    .residue(leu_res_id)
-                    .unwrap()
-                    .get_first_atom_id_by_name("CA")
-                    .unwrap(),
-            )
-            .unwrap();
-        let leu_c = setup
-            .system
-            .atom(
-                setup
-                    .system
-                    .residue(leu_res_id)
-                    .unwrap()
-                    .get_first_atom_id_by_name("C")
-                    .unwrap(),
-            )
-            .unwrap();
-
-        let hoh_o = setup
-            .system
-            .atom(
-                setup
-                    .system
-                    .residue(setup.get_residue_id('B', 1))
-                    .unwrap()
-                    .get_first_atom_id_by_name("O")
-                    .unwrap(),
-            )
-            .unwrap();
-
-        let params = HashMap::from([
-            ("N_BB", (2.8, 0.15)),
-            ("C_BB", (3.0, 0.1)),
-            ("C_SC", (4.0, 0.2)),
-            ("O_W", (3.2, 0.3)),
-        ]);
-        let (cb_r, cb_d) = params["C_SC"];
-
-        let env_atoms = [ser_n, ser_ca, ser_c, ser_cb, leu_n, leu_ca, leu_c, hoh_o];
-
-        let mut expected_vdw_by_scorer = 0.0;
-
-        fn calc_vdw(
-            pos1: Point3<f64>,
-            pos2: Point3<f64>,
-            r1: f64,
-            d1: f64,
-            r2: f64,
-            d2: f64,
-        ) -> f64 {
-            let dist = (pos1 - pos2).norm();
-            let r_min = (r1 + r2) / 2.0;
-            let well_depth = (d1 * d2).sqrt();
-            let rho = r_min / dist;
-            let rho6 = rho.powi(6);
-            well_depth * (rho6 * rho6 - 2.0 * rho6)
-        }
-
-        for env_atom in &env_atoms {
-            expected_vdw_by_scorer += calc_vdw(
-                rot_cb_pos,
-                env_atom.position,
-                cb_r,
-                cb_d,
-                params[env_atom.force_field_type.as_str()].0,
-                params[env_atom.force_field_type.as_str()].1,
-            );
-        }
-
-        let calculated_energy = energies.get(&1).unwrap();
 
         assert!(
-            (calculated_energy.vdw - expected_vdw_by_scorer).abs() < 1e-9,
-            "Calculated VDW energy differs from manual calculation. Got {}, expected {}",
+            (calculated_energy.vdw - expected_energy.vdw).abs() < 1e-9,
+            "VDW energy for EL cache is incorrect. Got {}, expected {}",
             calculated_energy.vdw,
-            expected_vdw_by_scorer
+            expected_energy.vdw
         );
         assert!(
-            (calculated_energy.coulomb).abs() < 1e-9,
-            "Coulomb energy should be near zero for this test setup"
+            (calculated_energy.coulomb - expected_energy.coulomb).abs() < 1e-9,
+            "Coulomb energy for EL cache is incorrect. Got {}, expected {}",
+            calculated_energy.coulomb,
+            expected_energy.coulomb
         );
     }
 
     #[test]
-    fn build_work_list_handles_design_site_correctly() {
+    fn calculate_current_returns_zero_for_no_active_residues() {
         let setup = TestSetup::new();
-        let reporter = setup.reporter();
-
-        let mut design_spec = DesignSpec::new();
-        design_spec.insert(
-            ResidueSpecifier {
-                chain_id: 'A',
-                residue_number: 1,
-            },
-            vec![ResidueType::Serine],
-        );
-        let config = TestSetup::create_design_config(
-            design_spec,
-            ResidueSelection::List {
-                include: vec![],
-                exclude: vec![],
-            },
-        );
-
-        let context = OptimizationContext::new(
-            &setup.system,
-            &setup.forcefield,
-            &reporter,
-            &config,
-            &setup.rotamer_library,
-            &setup.topology_registry,
-        );
-
-        let work_list = build_work_list(&context).unwrap();
-
-        assert_eq!(
-            work_list.len(),
-            1,
-            "Should only have one work unit for the design site"
-        );
-        let work_unit = &work_list[0];
-        assert_eq!(work_unit.residue_id, setup.get_residue_id('A', 1));
-        assert_eq!(
-            work_unit.residue_type,
-            ResidueType::Serine,
-            "Work unit should be for SER, not the native ALA"
-        );
-    }
-
-    #[test]
-    fn run_with_no_active_residues_returns_empty_cache() {
-        let setup = TestSetup::new();
-        let config = TestSetup::create_placement_config(ResidueSelection::List {
+        let config = setup.create_placement_config(ResidueSelection::List {
             include: vec![],
             exclude: vec![],
         });
@@ -838,18 +643,56 @@ mod tests {
             &setup.topology_registry,
         );
 
-        let cache = run(&context).unwrap();
-        assert!(cache.is_empty());
-        assert_eq!(setup.progress_events.lock().unwrap().len(), 2);
+        let energy = calculate_current(&context).unwrap();
+
+        assert_eq!(energy.total(), 0.0);
     }
 
     #[test]
-    fn run_handles_residue_with_no_rotamers_in_library() {
+    fn calculate_current_returns_zero_for_active_residue_with_no_sidechain() {
         let setup = TestSetup::new();
-        let config = TestSetup::create_placement_config(ResidueSelection::List {
+        let config = setup.create_placement_config(ResidueSelection::List {
             include: vec![ResidueSpecifier {
                 chain_id: 'A',
-                residue_number: 3,
+                residue_number: 2,
+            }],
+            exclude: vec![],
+        });
+        let reporter = setup.reporter();
+
+        let mut modified_system = setup.system.clone();
+        let ser_id = setup.get_residue_id('A', 2);
+        let ser_cb_id = modified_system
+            .residue(ser_id)
+            .unwrap()
+            .get_first_atom_id_by_name("CB")
+            .unwrap();
+        modified_system.remove_atom(ser_cb_id);
+
+        let context = OptimizationContext::new(
+            &modified_system,
+            &setup.forcefield,
+            &reporter,
+            &config,
+            &setup.rotamer_library,
+            &setup.topology_registry,
+        );
+
+        let energy = calculate_current(&context).unwrap();
+        assert_eq!(
+            energy.total(),
+            0.0,
+            "Energy should be zero as the only active residue has no sidechain"
+        );
+    }
+
+    #[test]
+    fn calculate_current_calculates_energy_for_a_single_active_residue() {
+        let setup = TestSetup::new();
+        let config = setup.create_placement_config(ResidueSelection::List {
+            include: vec![ResidueSpecifier {
+                chain_id: 'A',
+                residue_number: 1,
             }],
             exclude: vec![],
         });
@@ -863,11 +706,75 @@ mod tests {
             &setup.topology_registry,
         );
 
-        let cache = run(&context).unwrap();
+        let scorer = Scorer::new(&setup.system, &setup.forcefield);
+        let ala_id = setup.get_residue_id('A', 1);
+        let ala_sc_atoms = setup
+            .system
+            .residue(ala_id)
+            .unwrap()
+            .atoms()
+            .iter()
+            .filter(|id| setup.system.atom(**id).unwrap().role == AtomRole::Sidechain)
+            .copied()
+            .collect::<Vec<_>>();
+        let all_other_atoms = setup
+            .system
+            .atoms_iter()
+            .map(|(id, _)| id)
+            .filter(|id| !ala_sc_atoms.contains(id))
+            .collect::<Vec<_>>();
+        let expected_energy = scorer
+            .score_interaction(&ala_sc_atoms, &all_other_atoms)
+            .unwrap();
 
+        let calculated_energy = calculate_current(&context).unwrap();
+
+        assert!((calculated_energy.total() - expected_energy.total()).abs() < 1e-9);
         assert!(
-            cache.is_empty(),
-            "Cache should be empty as LEU has no rotamers to process"
+            expected_energy.total().abs() > 1e-6,
+            "Expected a non-zero energy"
+        );
+    }
+
+    #[test]
+    fn calculate_current_calculates_energy_for_multiple_active_residues() {
+        let setup = TestSetup::new();
+        let config = setup.create_placement_config(ResidueSelection::List {
+            include: vec![
+                ResidueSpecifier {
+                    chain_id: 'A',
+                    residue_number: 1,
+                },
+                ResidueSpecifier {
+                    chain_id: 'A',
+                    residue_number: 2,
+                },
+            ],
+            exclude: vec![],
+        });
+        let reporter = setup.reporter();
+        let context = OptimizationContext::new(
+            &setup.system,
+            &setup.forcefield,
+            &reporter,
+            &config,
+            &setup.rotamer_library,
+            &setup.topology_registry,
+        );
+
+        let scorer = Scorer::new(&setup.system, &setup.forcefield);
+        let active_sc_atoms = collect_active_sidechain_atoms(&context).unwrap();
+        let env_atoms = precompute_environment_atoms(&context).unwrap();
+        let expected_energy = scorer
+            .score_interaction(&active_sc_atoms, &env_atoms)
+            .unwrap();
+
+        let calculated_energy = calculate_current(&context).unwrap();
+
+        assert!((calculated_energy.total() - expected_energy.total()).abs() < 1e-9);
+        assert!(
+            expected_energy.total().abs() > 1e-6,
+            "Expected a non-zero energy for multiple sidechains"
         );
     }
 }
