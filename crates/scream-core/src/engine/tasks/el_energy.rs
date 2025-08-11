@@ -76,6 +76,33 @@ where
     Ok(cache)
 }
 
+#[instrument(skip_all, name = "current_el_energy_task")]
+pub fn calculate_current<C>(context: &OptimizationContext<C>) -> Result<EnergyTerm, EngineError>
+where
+    C: ProvidesResidueSelections + Sync,
+{
+    info!("Calculating current total EL energy for all active sidechains.");
+
+    let active_sidechain_atoms = collect_active_sidechain_atoms(context)?;
+    if active_sidechain_atoms.is_empty() {
+        info!("No active sidechain atoms found. Current EL energy is zero.");
+        return Ok(EnergyTerm::default());
+    }
+
+    let all_atoms: Vec<AtomId> = context.system.atoms_iter().map(|(id, _)| id).collect();
+
+    let scorer = Scorer::new(context.system, context.forcefield);
+    let total_el_energy = scorer.score_interaction(&active_sidechain_atoms, &all_atoms)?;
+
+    // TODO: Add pre-calculated internal energy from rotamer library to `total_el_energy`.
+
+    info!(
+        energy = total_el_energy.total(),
+        "Current total EL energy calculation complete."
+    );
+    Ok(total_el_energy)
+}
+
 fn build_work_list<C>(context: &OptimizationContext<C>) -> Result<Vec<WorkUnit>, EngineError>
 where
     C: ProvidesResidueSelections + Sync,
