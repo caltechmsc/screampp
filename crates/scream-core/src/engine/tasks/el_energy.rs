@@ -187,10 +187,19 @@ where
             .residue(unit.residue_id)
             .unwrap()
             .atoms()
-            .to_vec();
+            .iter()
+            .filter_map(|&atom_id| {
+                temp_system.atom(atom_id).and_then(|atom| {
+                    if atom.role == AtomRole::Sidechain {
+                        Some(atom_id)
+                    } else {
+                        None
+                    }
+                })
+            })
+            .collect();
 
         let scorer = Scorer::new(&temp_system, context.forcefield);
-
         let interaction_energy = scorer.score_interaction(&query_atoms, environment_atom_ids)?;
 
         energy_map.insert(rotamer_idx, interaction_energy);
