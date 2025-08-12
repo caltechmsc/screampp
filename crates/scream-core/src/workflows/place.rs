@@ -304,162 +304,69 @@ fn resolve_clashes(
     Ok(())
 }
 
-#[instrument(skip_all, name = "final_refinement_loop")]
-fn final_refinement<'a>(
+fn run_simulated_annealing(
     state: &mut OptimizationState,
     active_residues: &HashSet<ResidueId>,
-    context: &OptimizationContext<'a, PlacementConfig>,
+    context: &OptimizationContext<PlacementConfig>,
     el_cache: &ELCache,
 ) -> Result<(), EngineError> {
+    let sa_config = match &context.config.optimization.simulated_annealing {
+        Some(config) => config,
+        None => return Ok(()),
+    };
     context.reporter.report(Progress::PhaseStart {
-        name: "Final Refinement",
+        name: "Simulated Annealing",
     });
-    info!("Starting final refinement (singlet optimization).");
+    info!("Starting Simulated Annealing.");
 
-    let final_refinement_iterations = context.config.optimization.final_refinement_iterations;
-    if final_refinement_iterations == 0 {
-        info!("Final refinement skipped as configured (0 iterations).");
-        context.reporter.report(Progress::PhaseFinish);
-        return Ok(());
-    }
+    let mut rng = thread_rng();
+    let mut current_temp = sa_config.initial_temperature;
+    let active_residue_vec: Vec<_> = active_residues.iter().cloned().collect();
 
-    for i in 0..final_refinement_iterations {
-        let mut changed_in_cycle = false;
-
-        info!(
-            "Beginning refinement pass {}/{}.",
-            i + 1,
-            final_refinement_iterations
-        );
-
+    while current_temp > sa_config.final_temperature {
         context.reporter.report(Progress::StatusUpdate {
-            text: format!("Pass {}/{}", i + 1, final_refinement_iterations),
+            text: format!("SA Temp: {:.2}", current_temp),
         });
-
-        context.reporter.report(Progress::TaskStart {
-            total: active_residues.len() as u64,
-        });
-
-        let mut residues_to_process: Vec<ResidueId> = active_residues.iter().cloned().collect();
-        residues_to_process.shuffle(&mut thread_rng());
-
-        for (res_idx, &residue_id) in residues_to_process.iter().enumerate() {
-            debug!(
-                "Refining residue {}/{} (ID: {:?}, Type: {})",
-                res_idx + 1,
-                residues_to_process.len(),
-                residue_id,
-                state.working_state.system.residue(residue_id).unwrap().name
-            );
-
-            let residue_type = state
+        for _ in 0..sa_config.steps_per_temperature {
+            let res_id = *active_residue_vec.choose(&mut rng).unwrap();
+            let res_type = state
                 .working_state
                 .system
-                .residue(residue_id)
+                .residue(res_id)
                 .unwrap()
                 .residue_type
                 .unwrap();
-            let rotamers = context
-                .rotamer_library
-                .get_rotamers_for(residue_type)
+            let rotamers = context.rotamer_library.get_rotamers_for(res_type).unwrap();
+            if rotamers.len() <= 1 {
+                continue;
+            }
+
+            let current_rot_idx = state.working_state.rotamers[&res_id];
+            let new_rot_idx = (0..rotamers.len())
+                .filter(|&i| i != current_rot_idx)
+                .choose(&mut rng)
                 .unwrap();
 
-            let residue_name = residue_type.to_three_letter();
-            let topology = context.topology_registry.get(residue_name).ok_or_else(|| {
-                EngineError::TopologyNotFound {
-                    residue_name: residue_name.to_string(),
-                }
-            })?;
+            let original_system = state.working_state.system.clone();
+            let original_rotamers = state.working_state.rotamers.clone();
+            let original_score = state.current_optimization_score;
 
-            let current_rot_idx = *state.working_state.rotamers.get(&residue_id).unwrap();
-            let mut best_rotamer_idx = current_rot_idx;
-            let mut best_energy = state.current_energy;
+            update_rotamers_in_state(state, res_id, new_rot_idx, context)?;
+            let new_score =
+                calculate_optimization_score(state, active_residues, context, el_cache)?;
 
-            let mut temp_system_for_eval = state.working_state.system.clone();
-            let mut temp_rotamers_for_eval = state.working_state.rotamers.clone();
-            let energy_of_current_rotamer = state.current_energy;
-
-            for (idx, rotamer) in rotamers.iter().enumerate() {
-                if idx == current_rot_idx {
-                    continue;
-                }
-
-                place_rotamer_on_system(&mut temp_system_for_eval, residue_id, rotamer, topology)?;
-                temp_rotamers_for_eval.insert(residue_id, idx);
-
-                let new_energy = tasks::total_energy::run(
-                    &temp_system_for_eval,
-                    context.forcefield,
-                    active_residues,
-                    &temp_rotamers_for_eval,
-                    el_cache,
-                )?
-                .total();
-
-                if new_energy < best_energy {
-                    best_energy = new_energy;
-                    best_rotamer_idx = idx;
-                }
-
-                place_rotamer_on_system(
-                    &mut temp_system_for_eval,
-                    residue_id,
-                    &rotamers[current_rot_idx],
-                    topology,
-                )?;
-                temp_rotamers_for_eval.insert(residue_id, current_rot_idx);
-            }
-
-            if best_rotamer_idx != current_rot_idx {
-                changed_in_cycle = true;
-
-                debug!(
-                    "  Found better rotamer for {:?}. Index: {} -> {}. Global energy: {:.2} -> {:.2}",
-                    residue_id,
-                    current_rot_idx,
-                    best_rotamer_idx,
-                    energy_of_current_rotamer,
-                    best_energy
-                );
-
-                let best_rotamer = &rotamers[best_rotamer_idx];
-                place_rotamer_on_system(
-                    &mut state.working_state.system,
-                    residue_id,
-                    best_rotamer,
-                    topology,
-                )?;
-                state
-                    .working_state
-                    .rotamers
-                    .insert(residue_id, best_rotamer_idx);
-                state.current_energy = best_energy;
+            let delta_e = new_score - original_score;
+            if delta_e < 0.0 || rng.r#gen::<f64>() < (-delta_e / current_temp).exp() {
+                state.current_optimization_score = new_score;
                 state.submit_current_solution();
+            } else {
+                state.working_state.system = original_system;
+                state.working_state.rotamers = original_rotamers;
+                state.current_optimization_score = original_score;
             }
-
-            context
-                .reporter
-                .report(Progress::TaskIncrement { amount: 1 });
         }
-
-        context.reporter.report(Progress::TaskFinish);
-
-        if changed_in_cycle {
-            info!(
-                "Refinement pass {} complete. At least one rotamer was changed. Current best energy: {:.4}",
-                i + 1,
-                state.best_solution().map(|s| s.energy).unwrap_or(f64::NAN)
-            );
-        } else {
-            info!(
-                "Refinement converged after {} pass(es). No further improvements in this pass.",
-                i + 1
-            );
-            break;
-        }
+        current_temp *= sa_config.cooling_rate;
     }
-
-    state.submit_current_solution();
 
     context.reporter.report(Progress::PhaseFinish);
     Ok(())
