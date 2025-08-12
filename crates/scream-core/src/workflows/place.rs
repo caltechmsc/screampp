@@ -1,5 +1,6 @@
 use crate::core::forcefield::parameterization::Parameterizer;
 use crate::core::forcefield::params::Forcefield;
+use crate::core::forcefield::term::EnergyTerm;
 use crate::core::models::ids::ResidueId;
 use crate::core::models::system::MolecularSystem;
 use crate::core::rotamers::library::RotamerLibrary;
@@ -10,24 +11,27 @@ use crate::engine::context::{OptimizationContext, resolve_selection_to_ids};
 use crate::engine::error::EngineError;
 use crate::engine::placement::place_rotamer_on_system;
 use crate::engine::progress::{Progress, ProgressReporter};
-use crate::engine::state::{OptimizationState, Solution};
+use crate::engine::state::{
+    InitialState, OptimizationState, PlacementResult, Solution, SolutionState,
+};
 use crate::engine::tasks;
-use rand::Rng;
-use rand::seq::SliceRandom;
-use rand::thread_rng;
+use rand::prelude::IteratorRandom;
+use rand::{Rng, seq::SliceRandom, thread_rng};
 use std::collections::{HashMap, HashSet};
-use tracing::{debug, info, instrument, warn};
+use tracing::{info, instrument};
 
-const CLASH_THRESHOLD: f64 = 25.0; // Clash threshold (kcal/mol)
+const CLASH_THRESHOLD_KCAL_MOL: f64 = 25.0;
 
 #[instrument(skip_all, name = "placement_workflow")]
 pub fn run(
     initial_system: &MolecularSystem,
     config: &PlacementConfig,
     reporter: &ProgressReporter,
-) -> Result<Vec<Solution>, EngineError> {
-    // --- Phase 0: Setup, Resource Loading, and System Initialization ---
-    reporter.report(Progress::PhaseStart { name: "Setup" });
+) -> Result<PlacementResult, EngineError> {
+    // === Phase 0: Preparation and Parameterization ===
+    reporter.report(Progress::PhaseStart {
+        name: "Preparation",
+    });
     info!("Starting workflow setup: loading resources and parameterizing system.");
 
     let forcefield = Forcefield::load(
@@ -35,39 +39,25 @@ pub fn run(
         &config.forcefield.delta_params_path,
     )?;
     let topology_registry = TopologyRegistry::load(&config.topology_registry_path)?;
-
-    let parameterizer =
-        Parameterizer::new(&forcefield, &topology_registry, config.forcefield.s_factor);
-
     let mut rotamer_library = RotamerLibrary::load(
         &config.sampling.rotamer_library_path,
         &topology_registry,
         &forcefield,
         config.forcefield.s_factor,
     )?;
-    let mut working_system = initial_system.clone();
 
-    let active_residues = resolve_selection_to_ids(
-        &working_system,
-        &config.residues_to_optimize,
-        &rotamer_library,
+    let active_residues = prepare_context(
+        initial_system,
+        config,
+        &mut rotamer_library,
+        &topology_registry,
     )?;
 
-    if config.optimization.include_input_conformation {
-        info!("Including original side-chain conformations in the rotamer library.");
-        rotamer_library.include_system_conformations(
-            &working_system,
-            &active_residues,
-            &topology_registry,
-        );
-    }
-
-    info!("Parameterizing the input molecular system...");
+    let parameterizer =
+        Parameterizer::new(&forcefield, &topology_registry, config.forcefield.s_factor);
+    let mut working_system = initial_system.clone();
     parameterizer.parameterize_system(&mut working_system)?;
 
-    reporter.report(Progress::PhaseFinish);
-
-    // --- Phase 1: Pre-computation ---
     let context = OptimizationContext::new(
         &working_system,
         &forcefield,
@@ -76,29 +66,43 @@ pub fn run(
         &rotamer_library,
         &topology_registry,
     );
-    let el_cache = precompute_el_energies(&context)?;
 
-    // --- Phase 2: Initialization ---
-    let mut state = initialize_state(&working_system, &active_residues, &context, &el_cache)?;
+    reporter.report(Progress::PhaseFinish);
 
-    // --- Phase 3: Clash-Driven Optimization ---
-    resolve_clashes_iteratively(&mut state, &active_residues, &context, &el_cache)?;
+    // === Phase 1: Calculate constant energy and initial state ===
+    let (initial_state, energy_offset_constant) =
+        calculate_initial_state(&context, &active_residues)?;
 
-    // --- Phase 4: Optional Global Search (Simulated Annealing) ---
-    if context.config.optimization.simulated_annealing.is_some() {
+    // === Phase 2: Precompute empty lattice energy (EL Energy) ===
+    let el_cache = tasks::el_energy::run(&context)?;
+
+    // === Phase 3: Initialize optimization state (place ground state) ===
+    let mut state = initialize_optimization_state(&context, &active_residues, &el_cache)?;
+
+    // === Phase 4: Clash resolution ===
+    resolve_clashes(&mut state, &active_residues, &context, &el_cache)?;
+
+    // === Phase 5: Simulated annealing (optional) ===
+    if config.optimization.simulated_annealing.is_some() {
         run_simulated_annealing(&mut state, &active_residues, &context, &el_cache)?;
     }
 
-    // --- Phase 5: Final Refinement (Singlet Optimization) ---
+    // === Phase 6: Final refinement ===
     final_refinement(&mut state, &active_residues, &context, &el_cache)?;
 
-    // --- Phase 6: Finalization ---
-    let sorted_solutions = state.into_sorted_solutions();
-    info!(
-        "Workflow complete. Returning {} sorted solutions.",
-        sorted_solutions.len()
+    // === Phase 7: Organize and return results ===
+    let result = finalize_results(
+        state,
+        initial_state,
+        energy_offset_constant,
+        config.optimization.num_solutions,
     );
-    Ok(sorted_solutions)
+
+    info!(
+        "Workflow complete. Returning {} solution(s).",
+        result.solutions.len()
+    );
+    Ok(result)
 }
 
 #[instrument(skip_all, name = "el_energy_precomputation")]
