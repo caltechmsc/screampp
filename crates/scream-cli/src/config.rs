@@ -36,7 +36,9 @@ enum PartialResidueSelection {
         exclude: Vec<PartialResidueSpecifier>,
     },
     LigandBindingSite {
+        #[serde(rename = "ligand-residue")]
         ligand_residue: PartialResidueSpecifier,
+        #[serde(rename = "radius-angstroms")]
         radius_angstroms: f64,
     },
 }
