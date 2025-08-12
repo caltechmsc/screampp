@@ -31,9 +31,8 @@ impl Eq for Solution {}
 
 impl PartialOrd for Solution {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        other
-            .optimization_score
-            .partial_cmp(&self.optimization_score)
+        self.optimization_score
+            .partial_cmp(&other.optimization_score)
     }
 }
 
@@ -92,23 +91,23 @@ impl OptimizationState {
 
         if let Some(worst_of_the_best) = self.solutions.peek() {
             if self.current_optimization_score < worst_of_the_best.optimization_score {
-                let mut worst_solution = self.solutions.pop().unwrap();
-                worst_solution.optimization_score = self.current_optimization_score;
-                worst_solution.state = self.working_state.clone();
-                self.solutions.push(worst_solution);
+                let mut worst_solution_placeholder = self.solutions.pop().unwrap();
+                worst_solution_placeholder.optimization_score = self.current_optimization_score;
+                worst_solution_placeholder.state = self.working_state.clone();
+                self.solutions.push(worst_solution_placeholder);
             }
         }
     }
 
     pub fn into_sorted_solutions(self) -> Vec<Solution> {
-        let mut solutions = self.solutions.into_sorted_vec();
-        solutions.reverse();
-        solutions
+        self.solutions.into_sorted_vec()
     }
 
     pub fn best_energy(&self) -> f64 {
         self.solutions
-            .peek()
-            .map_or(f64::INFINITY, |s| s.optimization_score)
+            .iter()
+            .map(|s| s.optimization_score)
+            .min_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
+            .unwrap_or(f64::INFINITY)
     }
 }
