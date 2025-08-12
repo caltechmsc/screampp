@@ -5,6 +5,8 @@ use std::time::Duration;
 use tokio::sync::{mpsc, watch};
 use tracing::warn;
 
+const UI_EVENT_CHANNEL_CAPACITY: usize = 65536;
+
 #[derive(Debug)]
 pub enum UiEvent {
     Progress(Progress),
@@ -27,7 +29,7 @@ struct BarState {
 
 impl UiManager {
     pub fn new() -> (Self, mpsc::Sender<UiEvent>, watch::Sender<bool>) {
-        let (event_sender, event_receiver) = mpsc::channel(1024);
+        let (event_sender, event_receiver) = mpsc::channel(UI_EVENT_CHANNEL_CAPACITY);
         let (shutdown_sender, shutdown_receiver) = watch::channel(false);
         let mp = Arc::new(MultiProgress::new());
         mp.set_draw_target(ProgressDrawTarget::stderr_with_hz(12));
