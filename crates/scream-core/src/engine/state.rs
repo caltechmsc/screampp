@@ -3,6 +3,13 @@ use crate::core::models::system::MolecularSystem;
 use std::collections::{BinaryHeap, HashMap};
 
 #[derive(Debug, Clone)]
+pub struct InitialState {
+    pub system: MolecularSystem,
+    pub total_energy: f64,
+    pub optimization_score: f64,
+}
+
+#[derive(Debug, Clone)]
 pub struct SolutionState {
     pub system: MolecularSystem,
     pub rotamers: HashMap<ResidueId, usize>,
@@ -10,20 +17,22 @@ pub struct SolutionState {
 
 #[derive(Debug, Clone)]
 pub struct Solution {
-    pub energy: f64,
+    pub total_energy: f64,
+    pub optimization_score: f64,
     pub state: SolutionState,
 }
 
 impl PartialEq for Solution {
     fn eq(&self, other: &Self) -> bool {
-        self.energy == other.energy
+        self.optimization_score == other.optimization_score
     }
 }
 impl Eq for Solution {}
 
 impl PartialOrd for Solution {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.energy.partial_cmp(&other.energy)
+        self.optimization_score
+            .partial_cmp(&other.optimization_score)
     }
 }
 
@@ -36,8 +45,8 @@ impl Ord for Solution {
 #[derive(Debug, Clone)]
 pub struct OptimizationState {
     pub working_state: SolutionState,
-    pub current_energy: f64,
-    top_solutions: BinaryHeap<Solution>,
+    pub current_optimization_score: f64,
+    solutions: BinaryHeap<Solution>,
     max_solutions: usize,
 }
 
@@ -45,7 +54,7 @@ impl OptimizationState {
     pub fn new(
         initial_system: MolecularSystem,
         initial_rotamers: HashMap<ResidueId, usize>,
-        initial_energy: f64,
+        initial_optimization_score: f64,
         max_solutions: usize,
     ) -> Self {
         let max_s = if max_solutions == 0 { 1 } else { max_solutions };
@@ -55,201 +64,220 @@ impl OptimizationState {
             rotamers: initial_rotamers,
         };
 
-        let mut top_solutions = BinaryHeap::with_capacity(max_s);
-        top_solutions.push(Solution {
-            energy: initial_energy,
+        let mut solutions = BinaryHeap::with_capacity(max_s);
+        solutions.push(Solution {
+            total_energy: f64::NAN,
+            optimization_score: initial_optimization_score,
             state: initial_state.clone(),
         });
 
         Self {
             working_state: initial_state,
-            current_energy: initial_energy,
-            top_solutions,
+            current_optimization_score: initial_optimization_score,
+            solutions,
             max_solutions: max_s,
         }
     }
 
     pub fn submit_current_solution(&mut self) {
-        if self.top_solutions.len() < self.max_solutions {
-            let new_solution = Solution {
-                energy: self.current_energy,
+        if self.solutions.len() < self.max_solutions {
+            self.solutions.push(Solution {
+                total_energy: f64::NAN,
+                optimization_score: self.current_optimization_score,
                 state: self.working_state.clone(),
-            };
-            self.top_solutions.push(new_solution);
-        } else {
-            let worst_of_the_best = self.top_solutions.peek().unwrap();
+            });
+            return;
+        }
 
-            if self.current_energy < worst_of_the_best.energy {
-                let mut new_solution = Solution {
-                    energy: self.current_energy,
-                    state: self.working_state.clone(),
-                };
-
-                if let Some(mut placeholder) = self.top_solutions.pop() {
-                    std::mem::swap(&mut placeholder.state, &mut new_solution.state);
-                    placeholder.energy = new_solution.energy;
-                    self.top_solutions.push(placeholder);
-                }
+        if let Some(worst_of_the_best) = self.solutions.peek() {
+            if self.current_optimization_score < worst_of_the_best.optimization_score {
+                let mut worst_solution_placeholder = self.solutions.pop().unwrap();
+                worst_solution_placeholder.optimization_score = self.current_optimization_score;
+                worst_solution_placeholder.state = self.working_state.clone();
+                self.solutions.push(worst_solution_placeholder);
             }
         }
     }
 
     pub fn into_sorted_solutions(self) -> Vec<Solution> {
-        let mut solutions = self.top_solutions.into_vec();
-        solutions.sort_unstable();
-        solutions
+        self.solutions.into_sorted_vec()
     }
 
-    pub fn best_solution(&self) -> Option<&Solution> {
-        self.top_solutions.iter().min()
+    pub fn best_energy(&self) -> f64 {
+        self.solutions
+            .iter()
+            .map(|s| s.optimization_score)
+            .min_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
+            .unwrap_or(f64::INFINITY)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::models::ids::ResidueId;
+    use crate::core::models::system::MolecularSystem;
+    use slotmap::KeyData;
     use std::collections::HashMap;
 
-    #[test]
-    fn state_initializes_correctly_with_one_solution() {
-        let system = MolecularSystem::new();
-        let rotamers = HashMap::new();
-        let state = OptimizationState::new(system, rotamers, -50.0, 5);
-
-        assert_eq!(state.current_energy, -50.0);
-        assert_eq!(state.max_solutions, 5);
-        assert_eq!(state.top_solutions.len(), 1);
-        assert_eq!(state.best_solution().unwrap().energy, -50.0);
+    fn create_dummy_solution_state(residue_id_val: u64, rotamer_idx: usize) -> SolutionState {
+        let mut rotamers = HashMap::new();
+        let residue_id = ResidueId::from(KeyData::from_ffi(residue_id_val));
+        rotamers.insert(residue_id, rotamer_idx);
+        SolutionState {
+            system: MolecularSystem::new(),
+            rotamers,
+        }
     }
 
     #[test]
-    fn state_handles_zero_max_solutions_by_setting_it_to_one() {
-        let system = MolecularSystem::new();
-        let rotamers = HashMap::new();
-        let state = OptimizationState::new(system, rotamers, -50.0, 0);
+    fn new_initializes_correctly() {
+        let state = OptimizationState::new(MolecularSystem::new(), HashMap::new(), -100.0, 3);
+
+        assert_eq!(state.max_solutions, 3);
+        assert_eq!(state.solutions.len(), 1);
+        assert_eq!(state.current_optimization_score, -100.0);
+        assert_eq!(state.best_energy(), -100.0);
+    }
+
+    #[test]
+    fn new_handles_zero_max_solutions() {
+        let state = OptimizationState::new(MolecularSystem::new(), HashMap::new(), -100.0, 0);
         assert_eq!(state.max_solutions, 1);
-        assert_eq!(state.top_solutions.len(), 1);
-    }
-
-    #[test]
-    fn submit_better_solution_replaces_worst_when_heap_is_full() {
-        let system = MolecularSystem::new();
-        let rotamers = HashMap::new();
-        let mut state = OptimizationState::new(system, rotamers, -50.0, 1);
-
-        state.current_energy = -100.0;
-        state.submit_current_solution();
-
-        assert_eq!(state.top_solutions.len(), 1);
-        assert_eq!(state.best_solution().unwrap().energy, -100.0);
-    }
-
-    #[test]
-    fn submit_worse_solution_is_ignored_when_heap_is_full() {
-        let system = MolecularSystem::new();
-        let rotamers = HashMap::new();
-        let mut state = OptimizationState::new(system, rotamers, -100.0, 1);
-
-        state.current_energy = -50.0;
-        state.submit_current_solution();
-
-        assert_eq!(state.top_solutions.len(), 1);
-        assert_eq!(state.best_solution().unwrap().energy, -100.0);
+        assert_eq!(state.solutions.len(), 1);
     }
 
     #[test]
     fn submit_solution_fills_heap_until_capacity() {
-        let system = MolecularSystem::new();
-        let rotamers = HashMap::new();
-        let mut state = OptimizationState::new(system.clone(), rotamers.clone(), -10.0, 3);
+        let mut state = OptimizationState::new(MolecularSystem::new(), HashMap::new(), -10.0, 3);
 
-        state.current_energy = -20.0;
-        state.working_state.system = system.clone();
+        state.working_state = create_dummy_solution_state(1, 1);
+        state.current_optimization_score = -20.0;
         state.submit_current_solution();
 
-        state.current_energy = -5.0;
-        state.working_state.system = system.clone();
+        state.working_state = create_dummy_solution_state(2, 2);
+        state.current_optimization_score = -5.0;
         state.submit_current_solution();
 
-        assert_eq!(state.top_solutions.len(), 3);
+        assert_eq!(state.solutions.len(), 3);
+        assert_eq!(state.solutions.peek().unwrap().optimization_score, -5.0);
+    }
+
+    #[test]
+    fn submit_better_solution_replaces_worst_when_full() {
+        let mut state = OptimizationState::new(MolecularSystem::new(), HashMap::new(), -10.0, 2);
+        state.current_optimization_score = -20.0;
+        state.submit_current_solution();
+
+        assert_eq!(state.best_energy(), -20.0);
+        assert_eq!(state.solutions.peek().unwrap().optimization_score, -10.0);
+
+        state.working_state = create_dummy_solution_state(3, 3);
+        state.current_optimization_score = -30.0;
+        state.submit_current_solution(); // Heap: [-20, -30]. Top is -20.
+
+        assert_eq!(state.solutions.len(), 2);
+        assert_eq!(state.best_energy(), -30.0);
+        assert_eq!(state.solutions.peek().unwrap().optimization_score, -20.0);
+    }
+
+    #[test]
+    fn submit_worse_solution_is_ignored_when_full() {
+        let mut state = OptimizationState::new(MolecularSystem::new(), HashMap::new(), -20.0, 2);
+        state.current_optimization_score = -30.0;
+        state.submit_current_solution(); // Heap: [-20, -30] -> Top is -20
+
+        state.working_state = create_dummy_solution_state(4, 4);
+        state.current_optimization_score = -10.0;
+        state.submit_current_solution();
+
+        assert_eq!(state.solutions.len(), 2);
+        let sorted_solutions = state.into_sorted_solutions();
+        assert_eq!(sorted_solutions[0].optimization_score, -30.0);
+        assert_eq!(sorted_solutions[1].optimization_score, -20.0);
+    }
+
+    #[test]
+    fn submit_equal_solution_is_ignored_when_full() {
+        let mut state = OptimizationState::new(MolecularSystem::new(), HashMap::new(), -20.0, 2);
+        state.current_optimization_score = -30.0;
+        state.submit_current_solution(); // Heap: [-20, -30] -> Top is -20
+
+        state.working_state = create_dummy_solution_state(5, 5);
+        state.current_optimization_score = -20.0;
+        state.submit_current_solution();
+
+        assert_eq!(state.solutions.len(), 2);
+        let sorted_solutions = state.into_sorted_solutions();
+        assert_eq!(sorted_solutions[0].optimization_score, -30.0);
+        assert_eq!(sorted_solutions[1].optimization_score, -20.0);
+    }
+
+    #[test]
+    fn into_sorted_solutions_returns_correctly_ordered_vec() {
+        let mut state = OptimizationState::new(MolecularSystem::new(), HashMap::new(), -15.0, 5);
+        state.current_optimization_score = -25.0;
+        state.submit_current_solution();
+        state.current_optimization_score = -5.0;
+        state.submit_current_solution();
+        state.current_optimization_score = -35.0;
+        state.submit_current_solution();
+
+        let sorted = state.into_sorted_solutions();
+        assert_eq!(sorted.len(), 4);
+        assert_eq!(sorted[0].optimization_score, -35.0);
+        assert_eq!(sorted[1].optimization_score, -25.0);
+        assert_eq!(sorted[2].optimization_score, -15.0);
+        assert_eq!(sorted[3].optimization_score, -5.0);
+    }
+
+    #[test]
+    fn best_energy_updates_correctly() {
+        let mut state = OptimizationState::new(MolecularSystem::new(), HashMap::new(), -10.0, 3);
+        assert_eq!(state.best_energy(), -10.0);
+
+        state.current_optimization_score = -5.0;
+        state.submit_current_solution();
+        assert_eq!(state.best_energy(), -10.0);
+
+        state.current_optimization_score = -20.0;
+        state.submit_current_solution();
+        assert_eq!(state.best_energy(), -20.0);
+    }
+
+    #[test]
+    fn submitted_solution_state_is_a_deep_clone() {
+        let mut state = OptimizationState::new(MolecularSystem::new(), HashMap::new(), -10.0, 2);
+
+        state.working_state = create_dummy_solution_state(1, 1);
+        state.current_optimization_score = -20.0;
+        state.submit_current_solution();
+
+        state.working_state = create_dummy_solution_state(2, 2);
+        state.current_optimization_score = -30.0;
+
         let solutions = state.clone().into_sorted_solutions();
-        assert_eq!(solutions[0].energy, -20.0);
-        assert_eq!(solutions[1].energy, -10.0);
-        assert_eq!(solutions[2].energy, -5.0);
-    }
+        let solution_minus_20 = solutions
+            .iter()
+            .find(|s| (s.optimization_score - (-20.0)).abs() < 1e-9)
+            .unwrap();
 
-    #[test]
-    fn submit_solutions_maintains_correct_top_n() {
-        let system = MolecularSystem::new();
-        let rotamers = HashMap::new();
-        let mut state = OptimizationState::new(system.clone(), rotamers.clone(), -10.0, 2);
+        let original_residue_id = ResidueId::from(KeyData::from_ffi(1));
+        assert_eq!(
+            solution_minus_20.state.rotamers.get(&original_residue_id),
+            Some(&1)
+        );
+        assert_eq!(solution_minus_20.state.rotamers.len(), 1);
 
-        state.current_energy = -20.0;
-        state.working_state.system = system.clone();
-        state.submit_current_solution(); // Heap: [-20, -10]
-
-        state.current_energy = -5.0;
-        state.working_state.system = system.clone();
-        state.submit_current_solution(); // Heap: [-20, -10], -5 is worse than -10, ignored
-
-        state.current_energy = -30.0;
-        state.working_state.system = system.clone();
-        state.submit_current_solution(); // Heap: [-30, -20], -10 is popped
-
-        let solutions = state.into_sorted_solutions();
-        assert_eq!(solutions.len(), 2);
-        assert_eq!(solutions[0].energy, -30.0);
-        assert_eq!(solutions[1].energy, -20.0);
-    }
-
-    #[test]
-    fn into_sorted_solutions_returns_correctly_ordered_list() {
-        let system = MolecularSystem::new();
-        let rotamers = HashMap::new();
-        let mut state = OptimizationState::new(system.clone(), rotamers, -10.0, 5);
-
-        state.current_energy = -30.0;
         state.submit_current_solution();
-        state.current_energy = -20.0;
-        state.submit_current_solution();
+        let final_solutions = state.into_sorted_solutions();
+        assert_eq!(final_solutions[0].optimization_score, -30.0);
+        assert_eq!(final_solutions[1].optimization_score, -20.0);
 
-        let solutions = state.into_sorted_solutions();
-        assert_eq!(solutions.len(), 3);
-        assert_eq!(solutions[0].energy, -30.0);
-        assert_eq!(solutions[1].energy, -20.0);
-        assert_eq!(solutions[2].energy, -10.0);
-    }
-
-    #[test]
-    fn best_solution_returns_minimum_energy_solution() {
-        let system = MolecularSystem::new();
-        let rotamers = HashMap::new();
-        let mut state = OptimizationState::new(system.clone(), rotamers, -10.0, 5);
-
-        state.current_energy = -30.0;
-        state.submit_current_solution();
-        state.current_energy = -5.0;
-        state.submit_current_solution();
-
-        let best = state.best_solution().unwrap();
-        assert_eq!(best.energy, -30.0);
-    }
-
-    #[test]
-    fn submit_solution_with_equal_energy_is_ignored_when_full() {
-        let system = MolecularSystem::new();
-        let rotamers = HashMap::new();
-        let mut state = OptimizationState::new(system.clone(), rotamers, -10.0, 2);
-        state.current_energy = -20.0;
-        state.submit_current_solution(); // Heap: [-20, -10]
-
-        // Submit with energy equal to the worst in the heap
-        state.current_energy = -10.0;
-        state.submit_current_solution();
-
-        let solutions = state.into_sorted_solutions();
-        assert_eq!(solutions.len(), 2);
-        assert_eq!(solutions[0].energy, -20.0);
-        assert_eq!(solutions[1].energy, -10.0);
+        let final_residue_id = ResidueId::from(KeyData::from_ffi(2));
+        assert_eq!(
+            final_solutions[0].state.rotamers.get(&final_residue_id),
+            Some(&2)
+        );
     }
 }

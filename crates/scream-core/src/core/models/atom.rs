@@ -1,6 +1,16 @@
 use super::ids::ResidueId;
 use nalgebra::Point3;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum AtomRole {
+    Backbone,  // Backbone atom (e.g., C, N, O)
+    Sidechain, // Sidechain atom (e.g., CH3, OH)
+    Ligand,    // Ligand atom (e.g., in a small molecule)
+    Water,     // Water molecule atom (e.g., H2O)
+    #[default]
+    Other, // Unknown or unclassified atom
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum CachedVdwParam {
     LennardJones {
@@ -20,6 +30,7 @@ pub struct Atom {
     // --- Identity & Topology ---
     pub name: String,          // Atom name (e.g., "CA", "N", "O")
     pub residue_id: ResidueId, // ID of the parent residue
+    pub role: AtomRole,
 
     // --- Physicochemical Properties ---
     pub force_field_type: String, // Force field atom type (e.g., "C.3", "N.2")
@@ -31,7 +42,7 @@ pub struct Atom {
 
     // --- Cached Force Field Parameters for Performance ---
     pub vdw_param: CachedVdwParam, // Cached van der Waals parameters
-    pub hbond_type_id: i8,         // Hydrogen bond type identifier
+    pub hbond_type_id: i8, // Hydrogen bond type identifier (-1: None, 0: Donor Hydrogen, >0: Acceptor)
 }
 
 impl Atom {
@@ -40,7 +51,8 @@ impl Atom {
             name: name.to_string(),
             residue_id,
             position,
-            force_field_type: "".to_string(),
+            role: AtomRole::default(),
+            force_field_type: String::new(),
             partial_charge: 0.0,
             delta: 0.0,
             vdw_param: CachedVdwParam::None,
@@ -59,6 +71,7 @@ mod tests {
     fn new_atom_has_expected_default_fields() {
         let residue_id = ResidueId::default();
         let atom = Atom::new("CA", residue_id, Point3::new(1.0, 2.0, 3.0));
+
         assert_eq!(atom.name, "CA");
         assert_eq!(atom.residue_id, residue_id);
         assert_eq!(atom.position, Point3::new(1.0, 2.0, 3.0));
@@ -70,10 +83,27 @@ mod tests {
     }
 
     #[test]
+    fn new_atom_has_correct_default_role() {
+        let residue_id = ResidueId::default();
+        let atom = Atom::new("CA", residue_id, Point3::new(1.0, 2.0, 3.0));
+        assert_eq!(atom.role, AtomRole::Other);
+        assert_eq!(atom.role, AtomRole::default());
+    }
+
+    #[test]
     fn atom_equality_and_clone_works() {
         let residue_id = ResidueId::default();
-        let atom1 = Atom::new("N", residue_id, Point3::new(0.0, 0.0, 0.0));
+        let mut atom1 = Atom::new("N", residue_id, Point3::new(0.0, 0.0, 0.0));
+        atom1.role = AtomRole::Backbone; // Also test non-default fields
         let atom2 = atom1.clone();
         assert_eq!(atom1, atom2);
+    }
+
+    #[test]
+    fn atom_role_derives_expected_traits() {
+        let role = AtomRole::Sidechain;
+        let role_clone = role.clone();
+        assert_eq!(role, role_clone);
+        assert_eq!(format!("{:?}", role), "Sidechain");
     }
 }

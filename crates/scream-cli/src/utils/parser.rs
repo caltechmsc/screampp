@@ -10,8 +10,8 @@ pub enum ParseError {
     #[error("Invalid forcefield format for '{0}'. Expected 'type@version' (e.g., 'lj-12-6@0.3').")]
     InvalidForcefieldFormat(String),
 
-    #[error("Invalid placement registry name '{0}'. Only 'default' is recognized.")]
-    InvalidPlacementRegistryName(String),
+    #[error("Invalid topology registry name '{0}'. Only 'default' is recognized.")]
+    InvalidTopologyRegistryName(String),
 
     #[error("Unknown logical name kind: '{0}'. Expected 'rotamer-library', 'forcefield', etc.")]
     UnknownKind(String),
@@ -40,7 +40,7 @@ pub enum ParsedLogicalName {
     RotamerLibrary(RotamerLibraryName),
     Forcefield(ForcefieldName),
     DeltaParams { diversity: String },
-    PlacementRegistry,
+    TopologyRegistry,
 }
 
 pub fn parse_logical_name(name: &str, kind: &str) -> Result<ParsedLogicalName, ParseError> {
@@ -50,11 +50,11 @@ pub fn parse_logical_name(name: &str, kind: &str) -> Result<ParsedLogicalName, P
         "delta-params" => Ok(ParsedLogicalName::DeltaParams {
             diversity: name.to_string(),
         }),
-        "placement-registry" => {
+        "topology-registry" => {
             if name == "default" {
-                Ok(ParsedLogicalName::PlacementRegistry)
+                Ok(ParsedLogicalName::TopologyRegistry)
             } else {
-                Err(ParseError::InvalidPlacementRegistryName(name.to_string()))
+                Err(ParseError::InvalidTopologyRegistryName(name.to_string()))
             }
         }
         _ => Err(ParseError::UnknownKind(kind.to_string())),
@@ -222,17 +222,17 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_placement_registry_success() {
-        let result = parse_logical_name("default", "placement-registry").unwrap();
-        assert_eq!(result, ParsedLogicalName::PlacementRegistry);
+    fn test_parse_topology_registry_success() {
+        let result = parse_logical_name("default", "topology-registry").unwrap();
+        assert_eq!(result, ParsedLogicalName::TopologyRegistry);
     }
 
     #[test]
-    fn test_parse_placement_registry_fails_invalid_name() {
-        let result = parse_logical_name("custom", "placement-registry");
+    fn test_parse_topology_registry_fails_invalid_name() {
+        let result = parse_logical_name("custom", "topology-registry");
         assert!(matches!(
             result,
-            Err(ParseError::InvalidPlacementRegistryName(_))
+            Err(ParseError::InvalidTopologyRegistryName(_))
         ));
     }
 

@@ -1,387 +1,639 @@
 use super::params::Forcefield;
-use crate::core::models::atom::{Atom, CachedVdwParam};
+use crate::core::{
+    models::{
+        atom::{Atom, AtomRole, CachedVdwParam},
+        chain::ChainType,
+        ids::{AtomId, ResidueId},
+        system::MolecularSystem,
+    },
+    rotamers::rotamer::Rotamer,
+    topology::registry::{ResidueTopology, TopologyRegistry},
+};
+use std::collections::{HashMap, HashSet};
 use thiserror::Error;
+use tracing::warn;
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq, Eq)]
 pub enum ParameterizationError {
-    #[error("Missing VDW parameter for force field type: {0}")]
-    MissingVdwParams(String),
-    #[error("Missing delta parameter for atom '{atom_name}' in residue '{residue_type}'")]
-    MissingDelta {
-        residue_type: String,
+    #[error(
+        "Missing VDW parameter for force field type: '{ff_type}' in atom '{atom_name}' of residue {residue_name}"
+    )]
+    MissingVdwParams {
+        ff_type: String,
+        atom_name: String,
+        residue_name: String,
+    },
+    #[error(
+        "Missing or misclassified anchor atom in residue '{residue_name}': Cannot find required anchor atom '{atom_name}', or it was incorrectly defined as a sidechain atom in the topology."
+    )]
+    InvalidAnchorAtom {
+        residue_name: String,
         atom_name: String,
     },
 }
 
-pub struct Parameterizer {
-    forcefield: Forcefield,
+pub struct Parameterizer<'a> {
+    forcefield: &'a Forcefield,
+    topology_registry: &'a TopologyRegistry,
     delta_s_factor: f64,
 }
 
-impl Parameterizer {
-    pub fn new(forcefield: Forcefield, delta_s_factor: f64) -> Self {
+impl<'a> Parameterizer<'a> {
+    pub fn new(
+        forcefield: &'a Forcefield,
+        topology_registry: &'a TopologyRegistry,
+        delta_s_factor: f64,
+    ) -> Self {
         Self {
             forcefield,
+            topology_registry,
             delta_s_factor,
         }
     }
 
     pub fn parameterize_system(
         &self,
-        system: &mut crate::core::models::system::MolecularSystem,
+        system: &mut MolecularSystem,
     ) -> Result<(), ParameterizationError> {
-        self.parameterize_deltas(system)?;
-        self.parameterize_non_bonded_properties(system)?;
-        Ok(())
-    }
-
-    pub fn parameterize_deltas(
-        &self,
-        system: &mut crate::core::models::system::MolecularSystem,
-    ) -> Result<(), ParameterizationError> {
-        let atom_ids: Vec<_> = system.atoms_iter().map(|(id, _)| id).collect();
-
-        for atom_id in atom_ids {
-            let (residue_type_str, atom_name) = {
-                let atom = system.atom(atom_id).unwrap();
-                let residue = system.residue(atom.residue_id).unwrap();
-                (residue.name.clone(), atom.name.clone())
-            };
-
-            let final_delta = if residue_type_str == "GLY" {
-                0.0
-            } else {
-                let delta_param = self
-                    .forcefield
-                    .deltas
-                    .get(&(residue_type_str.clone(), atom_name.clone()));
-
-                match delta_param {
-                    Some(p) => p.mu + self.delta_s_factor * p.sigma,
-                    None => 0.0,
-                }
-            };
-
-            if let Some(atom) = system.atom_mut(atom_id) {
-                atom.delta = final_delta;
-            }
+        // Pass 1: Assign Atom Roles for each residue.
+        for residue_id in system.residues_iter().map(|(id, _)| id).collect::<Vec<_>>() {
+            self.assign_atom_roles_for_residue(residue_id, system)?;
         }
+
+        // Pass 2: Assign physicochemical parameters to each atom.
+        for atom_id in system.atoms_iter().map(|(id, _)| id).collect::<Vec<_>>() {
+            let residue_name = system
+                .residue(system.atom(atom_id).unwrap().residue_id)
+                .unwrap()
+                .name
+                .clone();
+            let atom = system.atom_mut(atom_id).unwrap();
+            self.assign_physicochemical_params(atom, &residue_name)?;
+        }
+
         Ok(())
     }
 
-    pub fn parameterize_non_bonded_properties(
+    pub fn parameterize_rotamer(
         &self,
-        system: &mut crate::core::models::system::MolecularSystem,
+        rotamer: &mut Rotamer,
+        residue_name: &str,
+        topology: &ResidueTopology,
     ) -> Result<(), ParameterizationError> {
-        let atom_ids: Vec<_> = system.atoms_iter().map(|(id, _)| id).collect();
-        for atom_id in atom_ids {
-            let ff_type = system.atom(atom_id).unwrap().force_field_type.clone();
+        assign_protein_roles_from_pool(
+            &mut rotamer.atoms,
+            |atom| &atom.name,
+            |atom, role| atom.role = role,
+            topology,
+            residue_name,
+        )?;
 
-            if ff_type.is_empty() {
-                return Err(ParameterizationError::MissingVdwParams(ff_type));
-            }
+        for atom in &mut rotamer.atoms {
+            self.assign_physicochemical_params(atom, residue_name)?;
+        }
 
-            let vdw_param = self
-                .forcefield
-                .non_bonded
-                .vdw
-                .get(&ff_type)
-                .ok_or_else(|| ParameterizationError::MissingVdwParams(ff_type.clone()))?;
+        Ok(())
+    }
 
-            let hbond_type_id = if ff_type == "H___A" {
-                0
-            } else {
-                self.forcefield
-                    .non_bonded
-                    .hbond
-                    .get(&ff_type)
-                    .map_or(-1, |_| 1)
-            };
+    fn assign_atom_roles_for_residue(
+        &self,
+        residue_id: ResidueId,
+        system: &mut MolecularSystem,
+    ) -> Result<(), ParameterizationError> {
+        let (chain_type, residue_name) = {
+            let residue = system.residue(residue_id).unwrap();
+            let chain = system.chain(residue.chain_id).unwrap();
+            (chain.chain_type, residue.name.clone())
+        };
 
-            if let Some(atom) = system.atom_mut(atom_id) {
-                atom.vdw_param = match vdw_param {
-                    super::params::VdwParam::LennardJones { radius, well_depth } => {
-                        CachedVdwParam::LennardJones {
-                            radius: *radius,
-                            well_depth: *well_depth,
-                        }
+        let atom_ids: Vec<AtomId> = system.residue(residue_id).unwrap().atoms().to_vec();
+
+        match chain_type {
+            ChainType::Protein | ChainType::DNA | ChainType::RNA => {
+                if let Some(topology) = self.topology_registry.get(&residue_name) {
+                    let mut atoms_view: Vec<&mut Atom> = system
+                        .atoms_iter_mut()
+                        .filter(|(id, _)| atom_ids.contains(id))
+                        .map(|(_, atom)| atom)
+                        .collect();
+
+                    assign_protein_roles_from_pool(
+                        &mut atoms_view,
+                        |atom| &atom.name,
+                        |atom, role| atom.role = role,
+                        topology,
+                        &residue_name,
+                    )?;
+                } else {
+                    warn!(
+                        "Residue '{}' has no topology definition. Marking all its atoms as 'Other'.",
+                        residue_name
+                    );
+                    for atom_id in atom_ids {
+                        system.atom_mut(atom_id).unwrap().role = AtomRole::Other;
                     }
-                    super::params::VdwParam::Buckingham {
-                        radius,
-                        well_depth,
-                        scale,
-                    } => CachedVdwParam::Buckingham {
-                        radius: *radius,
-                        well_depth: *well_depth,
-                        scale: *scale,
-                    },
-                };
-                atom.hbond_type_id = hbond_type_id;
+                }
+            }
+            ChainType::Ligand => {
+                for atom_id in atom_ids {
+                    system.atom_mut(atom_id).unwrap().role = AtomRole::Ligand;
+                }
+            }
+            ChainType::Water => {
+                for atom_id in atom_ids {
+                    system.atom_mut(atom_id).unwrap().role = AtomRole::Water;
+                }
+            }
+            ChainType::Other => {
+                for atom_id in atom_ids {
+                    system.atom_mut(atom_id).unwrap().role = AtomRole::Other;
+                }
             }
         }
         Ok(())
     }
 
-    pub fn parameterize_atom(
+    fn assign_physicochemical_params(
         &self,
         atom: &mut Atom,
-        residue_type_str: &str,
+        residue_name: &str,
     ) -> Result<(), ParameterizationError> {
-        atom.delta = if residue_type_str == "GLY" {
-            0.0
-        } else {
-            self.forcefield
-                .deltas
-                .get(&(residue_type_str.to_string(), atom.name.clone()))
-                .map_or(0.0, |p| p.mu + self.delta_s_factor * p.sigma)
+        let delta_param = self
+            .forcefield
+            .deltas
+            .get(&(residue_name.to_string(), atom.name.clone()));
+        atom.delta = match delta_param {
+            Some(p) => p.mu + self.delta_s_factor * p.sigma,
+            None => 0.0,
         };
 
         let ff_type = &atom.force_field_type;
-        let vdw_param = self
-            .forcefield
-            .non_bonded
-            .vdw
-            .get(ff_type)
-            .ok_or_else(|| ParameterizationError::MissingVdwParams(ff_type.clone()))?;
+        if ff_type.is_empty() {
+            return Ok(());
+        }
 
-        atom.vdw_param = match vdw_param {
-            super::params::VdwParam::LennardJones { radius, well_depth } => {
-                CachedVdwParam::LennardJones {
-                    radius: *radius,
-                    well_depth: *well_depth,
-                }
+        let vdw_param = self.forcefield.non_bonded.vdw.get(ff_type).ok_or_else(|| {
+            ParameterizationError::MissingVdwParams {
+                ff_type: ff_type.clone(),
+                atom_name: atom.name.clone(),
+                residue_name: residue_name.to_string(),
             }
-            super::params::VdwParam::Buckingham {
-                radius,
-                well_depth,
-                scale,
-            } => CachedVdwParam::Buckingham {
-                radius: *radius,
-                well_depth: *well_depth,
-                scale: *scale,
-            },
-        };
+        })?;
 
-        atom.hbond_type_id = if ff_type == "H___A" {
-            0
+        atom.vdw_param = (*vdw_param).clone().into();
+
+        atom.hbond_type_id = if self.forcefield.non_bonded.hbond.contains_key(ff_type) {
+            if ff_type.starts_with('H') {
+                0 // Donor Hydrogen
+            } else {
+                1 // Acceptor
+            }
         } else {
-            self.forcefield
-                .non_bonded
-                .hbond
-                .get(ff_type)
-                .map_or(-1, |_| 1)
+            -1 // Not involved in H-bonding
         };
 
         Ok(())
     }
 }
 
+fn assign_protein_roles_from_pool<'a, T>(
+    atoms: &'a mut [T],
+    get_name: impl for<'b> Fn(&'b T) -> &'b str,
+    set_role: impl Fn(&mut T, AtomRole),
+    topology: &ResidueTopology,
+    residue_name: &str,
+) -> Result<(), ParameterizationError> {
+    // Step 1: Create a pool mapping atom names to their indices in the slice.
+    let mut atom_pool: HashMap<String, Vec<usize>> = HashMap::new();
+    for (index, atom) in atoms.iter().enumerate() {
+        atom_pool
+            .entry(get_name(atom).to_string())
+            .or_default()
+            .push(index);
+    }
+
+    let mut assigned_indices = HashSet::new();
+
+    // Step 2: First pass - identify and reserve anchor atoms. Consume them from the FRONT of the pool.
+    for anchor_name in &topology.anchor_atoms {
+        let indices = atom_pool.get_mut(anchor_name).ok_or_else(|| {
+            ParameterizationError::InvalidAnchorAtom {
+                residue_name: residue_name.to_string(),
+                atom_name: anchor_name.clone(),
+            }
+        })?;
+        if indices.is_empty() {
+            return Err(ParameterizationError::InvalidAnchorAtom {
+                residue_name: residue_name.to_string(),
+                atom_name: anchor_name.clone(),
+            });
+        }
+        let index_to_mark = indices.remove(0);
+        set_role(&mut atoms[index_to_mark], AtomRole::Backbone);
+        assigned_indices.insert(index_to_mark);
+    }
+
+    // Step 3: Second pass - identify and assign sidechain atoms. Consume them from the BACK of the pool.
+    for sidechain_name in &topology.sidechain_atoms {
+        if let Some(indices) = atom_pool.get_mut(sidechain_name) {
+            if let Some(index_to_mark) = indices.pop() {
+                if assigned_indices.contains(&index_to_mark) {
+                    return Err(ParameterizationError::InvalidAnchorAtom {
+                        residue_name: residue_name.to_string(),
+                        atom_name: sidechain_name.clone(),
+                    });
+                }
+                set_role(&mut atoms[index_to_mark], AtomRole::Sidechain);
+                assigned_indices.insert(index_to_mark);
+            }
+        }
+    }
+
+    // Step 4: Final pass - any atom not yet assigned a role is part of the backbone.
+    for (index, atom) in atoms.iter_mut().enumerate() {
+        if !assigned_indices.contains(&index) {
+            set_role(atom, AtomRole::Backbone);
+        }
+    }
+
+    Ok(())
+}
+
+impl From<super::params::VdwParam> for CachedVdwParam {
+    fn from(param: super::params::VdwParam) -> Self {
+        match param {
+            super::params::VdwParam::LennardJones { radius, well_depth } => {
+                CachedVdwParam::LennardJones { radius, well_depth }
+            }
+            super::params::VdwParam::Buckingham {
+                radius,
+                well_depth,
+                scale,
+            } => CachedVdwParam::Buckingham {
+                radius,
+                well_depth,
+                scale,
+            },
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::forcefield::params::{
-        DeltaParam, Forcefield, GlobalParams, NonBondedParams, VdwParam,
+    use crate::core::{
+        models::{chain::ChainType, residue::ResidueType, system::MolecularSystem},
+        rotamers::rotamer::Rotamer,
+        topology::registry::TopologyRegistry,
     };
-    use crate::core::models::atom::Atom;
-    use crate::core::models::chain::ChainType;
-    use crate::core::models::ids::AtomId;
-    use crate::core::models::system::MolecularSystem;
     use nalgebra::Point3;
-    use std::collections::HashMap;
+    use std::{fs::File, io::Write};
+    use tempfile::{TempDir, tempdir};
 
-    fn create_dummy_forcefield() -> Forcefield {
-        let deltas = {
-            let mut map = HashMap::new();
-            map.insert(
-                ("ALA".to_string(), "CA".to_string()),
-                DeltaParam {
-                    residue_type: "ALA".to_string(),
-                    atom_name: "CA".to_string(),
-                    mu: 1.23,
-                    sigma: 0.0,
-                },
-            );
-            map
-        };
-
-        let non_bonded = {
-            let mut vdw = HashMap::new();
-            vdw.insert(
-                "C_SP3".to_string(),
-                VdwParam::Buckingham {
-                    radius: 2.0,
-                    well_depth: 0.1,
-                    scale: 12.0,
-                },
-            );
-            vdw.insert(
-                "H___A".to_string(),
-                VdwParam::LennardJones {
-                    radius: 1.0,
-                    well_depth: 0.01,
-                },
-            );
-            let hbond = HashMap::new();
-            NonBondedParams {
-                globals: GlobalParams {
-                    dielectric_constant: 1.0,
-                    potential_function: "lennard-jones-12-6".to_string(),
-                },
-                vdw,
-                hbond,
-            }
-        };
-
-        Forcefield { deltas, non_bonded }
+    struct TestSetup {
+        forcefield: Forcefield,
+        topology_registry: TopologyRegistry,
+        _temp_dir: TempDir,
     }
 
-    fn create_test_system() -> (MolecularSystem, AtomId) {
-        let mut system = MolecularSystem::new();
-        let chain_id = system.add_chain('A', ChainType::Protein);
-        let res1_id = system.add_residue(chain_id, 1, "ALA", None).unwrap();
-        let mut atom1_ca = Atom::new("CA", res1_id, Point3::origin());
-        atom1_ca.force_field_type = "C_SP3".to_string();
-        let atom_id = system.add_atom_to_residue(res1_id, atom1_ca).unwrap();
-        (system, atom_id)
-    }
+    fn setup() -> TestSetup {
+        let temp_dir = tempdir().unwrap();
+        let dir = temp_dir.path();
 
-    fn create_dummy_forcefield_for_atom_test() -> Forcefield {
-        let mut ff = create_dummy_forcefield();
-        ff.deltas.insert(
-            ("ALA".to_string(), "CA".to_string()),
-            DeltaParam {
-                residue_type: "ALA".to_string(),
-                atom_name: "CA".to_string(),
-                mu: 1.23,
-                sigma: 0.2,
-            },
-        );
-        ff
-    }
+        let ff_path = dir.join("ff.toml");
+        let mut ff_file = File::create(&ff_path).unwrap();
+        write!(
+            ff_file,
+            r#"
+            [globals]
+            dielectric_constant = 4.0
+            potential_function = "lennard-jones-12-6"
+            [vdw]
+            N_R = {{ radius = 1.6, well_depth = 0.1 }}
+            C_BB = {{ radius = 1.8, well_depth = 0.1 }}
+            C_R = {{ radius = 1.8, well_depth = 0.1 }}
+            C_SC = {{ radius = 1.9, well_depth = 0.12 }}
+            H_ = {{ radius = 1.0, well_depth = 0.02 }}
+            O_2 = {{ radius = 1.5, well_depth = 0.2 }}
+            H_O = {{ radius = 1.0, well_depth = 0.01 }}
+            [hbond]
+            H_O = {{ equilibrium_distance = 2.8, well_depth = 5.0 }}
+            O_2 = {{ equilibrium_distance = 2.8, well_depth = 5.0 }}
+        "#
+        )
+        .unwrap();
 
-    #[test]
-    fn parameterize_deltas_assigns_values_correctly() {
-        let ff = create_dummy_forcefield();
-        let (mut system, atom_ca_id) = create_test_system();
-        let parameterizer = Parameterizer::new(ff, 0.0);
+        let delta_path = dir.join("delta.csv");
+        let mut delta_file = File::create(&delta_path).unwrap();
+        write!(
+            delta_file,
+            "residue_type,atom_name,mu,sigma\nALA,CB,0.1,0.05\n"
+        )
+        .unwrap();
 
-        parameterizer.parameterize_system(&mut system).unwrap();
+        let forcefield = Forcefield::load(&ff_path, &delta_path).unwrap();
 
-        let atom_ca = system.atom(atom_ca_id).unwrap();
-        assert_eq!(atom_ca.delta, 1.23);
-    }
+        let topo_path = dir.join("topo.toml");
+        let mut topo_file = File::create(&topo_path).unwrap();
+        write!(
+            topo_file,
+            r#"
+            [ALA]
+            anchor_atoms = ["N", "CA", "C"]
+            sidechain_atoms = ["CB"]
+            [GLY]
+            anchor_atoms = ["N", "CA", "C", "HA2"]
+            sidechain_atoms = ["HA1"]
+        "#
+        )
+        .unwrap();
+        let topology_registry = TopologyRegistry::load(&topo_path).unwrap();
 
-    #[test]
-    fn parameterize_deltas_assigns_zero_for_glycine() {
-        let ff = create_dummy_forcefield();
-        let mut system = MolecularSystem::new();
-        let chain_id = system.add_chain('A', ChainType::Protein);
-        let res_id = system.add_residue(chain_id, 1, "GLY", None).unwrap();
-        let mut atom_ca = Atom::new("CA", res_id, Point3::origin());
-        atom_ca.force_field_type = "C_SP3".to_string();
-        let atom_ca_id = system.add_atom_to_residue(res_id, atom_ca).unwrap();
-        let parameterizer = Parameterizer::new(ff, 0.0);
-
-        parameterizer.parameterize_deltas(&mut system).unwrap();
-
-        let atom = system.atom(atom_ca_id).unwrap();
-        assert_eq!(atom.delta, 0.0);
-    }
-
-    #[test]
-    fn parameterize_non_bonded_properties_assigns_vdw_and_hbond_params() {
-        let ff = create_dummy_forcefield();
-        let (mut system, atom_ca_id) = create_test_system();
-        let parameterizer = Parameterizer::new(ff, 0.0);
-
-        parameterizer
-            .parameterize_non_bonded_properties(&mut system)
-            .unwrap();
-
-        let atom_ca = system.atom(atom_ca_id).unwrap();
-        match atom_ca.vdw_param {
-            CachedVdwParam::Buckingham {
-                radius, well_depth, ..
-            } => {
-                assert_eq!(radius, 2.0);
-                assert_eq!(well_depth, 0.1);
-            }
-            _ => panic!("Expected Buckingham variant for CA atom"),
+        TestSetup {
+            forcefield,
+            topology_registry,
+            _temp_dir: temp_dir,
         }
-        assert_eq!(atom_ca.hbond_type_id, -1);
     }
 
-    #[test]
-    fn parameterize_non_bonded_properties_fails_for_missing_vdw_params() {
-        let ff = create_dummy_forcefield();
-        let (mut system, atom_id) = create_test_system();
-        let parameterizer = Parameterizer::new(ff, 0.0);
+    mod role_assignment {
+        use super::*;
 
-        system.atom_mut(atom_id).unwrap().force_field_type = "UNKNOWN_TYPE".to_string();
+        #[test]
+        fn assigns_roles_correctly_for_standard_protein_residue() {
+            let TestSetup {
+                forcefield,
+                topology_registry,
+                ..
+            } = setup();
+            let parameterizer = Parameterizer::new(&forcefield, &topology_registry, 1.0);
 
-        let result = parameterizer.parameterize_non_bonded_properties(&mut system);
-        assert!(matches!(
-            result,
-            Err(ParameterizationError::MissingVdwParams(ff_type)) if ff_type == "UNKNOWN_TYPE"
-        ));
-    }
-
-    #[test]
-    fn parameterize_atom_updates_atom_correctly() {
-        let ff = create_dummy_forcefield_for_atom_test();
-        let parameterizer = Parameterizer::new(ff, 1.0);
-        let residue_id = crate::core::models::ids::ResidueId::default();
-
-        let mut atom = Atom::new("CA", residue_id, Point3::origin());
-        atom.partial_charge = -99.9;
-        atom.force_field_type = "C_SP3".to_string();
-
-        let result = parameterizer.parameterize_atom(&mut atom, "ALA");
-
-        assert!(result.is_ok(), "Parameterization should succeed");
-        assert_eq!(
-            atom.partial_charge, -99.9,
-            "Partial charge should NOT be modified by parameterize_atom"
-        );
-        assert!(
-            (atom.delta - 1.43).abs() < 1e-9,
-            "Delta value should be mu + s * sigma"
-        );
-        match atom.vdw_param {
-            CachedVdwParam::Buckingham {
-                radius, well_depth, ..
-            } => {
-                assert_eq!(radius, 2.0, "VDW radius should be set from forcefield");
-                assert_eq!(
-                    well_depth, 0.1,
-                    "VDW well depth should be set from forcefield"
-                );
+            let mut system = MolecularSystem::new();
+            let chain_id = system.add_chain('A', ChainType::Protein);
+            let ala_id = system
+                .add_residue(chain_id, 1, "ALA", Some(ResidueType::Alanine))
+                .unwrap();
+            for name in ["N", "CA", "C", "CB"].iter() {
+                system
+                    .add_atom_to_residue(ala_id, Atom::new(name, ala_id, Point3::origin()))
+                    .unwrap();
             }
-            _ => panic!("Expected Buckingham variant for CA atom"),
+
+            parameterizer.parameterize_system(&mut system).unwrap();
+
+            let ala_res = system.residue(ala_id).unwrap();
+            assert_eq!(
+                system
+                    .atom(ala_res.get_first_atom_id_by_name("N").unwrap())
+                    .unwrap()
+                    .role,
+                AtomRole::Backbone
+            );
+            assert_eq!(
+                system
+                    .atom(ala_res.get_first_atom_id_by_name("CA").unwrap())
+                    .unwrap()
+                    .role,
+                AtomRole::Backbone
+            );
+            assert_eq!(
+                system
+                    .atom(ala_res.get_first_atom_id_by_name("C").unwrap())
+                    .unwrap()
+                    .role,
+                AtomRole::Backbone
+            );
+            assert_eq!(
+                system
+                    .atom(ala_res.get_first_atom_id_by_name("CB").unwrap())
+                    .unwrap()
+                    .role,
+                AtomRole::Sidechain
+            );
         }
-        assert_eq!(
-            atom.hbond_type_id, -1,
-            "HBond type ID for non-HBond atom should be -1"
-        );
+
+        #[test]
+        fn assigns_roles_for_non_protein_chains() {
+            let TestSetup {
+                forcefield,
+                topology_registry,
+                ..
+            } = setup();
+            let parameterizer = Parameterizer::new(&forcefield, &topology_registry, 1.0);
+
+            let mut system = MolecularSystem::new();
+            let lig_chain = system.add_chain('L', ChainType::Ligand);
+            let wat_chain = system.add_chain('W', ChainType::Water);
+            let lig_id = system.add_residue(lig_chain, 1, "LIG", None).unwrap();
+            let wat_id = system.add_residue(wat_chain, 2, "HOH", None).unwrap();
+            let lig_atom_id = system
+                .add_atom_to_residue(lig_id, Atom::new("C1", lig_id, Point3::origin()))
+                .unwrap();
+            let wat_atom_id = system
+                .add_atom_to_residue(wat_id, Atom::new("O", wat_id, Point3::origin()))
+                .unwrap();
+
+            parameterizer.parameterize_system(&mut system).unwrap();
+
+            assert_eq!(system.atom(lig_atom_id).unwrap().role, AtomRole::Ligand);
+            assert_eq!(system.atom(wat_atom_id).unwrap().role, AtomRole::Water);
+        }
+
+        #[test]
+        fn is_tolerant_of_missing_sidechain_atoms_in_system() {
+            let TestSetup {
+                forcefield,
+                topology_registry,
+                ..
+            } = setup();
+            let parameterizer = Parameterizer::new(&forcefield, &topology_registry, 1.0);
+
+            let mut system = MolecularSystem::new();
+            let chain_id = system.add_chain('A', ChainType::Protein);
+            let ala_id = system
+                .add_residue(chain_id, 1, "ALA", Some(ResidueType::Alanine))
+                .unwrap();
+
+            for name in ["N", "CA", "C"].iter() {
+                system
+                    .add_atom_to_residue(ala_id, Atom::new(name, ala_id, Point3::origin()))
+                    .unwrap();
+            }
+
+            let result = parameterizer.parameterize_system(&mut system);
+            assert!(
+                result.is_ok(),
+                "Parameterization should succeed with missing sidechain atom, but failed: {:?}",
+                result.err()
+            );
+
+            let n_id = system
+                .residue(ala_id)
+                .unwrap()
+                .get_first_atom_id_by_name("N")
+                .unwrap();
+            assert_eq!(system.atom(n_id).unwrap().role, AtomRole::Backbone);
+        }
+
+        #[test]
+        fn fails_if_anchor_atom_is_missing_from_system() {
+            let TestSetup {
+                forcefield,
+                topology_registry,
+                ..
+            } = setup();
+            let parameterizer = Parameterizer::new(&forcefield, &topology_registry, 1.0);
+
+            let mut system = MolecularSystem::new();
+            let chain_id = system.add_chain('A', ChainType::Protein);
+            let ala_id = system
+                .add_residue(chain_id, 1, "ALA", Some(ResidueType::Alanine))
+                .unwrap();
+
+            for name in ["N", "C", "CB"].iter() {
+                system
+                    .add_atom_to_residue(ala_id, Atom::new(name, ala_id, Point3::origin()))
+                    .unwrap();
+            }
+
+            let result = parameterizer.parameterize_system(&mut system);
+            assert_eq!(
+                result.unwrap_err(),
+                ParameterizationError::InvalidAnchorAtom {
+                    residue_name: "ALA".to_string(),
+                    atom_name: "CA".to_string()
+                }
+            );
+        }
     }
 
-    #[test]
-    fn parameterize_atom_handles_hbond_donor_hydrogen() {
-        let residue_id = crate::core::models::ids::ResidueId::default();
+    mod physicochemical_params_assignment {
+        use super::*;
 
-        let mut atom = Atom::new("HN", residue_id, Point3::origin());
-        atom.force_field_type = "H___A".to_string();
-        atom.partial_charge = 0.35;
+        #[test]
+        fn assign_physicochemical_params_sets_all_fields_correctly() {
+            let TestSetup {
+                forcefield,
+                topology_registry,
+                ..
+            } = setup();
+            let parameterizer = Parameterizer::new(&forcefield, &topology_registry, 2.0);
 
-        let ff_for_hbond = create_dummy_forcefield_for_atom_test();
-        let parameterizer_for_hbond = Parameterizer::new(ff_for_hbond, 1.0);
-        let result = parameterizer_for_hbond.parameterize_atom(&mut atom, "ALA");
+            let mut cb_atom = Atom::new("CB", ResidueId::default(), Default::default());
+            cb_atom.force_field_type = "C_SC".to_string();
 
-        assert!(result.is_ok());
-        assert_eq!(atom.force_field_type, "H___A");
-        assert_eq!(
-            atom.hbond_type_id, 0,
-            "Polar hydrogen should have hbond_type_id 0"
-        );
+            parameterizer
+                .assign_physicochemical_params(&mut cb_atom, "ALA")
+                .unwrap();
+
+            assert!(
+                (cb_atom.delta - 0.2).abs() < 1e-9,
+                "Delta value for ALA CB is incorrect"
+            );
+            match cb_atom.vdw_param {
+                CachedVdwParam::LennardJones { radius, well_depth } => {
+                    assert_eq!(radius, 1.9);
+                    assert_eq!(well_depth, 0.12);
+                }
+                _ => panic!("Incorrect VDW param type for CB"),
+            }
+            assert_eq!(cb_atom.hbond_type_id, -1, "CB should not be an H-bond atom");
+
+            let mut ca_atom = Atom::new("CA", ResidueId::default(), Default::default());
+            ca_atom.force_field_type = "C_BB".to_string();
+
+            parameterizer
+                .assign_physicochemical_params(&mut ca_atom, "ALA")
+                .unwrap();
+
+            assert_eq!(
+                ca_atom.delta, 0.0,
+                "Delta for ALA CA should be 0 as it's not in the delta file"
+            );
+            match ca_atom.vdw_param {
+                CachedVdwParam::LennardJones { radius, well_depth } => {
+                    assert_eq!(radius, 1.8);
+                    assert_eq!(well_depth, 0.1);
+                }
+                _ => panic!("Incorrect VDW param type for CA"),
+            }
+
+            let mut h_atom = Atom::new("HG", ResidueId::default(), Default::default());
+            h_atom.force_field_type = "H_O".to_string();
+
+            parameterizer
+                .assign_physicochemical_params(&mut h_atom, "SER")
+                .unwrap();
+            assert_eq!(
+                h_atom.hbond_type_id, 0,
+                "H-bond donor hydrogen should have type_id 0"
+            );
+
+            let mut o_atom = Atom::new("O", ResidueId::default(), Default::default());
+            o_atom.force_field_type = "O_2".to_string();
+
+            parameterizer
+                .assign_physicochemical_params(&mut o_atom, "ALA")
+                .unwrap();
+            assert_eq!(
+                o_atom.hbond_type_id, 1,
+                "H-bond acceptor should have type_id 1"
+            );
+        }
+    }
+
+    mod parameterize_rotamer_tests {
+        use super::*;
+
+        #[test]
+        fn parameterize_rotamer_assigns_all_properties_correctly() {
+            let TestSetup {
+                forcefield,
+                topology_registry,
+                ..
+            } = setup();
+            let parameterizer = Parameterizer::new(&forcefield, &topology_registry, 1.0);
+            let ala_topology = topology_registry.get("ALA").unwrap();
+
+            let mut ala_rotamer = Rotamer {
+                atoms: vec![
+                    Atom::new("N", ResidueId::default(), Default::default()),
+                    Atom::new("CA", ResidueId::default(), Default::default()),
+                    Atom::new("C", ResidueId::default(), Default::default()),
+                    Atom::new("CB", ResidueId::default(), Default::default()),
+                ],
+                bonds: vec![],
+            };
+            ala_rotamer.atoms.iter_mut().for_each(|a| {
+                a.force_field_type = match a.name.as_str() {
+                    "N" => "N_R".to_string(),
+                    "CA" => "C_BB".to_string(),
+                    "C" => "C_R".to_string(),
+                    "CB" => "C_SC".to_string(),
+                    _ => panic!("Unknown atom"),
+                }
+            });
+
+            parameterizer
+                .parameterize_rotamer(&mut ala_rotamer, "ALA", ala_topology)
+                .unwrap();
+
+            let get_atom = |name: &str| ala_rotamer.atoms.iter().find(|a| a.name == name).unwrap();
+
+            let cb_atom = get_atom("CB");
+            assert_eq!(cb_atom.role, AtomRole::Sidechain);
+            assert!((cb_atom.delta - (0.1 + 1.0 * 0.05)).abs() < 1e-9);
+            assert!(
+                matches!(cb_atom.vdw_param, CachedVdwParam::LennardJones { radius, .. } if radius == 1.9)
+            );
+            assert_eq!(cb_atom.hbond_type_id, -1);
+
+            let ca_atom = get_atom("CA");
+            assert_eq!(ca_atom.role, AtomRole::Backbone);
+            assert_eq!(ca_atom.delta, 0.0);
+            assert!(
+                matches!(ca_atom.vdw_param, CachedVdwParam::LennardJones { radius, .. } if radius == 1.8)
+            );
+        }
     }
 }

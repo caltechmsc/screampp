@@ -1,644 +1,570 @@
 use crate::core::forcefield::parameterization::Parameterizer;
 use crate::core::forcefield::params::Forcefield;
+use crate::core::forcefield::term::EnergyTerm;
 use crate::core::models::ids::ResidueId;
 use crate::core::models::system::MolecularSystem;
 use crate::core::rotamers::library::RotamerLibrary;
+use crate::core::topology::registry::TopologyRegistry;
 use crate::engine::cache::ELCache;
 use crate::engine::config::PlacementConfig;
 use crate::engine::context::{OptimizationContext, resolve_selection_to_ids};
 use crate::engine::error::EngineError;
 use crate::engine::placement::place_rotamer_on_system;
 use crate::engine::progress::{Progress, ProgressReporter};
-use crate::engine::state::{OptimizationState, Solution};
+use crate::engine::state::{InitialState, OptimizationState, Solution, SolutionState};
 use crate::engine::tasks;
-use rand::Rng;
-use rand::seq::SliceRandom;
-use rand::thread_rng;
+use rand::prelude::IteratorRandom;
+use rand::{Rng, seq::SliceRandom, thread_rng};
 use std::collections::{HashMap, HashSet};
-use tracing::{debug, info, instrument, warn};
+use tracing::{info, instrument};
 
-const CLASH_THRESHOLD: f64 = 25.0; // Clash threshold (kcal/mol)
+const CLASH_THRESHOLD_KCAL_MOL: f64 = 25.0;
+
+#[derive(Debug, Clone)]
+pub struct PlacementResult {
+    pub initial_state: InitialState,
+    pub solutions: Vec<Solution>,
+}
 
 #[instrument(skip_all, name = "placement_workflow")]
 pub fn run(
     initial_system: &MolecularSystem,
     config: &PlacementConfig,
     reporter: &ProgressReporter,
-) -> Result<Vec<Solution>, EngineError> {
-    // --- Phase 0 & 1: Setup & Pre-computation ---
+) -> Result<PlacementResult, EngineError> {
+    // === Phase 0: Preparation and Parameterization ===
+    reporter.report(Progress::PhaseStart {
+        name: "Preparation",
+    });
+    info!("Starting workflow setup: loading resources and parameterizing system.");
+
+    let forcefield = Forcefield::load(
+        &config.forcefield.forcefield_path,
+        &config.forcefield.delta_params_path,
+    )?;
+    let topology_registry = TopologyRegistry::load(&config.topology_registry_path)?;
+    let mut rotamer_library = RotamerLibrary::load(
+        &config.sampling.rotamer_library_path,
+        &topology_registry,
+        &forcefield,
+        config.forcefield.s_factor,
+    )?;
+
+    let active_residues = prepare_context(
+        initial_system,
+        config,
+        &mut rotamer_library,
+        &topology_registry,
+    )?;
+
+    let parameterizer =
+        Parameterizer::new(&forcefield, &topology_registry, config.forcefield.s_factor);
     let mut working_system = initial_system.clone();
-    let (forcefield, rotamer_library, active_residues) =
-        setup(&mut working_system, config, reporter)?;
+    parameterizer.parameterize_system(&mut working_system)?;
+
     let context = OptimizationContext::new(
         &working_system,
         &forcefield,
         reporter,
         config,
         &rotamer_library,
+        &topology_registry,
     );
-    let el_cache = precompute_el_energies(&context, reporter)?;
 
-    // --- Phase 2: Initialization ---
-    let mut state = initialize_state(
-        &working_system,
-        &active_residues,
-        &context,
-        &el_cache,
-        reporter,
-    )?;
+    reporter.report(Progress::PhaseFinish);
 
-    // --- Phase 3: Clash-Driven Optimization ---
-    resolve_clashes_iteratively(&mut state, &active_residues, &context, &el_cache, reporter)?;
+    // === Phase 1: Calculate constant energy and initial state ===
+    let (initial_state, energy_offset_constant) =
+        calculate_initial_state(&context, &active_residues)?;
 
-    // --- Phase 4: Optional Global Search (Simulated Annealing) ---
-    if context.config.optimization.simulated_annealing.is_some() {
-        run_simulated_annealing(&mut state, &active_residues, &context, &el_cache, reporter)?;
+    // === Phase 2: Precompute empty lattice energy (EL Energy) ===
+    let el_cache = tasks::el_energy::run(&context)?;
+
+    // === Phase 3: Initialize optimization state (place ground state) ===
+    let mut state = initialize_optimization_state(&context, &active_residues, &el_cache)?;
+
+    // === Phase 4: Clash resolution ===
+    resolve_clashes(&mut state, &active_residues, &context, &el_cache)?;
+
+    // === Phase 5: Simulated annealing (optional) ===
+    if config.optimization.simulated_annealing.is_some() {
+        run_simulated_annealing(&mut state, &active_residues, &context, &el_cache)?;
     }
 
-    // --- Phase 5: Final Refinement (Singlet Optimization) ---
-    final_refinement(&mut state, &active_residues, &context, &el_cache, reporter)?;
+    // === Phase 6: Final refinement ===
+    final_refinement(&mut state, &active_residues, &context, &el_cache)?;
 
-    // --- Phase 6: Finalization ---
-    let sorted_solutions = state.into_sorted_solutions();
-    info!(
-        "Workflow complete. Returning {} sorted solutions.",
-        sorted_solutions.len()
+    // === Phase 7: Organize and return results ===
+    let result = finalize_results(
+        state,
+        initial_state,
+        energy_offset_constant,
+        config.optimization.num_solutions,
     );
-    Ok(sorted_solutions)
+
+    info!(
+        "Workflow complete. Returning {} solution(s).",
+        result.solutions.len()
+    );
+    Ok(result)
 }
 
-#[instrument(skip_all, name = "workflow_setup")]
-fn setup<'a>(
-    working_system: &mut MolecularSystem,
-    config: &'a PlacementConfig,
-    reporter: &ProgressReporter,
-) -> Result<(Forcefield, RotamerLibrary, HashSet<ResidueId>), EngineError> {
-    reporter.report(Progress::PhaseStart { name: "Setup" });
-    info!("Starting workflow setup: loading resources.");
-
-    let forcefield = Forcefield::load(
-        &config.forcefield.forcefield_path,
-        &config.forcefield.delta_params_path,
-    )?;
-
-    let parameterizer = Parameterizer::new(forcefield.clone(), config.forcefield.s_factor);
-
-    info!("Parameterizing the input molecular system...");
-    parameterizer
-        .parameterize_system(working_system)
-        .map_err(|e| EngineError::Initialization(e.to_string()))?;
-
-    let mut rotamer_library = RotamerLibrary::load(
-        &config.sampling.rotamer_library_path,
-        &config.sampling.placement_registry_path,
-        &forcefield,
-        config.forcefield.s_factor,
-    )?;
-
+fn prepare_context(
+    initial_system: &MolecularSystem,
+    config: &PlacementConfig,
+    rotamer_library: &mut RotamerLibrary,
+    topology_registry: &TopologyRegistry,
+) -> Result<HashSet<ResidueId>, EngineError> {
     let active_residues = resolve_selection_to_ids(
-        working_system,
+        initial_system,
         &config.residues_to_optimize,
-        &rotamer_library,
+        rotamer_library,
     )?;
 
     if config.optimization.include_input_conformation {
         info!("Including original side-chain conformations in the rotamer library.");
-        rotamer_library.include_system_conformations(working_system, &active_residues);
+        rotamer_library.include_system_conformations(
+            initial_system,
+            &active_residues,
+            topology_registry,
+        );
     }
-
-    reporter.report(Progress::PhaseFinish);
-    Ok((forcefield, rotamer_library, active_residues))
+    Ok(active_residues)
 }
 
-#[instrument(skip_all, name = "el_energy_precomputation")]
-fn precompute_el_energies<'a>(
-    context: &OptimizationContext<'a, PlacementConfig>,
-    reporter: &ProgressReporter,
-) -> Result<ELCache, EngineError> {
-    reporter.report(Progress::PhaseStart {
-        name: "EL Pre-computation",
-    });
-    let el_cache = tasks::el_energy::run(context)?;
-    reporter.report(Progress::PhaseFinish);
-    Ok(el_cache)
-}
-
-#[instrument(skip_all, name = "state_initialization")]
-fn initialize_state<'a>(
-    working_system: &MolecularSystem,
+fn calculate_initial_state(
+    context: &OptimizationContext<PlacementConfig>,
     active_residues: &HashSet<ResidueId>,
-    context: &OptimizationContext<'a, PlacementConfig>,
-    el_cache: &ELCache,
-    reporter: &ProgressReporter,
-) -> Result<OptimizationState, EngineError> {
-    reporter.report(Progress::PhaseStart {
-        name: "Initialization",
+) -> Result<(InitialState, EnergyTerm), EngineError> {
+    context.reporter.report(Progress::PhaseStart {
+        name: "Calculating Initial State",
     });
-    info!("Initializing system with ground-state rotamers.");
+    info!("Calculating energy of the initial input conformation.");
 
-    let mut initial_rotamers = HashMap::new();
-    let mut working_system = working_system.clone();
+    let energy_offset_constant = tasks::fixed_energy::run(context)?;
+    let initial_interaction_energy =
+        tasks::interaction_energy::run(context.system, context.forcefield, active_residues)?;
+    let initial_el_energy = tasks::el_energy::calculate_current(context)?;
+
+    let initial_optimization_score_term = initial_interaction_energy + initial_el_energy;
+    let initial_optimization_score = initial_optimization_score_term.total();
+    let initial_total_energy = initial_optimization_score + energy_offset_constant.total();
+
+    let initial_state = InitialState {
+        system: context.system.clone(),
+        total_energy: initial_total_energy,
+        optimization_score: initial_optimization_score,
+    };
+
+    info!(
+        total_energy = initial_total_energy,
+        optimization_score = initial_optimization_score,
+        "Initial state calculated."
+    );
+    context.reporter.report(Progress::PhaseFinish);
+    Ok((initial_state, energy_offset_constant))
+}
+
+fn initialize_optimization_state(
+    context: &OptimizationContext<PlacementConfig>,
+    active_residues: &HashSet<ResidueId>,
+    el_cache: &ELCache,
+) -> Result<OptimizationState, EngineError> {
+    context.reporter.report(Progress::PhaseStart {
+        name: "Initializing Ground State",
+    });
+    info!("Placing ground-state rotamers to initialize optimization.");
+
+    let mut ground_state_system = context.system.clone();
+    let mut ground_state_rotamers = HashMap::new();
+    let mut ground_state_el_energy = EnergyTerm::default();
 
     for &residue_id in active_residues {
-        let residue_type = working_system
-            .residue(residue_id)
-            .and_then(|r| r.residue_type)
-            .ok_or(EngineError::Internal(format!(
-                "Active residue {:?} has no residue type.",
-                residue_id
-            )))?;
+        let residue = context.system.residue(residue_id).unwrap();
+        if let Some(residue_type) = residue.residue_type {
+            if let Some((idx, energy)) = el_cache.find_ground_state_for(residue_id, residue_type) {
+                ground_state_rotamers.insert(residue_id, idx);
+                ground_state_el_energy += *energy;
 
-        if let Some((ground_state_idx, _)) =
-            el_cache.find_ground_state_for(residue_id, residue_type)
-        {
-            let rotamer = &context
-                .rotamer_library
-                .get_rotamers_for(residue_type)
-                .unwrap()[ground_state_idx];
-            let p_info = context
-                .rotamer_library
-                .get_placement_info_for(residue_type)
-                .unwrap();
-            place_rotamer_on_system(&mut working_system, residue_id, rotamer, p_info)?;
-            initial_rotamers.insert(residue_id, ground_state_idx);
-        } else {
-            warn!(
-                "No ground state found in EL cache for residue {:?}. It may not be placed correctly initially.",
-                residue_id
-            );
+                let rotamer = &context
+                    .rotamer_library
+                    .get_rotamers_for(residue_type)
+                    .unwrap()[idx];
+                let res_name = residue_type.to_three_letter();
+                let topology = context.topology_registry.get(res_name).unwrap();
+                place_rotamer_on_system(&mut ground_state_system, residue_id, rotamer, topology)?;
+            }
         }
     }
 
-    let initial_energy_term = tasks::total_energy::run(
-        &working_system,
-        context.forcefield,
-        active_residues,
-        &initial_rotamers,
-        el_cache,
-    )?;
-    let initial_energy = initial_energy_term.total();
-    info!(initial_energy, "Initial system energy calculated.");
+    let ground_state_interaction =
+        tasks::interaction_energy::run(&ground_state_system, context.forcefield, active_residues)?;
 
-    let state = OptimizationState::new(
-        working_system,
-        initial_rotamers,
-        initial_energy,
-        context.config.optimization.num_solutions,
+    let ground_state_optimization_score =
+        (ground_state_el_energy + ground_state_interaction).total();
+
+    info!(
+        score = ground_state_optimization_score,
+        "Ground state optimization score calculated."
     );
+    context.reporter.report(Progress::PhaseFinish);
 
-    reporter.report(Progress::PhaseFinish);
-    Ok(state)
+    Ok(OptimizationState::new(
+        ground_state_system,
+        ground_state_rotamers,
+        ground_state_optimization_score,
+        context.config.optimization.num_solutions,
+    ))
 }
 
-#[instrument(skip_all, name = "clash_resolution_loop")]
-fn resolve_clashes_iteratively<'a>(
+fn resolve_clashes(
     state: &mut OptimizationState,
     active_residues: &HashSet<ResidueId>,
-    context: &OptimizationContext<'a, PlacementConfig>,
+    context: &OptimizationContext<PlacementConfig>,
     el_cache: &ELCache,
-    reporter: &ProgressReporter,
 ) -> Result<(), EngineError> {
-    reporter.report(Progress::PhaseStart {
+    context.reporter.report(Progress::PhaseStart {
         name: "Clash Resolution",
     });
     info!("Starting iterative clash resolution loop.");
 
-    let max_iterations = context.config.optimization.max_iterations;
-    let convergence_energy_threshold = context.config.optimization.convergence.energy_threshold;
-    let convergence_patience_iterations =
-        context.config.optimization.convergence.patience_iterations;
+    let max_iter = context.config.optimization.max_iterations;
+    let energy_threshold = context.config.optimization.convergence.energy_threshold;
+    let patience_iterations = context.config.optimization.convergence.patience_iterations;
 
-    let mut last_total_energy = state.best_solution().map(|s| s.energy).unwrap_or(f64::MAX);
-    let mut iterations_without_significant_improvement = 0;
+    let mut last_best_score = state.best_energy();
+    let mut iterations_without_improvement = 0;
 
-    for iteration in 0..max_iterations {
+    for iter in 0..max_iter {
         let clashes = tasks::clash_detection::run(
             &state.working_state.system,
             context.forcefield,
             active_residues,
-            CLASH_THRESHOLD,
-            reporter,
+            CLASH_THRESHOLD_KCAL_MOL,
+            context.reporter,
         )?;
 
-        reporter.report(Progress::StatusUpdate {
-            text: format!(
-                "Pass {}/{}, Clashes Found: {}",
-                iteration + 1,
-                max_iterations,
-                clashes.len()
-            ),
+        context.reporter.report(Progress::StatusUpdate {
+            text: format!("Pass {}/{}, Clashes: {}", iter + 1, max_iter, clashes.len()),
         });
 
         if clashes.is_empty() {
             info!(
-                "System converged after {} clash resolution iterations (no clashes found).",
-                iteration
+                iteration = iter + 1,
+                "Convergence reached: no clashes found."
             );
-            reporter.report(Progress::Message(format!(
+            context.reporter.report(Progress::Message(format!(
                 "Converged after {} iterations (no clashes).",
-                iteration
+                iter + 1
             )));
             break;
         }
 
         let worst_clash = &clashes[0];
+        let (res_a_id, res_b_id) = (worst_clash.residue_a, worst_clash.residue_b);
 
         let doublet_result = tasks::doublet_optimization::run(
-            worst_clash.residue_a,
-            worst_clash.residue_b,
+            res_a_id,
+            res_b_id,
             &state.working_state.system,
             el_cache,
             context,
         )?;
 
-        let res_a_id = worst_clash.residue_a;
-        let res_b_id = worst_clash.residue_b;
-        let res_a_type = state
-            .working_state
-            .system
-            .residue(res_a_id)
-            .unwrap()
-            .residue_type
-            .unwrap();
-        let rotamer_a = &context
-            .rotamer_library
-            .get_rotamers_for(res_a_type)
-            .unwrap()[doublet_result.rotamer_idx_a];
-        let p_info_a = context
-            .rotamer_library
-            .get_placement_info_for(res_a_type)
-            .unwrap();
-        place_rotamer_on_system(
-            &mut state.working_state.system,
-            res_a_id,
-            rotamer_a,
-            p_info_a,
-        )?;
-        state
-            .working_state
-            .rotamers
-            .insert(res_a_id, doublet_result.rotamer_idx_a);
+        update_rotamers_in_state(state, res_a_id, doublet_result.rotamer_idx_a, context)?;
+        update_rotamers_in_state(state, res_b_id, doublet_result.rotamer_idx_b, context)?;
 
-        let res_b_type = state
-            .working_state
-            .system
-            .residue(res_b_id)
-            .unwrap()
-            .residue_type
-            .unwrap();
-        let rotamer_b = &context
-            .rotamer_library
-            .get_rotamers_for(res_b_type)
-            .unwrap()[doublet_result.rotamer_idx_b];
-        let p_info_b = context
-            .rotamer_library
-            .get_placement_info_for(res_b_type)
-            .unwrap();
-        place_rotamer_on_system(
-            &mut state.working_state.system,
-            res_b_id,
-            rotamer_b,
-            p_info_b,
-        )?;
-        state
-            .working_state
-            .rotamers
-            .insert(res_b_id, doublet_result.rotamer_idx_b);
-
-        let energy_after_update = tasks::total_energy::run(
-            &state.working_state.system,
-            context.forcefield,
-            active_residues,
-            &state.working_state.rotamers,
-            el_cache,
-        )?
-        .total();
-        state.current_energy = energy_after_update;
+        let new_score = calculate_optimization_score(state, active_residues, context, el_cache)?;
+        state.current_optimization_score = new_score;
         state.submit_current_solution();
 
-        let current_best_energy = state.best_solution().unwrap().energy;
-        let energy_improvement = last_total_energy - current_best_energy;
+        let current_best_score = state.best_energy();
+        let improvement = last_best_score - current_best_score;
 
-        if energy_improvement < convergence_energy_threshold {
-            iterations_without_significant_improvement += 1;
+        if improvement < energy_threshold {
+            iterations_without_improvement += 1;
         } else {
-            iterations_without_significant_improvement = 0;
+            iterations_without_improvement = 0;
         }
 
-        last_total_energy = current_best_energy;
+        last_best_score = current_best_score;
 
-        if iterations_without_significant_improvement >= convergence_patience_iterations {
+        if iterations_without_improvement >= patience_iterations {
             info!(
-                "System converged after {} clash resolution iterations (energy stabilized below {}).",
-                iteration, convergence_energy_threshold
+                iteration = iter + 1,
+                patience = patience_iterations,
+                threshold = energy_threshold,
+                "Convergence reached: energy stabilized."
             );
-            reporter.report(Progress::Message(format!(
+            context.reporter.report(Progress::Message(format!(
                 "Converged after {} iterations (energy stabilized).",
-                iteration
+                iter + 1
             )));
             break;
         }
     }
-    reporter.report(Progress::PhaseFinish);
+
+    context.reporter.report(Progress::PhaseFinish);
     Ok(())
 }
 
-#[instrument(skip_all, name = "final_refinement_loop")]
-fn final_refinement<'a>(
+fn run_simulated_annealing(
     state: &mut OptimizationState,
     active_residues: &HashSet<ResidueId>,
-    context: &OptimizationContext<'a, PlacementConfig>,
+    context: &OptimizationContext<PlacementConfig>,
     el_cache: &ELCache,
-    reporter: &ProgressReporter,
 ) -> Result<(), EngineError> {
-    reporter.report(Progress::PhaseStart {
+    let sa_config = match &context.config.optimization.simulated_annealing {
+        Some(config) => config,
+        None => return Ok(()),
+    };
+    context.reporter.report(Progress::PhaseStart {
+        name: "Simulated Annealing",
+    });
+    info!("Starting Simulated Annealing.");
+
+    let mut rng = thread_rng();
+    let mut current_temp = sa_config.initial_temperature;
+    let active_residue_vec: Vec<_> = active_residues.iter().cloned().collect();
+
+    while current_temp > sa_config.final_temperature {
+        context.reporter.report(Progress::StatusUpdate {
+            text: format!("SA Temp: {:.2}", current_temp),
+        });
+        for _ in 0..sa_config.steps_per_temperature {
+            let res_id = *active_residue_vec.choose(&mut rng).unwrap();
+            let res_type = state
+                .working_state
+                .system
+                .residue(res_id)
+                .unwrap()
+                .residue_type
+                .unwrap();
+            let rotamers = context.rotamer_library.get_rotamers_for(res_type).unwrap();
+            if rotamers.len() <= 1 {
+                continue;
+            }
+
+            let current_rot_idx = state.working_state.rotamers[&res_id];
+            let new_rot_idx = (0..rotamers.len())
+                .filter(|&i| i != current_rot_idx)
+                .choose(&mut rng)
+                .unwrap();
+
+            let original_system = state.working_state.system.clone();
+            let original_rotamers = state.working_state.rotamers.clone();
+            let original_score = state.current_optimization_score;
+
+            update_rotamers_in_state(state, res_id, new_rot_idx, context)?;
+            let new_score =
+                calculate_optimization_score(state, active_residues, context, el_cache)?;
+
+            let delta_e = new_score - original_score;
+            if delta_e < 0.0 || rng.r#gen::<f64>() < (-delta_e / current_temp).exp() {
+                state.current_optimization_score = new_score;
+                state.submit_current_solution();
+            } else {
+                state.working_state.system = original_system;
+                state.working_state.rotamers = original_rotamers;
+                state.current_optimization_score = original_score;
+            }
+        }
+        current_temp *= sa_config.cooling_rate;
+    }
+
+    context.reporter.report(Progress::PhaseFinish);
+    Ok(())
+}
+
+fn final_refinement(
+    state: &mut OptimizationState,
+    active_residues: &HashSet<ResidueId>,
+    context: &OptimizationContext<PlacementConfig>,
+    el_cache: &ELCache,
+) -> Result<(), EngineError> {
+    let iterations = context.config.optimization.final_refinement_iterations;
+    if iterations == 0 {
+        return Ok(());
+    }
+
+    context.reporter.report(Progress::PhaseStart {
         name: "Final Refinement",
     });
     info!("Starting final refinement (singlet optimization).");
 
-    let final_refinement_iterations = context.config.optimization.final_refinement_iterations;
-    if final_refinement_iterations == 0 {
-        info!("Final refinement skipped as configured (0 iterations).");
-        reporter.report(Progress::PhaseFinish);
-        return Ok(());
-    }
-
-    for i in 0..final_refinement_iterations {
-        let mut changed_in_cycle = false;
-
-        info!(
-            "Beginning refinement pass {}/{}.",
-            i + 1,
-            final_refinement_iterations
-        );
-
-        reporter.report(Progress::StatusUpdate {
-            text: format!("Pass {}/{}", i + 1, final_refinement_iterations),
+    for i in 0..iterations {
+        context.reporter.report(Progress::StatusUpdate {
+            text: format!("Pass {}/{}", i + 1, iterations),
         });
 
-        reporter.report(Progress::TaskStart {
+        context.reporter.report(Progress::TaskStart {
             total: active_residues.len() as u64,
         });
 
-        let mut residues_to_process: Vec<ResidueId> = active_residues.iter().cloned().collect();
+        let mut changed_in_cycle = false;
+        let mut residues_to_process: Vec<_> = active_residues.iter().cloned().collect();
         residues_to_process.shuffle(&mut thread_rng());
 
-        for (res_idx, &residue_id) in residues_to_process.iter().enumerate() {
-            debug!(
-                "Refining residue {}/{} (ID: {:?}, Type: {})",
-                res_idx + 1,
-                residues_to_process.len(),
-                residue_id,
-                state.working_state.system.residue(residue_id).unwrap().name
-            );
-
-            let residue_type = state
+        for res_id in residues_to_process {
+            let res_type = state
                 .working_state
                 .system
-                .residue(residue_id)
+                .residue(res_id)
                 .unwrap()
                 .residue_type
                 .unwrap();
-            let rotamers = context
-                .rotamer_library
-                .get_rotamers_for(residue_type)
-                .unwrap();
-            let p_info = context
-                .rotamer_library
-                .get_placement_info_for(residue_type)
-                .unwrap();
+            let rotamers = context.rotamer_library.get_rotamers_for(res_type).unwrap();
 
-            let current_rot_idx = *state.working_state.rotamers.get(&residue_id).unwrap();
-            let mut best_rotamer_idx = current_rot_idx;
-            let mut best_energy = state.current_energy;
+            let current_rot_idx = state.working_state.rotamers[&res_id];
+            let mut best_idx = current_rot_idx;
+            let mut best_score = state.current_optimization_score;
 
-            let mut temp_system_for_eval = state.working_state.system.clone();
-            let mut temp_rotamers_for_eval = state.working_state.rotamers.clone();
-            let energy_of_current_rotamer = state.current_energy;
+            let original_system = state.working_state.system.clone();
+            let original_rotamers = state.working_state.rotamers.clone();
 
-            for (idx, rotamer) in rotamers.iter().enumerate() {
+            for idx in 0..rotamers.len() {
                 if idx == current_rot_idx {
                     continue;
                 }
 
-                place_rotamer_on_system(&mut temp_system_for_eval, residue_id, rotamer, p_info)?;
-                temp_rotamers_for_eval.insert(residue_id, idx);
+                update_rotamers_in_state(state, res_id, idx, context)?;
+                let score =
+                    calculate_optimization_score(state, active_residues, context, el_cache)?;
 
-                let new_energy = tasks::total_energy::run(
-                    &temp_system_for_eval,
-                    context.forcefield,
-                    active_residues,
-                    &temp_rotamers_for_eval,
-                    el_cache,
-                )?
-                .total();
-
-                if new_energy < best_energy {
-                    best_energy = new_energy;
-                    best_rotamer_idx = idx;
+                if score < best_score {
+                    best_score = score;
+                    best_idx = idx;
                 }
 
-                place_rotamer_on_system(
-                    &mut temp_system_for_eval,
-                    residue_id,
-                    &rotamers[current_rot_idx],
-                    p_info,
-                )?;
-                temp_rotamers_for_eval.insert(residue_id, current_rot_idx);
+                state.working_state.system = original_system.clone();
+                state.working_state.rotamers = original_rotamers.clone();
             }
 
-            if best_rotamer_idx != current_rot_idx {
+            if best_idx != current_rot_idx {
                 changed_in_cycle = true;
-
-                debug!(
-                    "  Found better rotamer for {:?}. Index: {} -> {}. Global energy: {:.2} -> {:.2}",
-                    residue_id,
-                    current_rot_idx,
-                    best_rotamer_idx,
-                    energy_of_current_rotamer,
-                    best_energy
-                );
-
-                let best_rotamer = &rotamers[best_rotamer_idx];
-                place_rotamer_on_system(
-                    &mut state.working_state.system,
-                    residue_id,
-                    best_rotamer,
-                    p_info,
-                )?;
-                state
-                    .working_state
-                    .rotamers
-                    .insert(residue_id, best_rotamer_idx);
-                state.current_energy = best_energy;
+                update_rotamers_in_state(state, res_id, best_idx, context)?;
+                state.current_optimization_score = best_score;
                 state.submit_current_solution();
             }
 
-            reporter.report(Progress::TaskIncrement { amount: 1 });
+            context
+                .reporter
+                .report(Progress::TaskIncrement { amount: 1 });
         }
 
-        reporter.report(Progress::TaskFinish);
+        context.reporter.report(Progress::TaskFinish);
 
-        if changed_in_cycle {
+        if !changed_in_cycle {
             info!(
-                "Refinement pass {} complete. At least one rotamer was changed. Current best energy: {:.4}",
-                i + 1,
-                state.best_solution().map(|s| s.energy).unwrap_or(f64::NAN)
+                iteration = i + 1,
+                "Refinement converged as no changes occurred in this pass."
             );
-        } else {
-            info!(
-                "Refinement converged after {} pass(es). No further improvements in this pass.",
-                i + 1
-            );
+            context
+                .reporter
+                .report(Progress::Message(format!("Converged after pass {}", i + 1)));
             break;
         }
     }
 
-    state.submit_current_solution();
-
-    reporter.report(Progress::PhaseFinish);
+    context.reporter.report(Progress::PhaseFinish);
     Ok(())
 }
 
-#[instrument(skip_all, name = "simulated_annealing_loop")]
-fn run_simulated_annealing<'a>(
-    state: &mut OptimizationState,
-    active_residues: &HashSet<ResidueId>,
-    context: &OptimizationContext<'a, PlacementConfig>,
-    el_cache: &ELCache,
-    reporter: &ProgressReporter,
-) -> Result<(), EngineError> {
-    reporter.report(Progress::PhaseStart {
-        name: "Simulated Annealing",
-    });
-    info!("Starting Simulated Annealing exploration.");
+fn finalize_results(
+    state: OptimizationState,
+    initial_state: InitialState,
+    energy_offset: EnergyTerm,
+    num_solutions: usize,
+) -> PlacementResult {
+    let mut solutions = state.into_sorted_solutions();
 
-    let sa_config = context
-        .config
-        .optimization
-        .simulated_annealing
-        .as_ref()
-        .unwrap();
+    let should_include_initial = if solutions.len() < num_solutions {
+        true
+    } else if let Some(worst_solution) = solutions.last() {
+        initial_state.optimization_score < worst_solution.optimization_score
+    } else {
+        true
+    };
 
-    let initial_temperature = sa_config.initial_temperature;
-    let final_temperature = sa_config.final_temperature;
-    let cooling_rate = sa_config.cooling_rate;
-    let steps_per_temperature = sa_config.steps_per_temperature;
-
-    let mut rng = thread_rng();
-    let mut current_temperature = initial_temperature;
-
-    let active_residues_vec: Vec<ResidueId> = active_residues.iter().cloned().collect();
-
-    let mut temp_step_current = 0;
-    while current_temperature > final_temperature {
-        temp_step_current += 1;
-        reporter.report(Progress::StatusUpdate {
-            text: format!(
-                "SA Temp: {:.4} (Step {})",
-                current_temperature, temp_step_current
-            ),
-        });
-
-        reporter.report(Progress::TaskStart {
-            total: steps_per_temperature as u64,
-        });
-
-        for _step in 0..steps_per_temperature {
-            let residue_to_perturb_id = *active_residues_vec.choose(&mut rng).unwrap();
-
-            let residue_type = state
-                .working_state
-                .system
-                .residue(residue_to_perturb_id)
-                .unwrap()
-                .residue_type
-                .unwrap();
-            let rotamers = context
-                .rotamer_library
-                .get_rotamers_for(residue_type)
-                .unwrap();
-            let p_info = context
-                .rotamer_library
-                .get_placement_info_for(residue_type)
-                .unwrap();
-
-            if rotamers.len() <= 1 {
-                reporter.report(Progress::TaskIncrement { amount: 1 });
-                continue;
-            }
-
-            let current_rot_idx = *state
-                .working_state
-                .rotamers
-                .get(&residue_to_perturb_id)
-                .unwrap();
-            let new_rot_idx = loop {
-                let r_idx = rng.gen_range(0..rotamers.len());
-                if r_idx != current_rot_idx {
-                    break r_idx;
-                }
-            };
-            let new_rotamer = &rotamers[new_rot_idx];
-
-            let current_total_energy = state.current_energy;
-
-            let mut temp_system_for_eval = state.working_state.system.clone();
-            let mut temp_rotamers_for_eval = state.working_state.rotamers.clone();
-
-            place_rotamer_on_system(
-                &mut temp_system_for_eval,
-                residue_to_perturb_id,
-                new_rotamer,
-                p_info,
-            )?;
-            temp_rotamers_for_eval.insert(residue_to_perturb_id, new_rot_idx);
-
-            let energy_after_change = tasks::total_energy::run(
-                &temp_system_for_eval,
-                context.forcefield,
-                active_residues,
-                &temp_rotamers_for_eval,
-                el_cache,
-            )?
-            .total();
-
-            let delta_e = energy_after_change - current_total_energy;
-
-            if delta_e < 0.0 {
-                info!("  SA accepted: ΔE={:.4} (downhill)", delta_e);
-                state.working_state.system = temp_system_for_eval;
-                state.working_state.rotamers = temp_rotamers_for_eval;
-                state.current_energy = energy_after_change;
-                state.submit_current_solution();
-            } else {
-                let acceptance_probability = (-delta_e / current_temperature).exp();
-                if rng.r#gen::<f64>() < acceptance_probability {
-                    info!(
-                        "  SA accepted: ΔE={:.4} (uphill, prob={:.4})",
-                        delta_e, acceptance_probability
-                    );
-                    state.working_state.system = temp_system_for_eval;
-                    state.working_state.rotamers = temp_rotamers_for_eval;
-                    state.current_energy = energy_after_change;
-                    state.submit_current_solution();
-                } else {
-                    info!(
-                        "  SA rejected: ΔE={:.4} (uphill, prob={:.4})",
-                        delta_e, acceptance_probability
-                    );
-                }
-            }
-            reporter.report(Progress::TaskIncrement { amount: 1 });
-        }
-
-        reporter.report(Progress::TaskFinish);
-
-        current_temperature *= cooling_rate;
+    if should_include_initial {
+        let initial_as_solution = Solution {
+            total_energy: initial_state.total_energy,
+            optimization_score: initial_state.optimization_score,
+            state: SolutionState {
+                system: initial_state.system.clone(),
+                rotamers: HashMap::new(),
+            },
+        };
+        solutions.push(initial_as_solution);
     }
-    info!("Simulated Annealing finished. Final temperature reached.");
-    reporter.report(Progress::PhaseFinish);
+
+    solutions.sort_by(|a, b| {
+        a.optimization_score
+            .partial_cmp(&b.optimization_score)
+            .unwrap()
+    });
+    solutions.dedup_by(|a, b| (a.optimization_score - b.optimization_score).abs() < 1e-6);
+    solutions.truncate(num_solutions);
+
+    for sol in &mut solutions {
+        sol.total_energy = sol.optimization_score + energy_offset.total();
+    }
+
+    PlacementResult {
+        initial_state,
+        solutions,
+    }
+}
+
+fn update_rotamers_in_state(
+    state: &mut OptimizationState,
+    res_id: ResidueId,
+    new_rot_idx: usize,
+    context: &OptimizationContext<PlacementConfig>,
+) -> Result<(), EngineError> {
+    let res_type = state
+        .working_state
+        .system
+        .residue(res_id)
+        .unwrap()
+        .residue_type
+        .unwrap();
+    let rotamer = &context.rotamer_library.get_rotamers_for(res_type).unwrap()[new_rot_idx];
+    let res_name = res_type.to_three_letter();
+    let topology = context.topology_registry.get(res_name).unwrap();
+
+    place_rotamer_on_system(&mut state.working_state.system, res_id, rotamer, topology)?;
+    state.working_state.rotamers.insert(res_id, new_rot_idx);
     Ok(())
+}
+
+fn calculate_optimization_score(
+    state: &OptimizationState,
+    active_residues: &HashSet<ResidueId>,
+    context: &OptimizationContext<PlacementConfig>,
+    el_cache: &ELCache,
+) -> Result<f64, EngineError> {
+    let mut el_sum = EnergyTerm::default();
+    for (&res_id, &rot_idx) in &state.working_state.rotamers {
+        let res_type = state
+            .working_state
+            .system
+            .residue(res_id)
+            .unwrap()
+            .residue_type
+            .unwrap();
+        el_sum += *el_cache
+            .get(res_id, res_type, rot_idx)
+            .unwrap_or(&EnergyTerm::default());
+    }
+
+    let interaction = tasks::interaction_energy::run(
+        &state.working_state.system,
+        context.forcefield,
+        active_residues,
+    )?;
+
+    Ok((el_sum + interaction).total())
 }
 
 #[cfg(test)]
@@ -646,7 +572,6 @@ mod tests {
     use super::*;
     use crate::core::forcefield::parameterization::Parameterizer;
     use crate::core::forcefield::params::Forcefield;
-    use crate::core::forcefield::scoring::Scorer;
     use crate::core::models::atom::Atom;
     use crate::core::models::chain::ChainType;
     use crate::core::models::ids::{AtomId, ChainId};
@@ -914,19 +839,16 @@ mod tests {
 
         pub struct TestSystemBuilder {
             system: MolecularSystem,
-            parameterizer: Parameterizer,
             last_c_id: Option<AtomId>,
             chain_id: ChainId,
         }
 
         impl TestSystemBuilder {
-            pub fn new(forcefield: Forcefield) -> Self {
+            pub fn new() -> Self {
                 let mut system = MolecularSystem::new();
                 let chain_id = system.add_chain('A', ChainType::Protein);
-                let parameterizer = Parameterizer::new(forcefield, 0.0);
                 Self {
                     system,
-                    parameterizer,
                     last_c_id: None,
                     chain_id,
                 }
@@ -935,12 +857,11 @@ mod tests {
             pub fn add_residue(mut self, residue_type: ResidueType, residue_number: isize) -> Self {
                 let template = RESIDUE_TEMPLATES
                     .get(residue_type.to_three_letter())
-                    .expect("Residue template not found");
+                    .unwrap();
 
                 let (rotation, translation) = if let Some(prev_c_id) = self.last_c_id {
                     let prev_c_atom = self.system.atom(prev_c_id).unwrap();
                     let prev_residue = self.system.residue(prev_c_atom.residue_id).unwrap();
-
                     let prev_ca_id = prev_residue.get_first_atom_id_by_name("CA").unwrap();
                     let prev_ca_atom = self.system.atom(prev_ca_id).unwrap();
 
@@ -987,16 +908,6 @@ mod tests {
                     let mut atom = Atom::new(atom_template.name, res_id, new_pos);
                     atom.force_field_type = atom_template.ff_type.to_string();
                     atom.partial_charge = atom_template.charge;
-
-                    self.parameterizer
-                        .parameterize_atom(&mut atom, residue_type.to_three_letter())
-                        .unwrap_or_else(|e| {
-                            panic!(
-                                "Failed to parameterize atom {} in test setup: {}",
-                                atom_template.name, e
-                            )
-                        });
-
                     let new_id = self.system.add_atom_to_residue(res_id, atom).unwrap();
                     name_to_id.insert(atom_template.name, new_id);
                 }
@@ -1027,7 +938,7 @@ mod tests {
             pub forcefield_path: PathBuf,
             pub delta_path: PathBuf,
             pub rotamer_lib_path: PathBuf,
-            pub placement_reg_path: PathBuf,
+            pub topology_registry_path: PathBuf,
             pub initial_system: MolecularSystem,
         }
 
@@ -1037,23 +948,26 @@ mod tests {
                 let forcefield_path = create_dummy_forcefield_file(temp_dir.path());
                 let delta_path = create_dummy_delta_file(temp_dir.path());
                 let rotamer_lib_path = create_dummy_rotamer_lib_file(temp_dir.path());
-                let placement_reg_path = create_dummy_placement_reg_file(temp_dir.path());
+                let topology_registry_path = create_dummy_topology_registry_file(temp_dir.path());
 
-                let forcefield = Forcefield::load(&forcefield_path, &delta_path)
-                    .expect("Failed to load dummy forcefield in test setup");
+                let forcefield = Forcefield::load(&forcefield_path, &delta_path).unwrap();
+                let topology_registry = TopologyRegistry::load(&topology_registry_path).unwrap();
 
-                let system = TestSystemBuilder::new(forcefield)
+                let mut system = TestSystemBuilder::new()
                     .add_residue(ResidueType::Alanine, 1)
                     .add_residue(ResidueType::Glycine, 2)
                     .add_residue(ResidueType::Leucine, 3)
                     .build();
+
+                let parameterizer = Parameterizer::new(&forcefield, &topology_registry, 0.8);
+                parameterizer.parameterize_system(&mut system).unwrap();
 
                 Self {
                     temp_dir,
                     forcefield_path,
                     delta_path,
                     rotamer_lib_path,
-                    placement_reg_path,
+                    topology_registry_path,
                     initial_system: system,
                 }
             }
@@ -1063,7 +977,7 @@ mod tests {
                     .forcefield_path(&self.forcefield_path)
                     .delta_params_path(&self.delta_path)
                     .rotamer_library_path(&self.rotamer_lib_path)
-                    .placement_registry_path(&self.placement_reg_path)
+                    .topology_registry_path(&self.topology_registry_path)
                     .s_factor(0.8)
                     .max_iterations(20)
                     .num_solutions(1)
@@ -1122,7 +1036,7 @@ mod tests {
                     {{ serial = 1, atom_name = "N", position = [-0.52, 1.36, 0.0], partial_charge = -0.47, force_field_type = "N_R" }},
                     {{ serial = 2, atom_name = "CA", position = [0.0, 0.0, 0.0], partial_charge = 0.07, force_field_type = "C_31" }},
                     {{ serial = 3, atom_name = "C", position = [1.2, -0.1, 0.9], partial_charge = 0.51, force_field_type = "C_R" }},
-                    {{ serial = 4, atom_name = "CB", position = [-0.76, -0.8, -1.08], partial_charge = -0.27, force_field_type = "C_33" }},
+                    {{ serial = 4, atom_name = "CB", position = [-1.5, -1.5, -1.5], partial_charge = -0.27, force_field_type = "C_33" }},
                     {{ serial = 5, atom_name = "HB1", position = [-0.21, -1.74, -1.16], partial_charge = 0.09, force_field_type = "H_" }},
                     {{ serial = 6, atom_name = "HB2", position = [-1.6, -0.4, -1.67], partial_charge = 0.09, force_field_type = "H_" }},
                     {{ serial = 7, atom_name = "HB3", position = [-1.2, -1.2, -0.19], partial_charge = 0.09, force_field_type = "H_" }}
@@ -1146,7 +1060,7 @@ mod tests {
                     {{ serial = 1, atom_name = "N", position = [-0.52, 1.36, 0.0], partial_charge = -0.47, force_field_type = "N_R" }},
                     {{ serial = 2, atom_name = "CA", position = [0.0, 0.0, 0.0], partial_charge = 0.07, force_field_type = "C_31" }},
                     {{ serial = 3, atom_name = "C", position = [1.2, -0.1, 0.9], partial_charge = 0.51, force_field_type = "C_R" }},
-                    {{ serial = 4, atom_name = "CB", position = [-0.8, -0.8, -1.1], partial_charge = -0.18, force_field_type = "C_32" }},
+                    {{ serial = 4, atom_name = "CB", position = [-2.0, -2.0, -2.0], partial_charge = -0.18, force_field_type = "C_32" }},
                     {{ serial = 5, atom_name = "HB1", position = [-0.2, -1.7, -1.2], partial_charge = 0.09, force_field_type = "H_" }},
                     {{ serial = 6, atom_name = "HB2", position = [-1.6, -0.4, -1.7], partial_charge = 0.09, force_field_type = "H_" }},
                     {{ serial = 7, atom_name = "CG", position = [-1.5, -1.5, 0.0], partial_charge = -0.09, force_field_type = "C_31" }},
@@ -1166,13 +1080,13 @@ mod tests {
                     {{ serial = 8, atom_name = "HG", position = [2.0, 0.2, 0.4], partial_charge = 0.09, force_field_type = "H_" }}
                 ]
                 bonds = [ [1,2], [2,3], [2,4], [4,5], [4,6], [4,7], [7,8] ]
-                "#
+            "#
             ).unwrap();
             path
         }
 
-        fn create_dummy_placement_reg_file(dir: &Path) -> PathBuf {
-            let path = dir.join("test.placement.toml");
+        fn create_dummy_topology_registry_file(dir: &Path) -> PathBuf {
+            let path = dir.join("test.topology.toml");
             let mut file = File::create(&path).unwrap();
             write!(
                 file,
@@ -1180,13 +1094,12 @@ mod tests {
                 [ALA]
                 anchor_atoms = ["N", "CA", "C"]
                 sidechain_atoms = ["CB", "HB1", "HB2", "HB3"]
-                exact_match_atoms = []
-                connection_points = []
+                [GLY]
+                anchor_atoms = ["N", "CA", "C"]
+                sidechain_atoms = []
                 [LEU]
                 anchor_atoms = ["N", "CA", "C"]
                 sidechain_atoms = ["CB", "HB1", "HB2", "CG", "HG"]
-                exact_match_atoms = []
-                connection_points = []
             "#
             )
             .unwrap();
@@ -1195,13 +1108,13 @@ mod tests {
     }
 
     fn get_sidechain_centroid(system: &MolecularSystem, res_id: ResidueId) -> Point3<f64> {
-        let residue = system.residue(res_id).unwrap();
-        let sc_atom_ids: Vec<_> = residue
+        let sc_atom_ids: Vec<_> = system
+            .residue(res_id)
+            .unwrap()
             .atoms()
             .iter()
             .filter(|id| {
-                let atom_name = &system.atom(**id).unwrap().name;
-                !["N", "H", "CA", "HA", "HA1", "HA2", "C", "O"].contains(&atom_name.as_str())
+                system.atom(**id).unwrap().role == crate::core::models::atom::AtomRole::Sidechain
             })
             .copied()
             .collect();
@@ -1228,38 +1141,27 @@ mod tests {
         let reporter = ProgressReporter::new();
 
         let system_to_run = env.initial_system.clone();
-        let initial_ala_centroid = get_sidechain_centroid(
-            &system_to_run,
-            system_to_run
-                .find_residue_by_id(system_to_run.find_chain_by_id('A').unwrap(), 1)
-                .unwrap(),
-        );
-        let initial_gly_centroid = get_sidechain_centroid(
-            &system_to_run,
-            system_to_run
-                .find_residue_by_id(system_to_run.find_chain_by_id('A').unwrap(), 2)
-                .unwrap(),
-        );
+        let ala_res_id = system_to_run
+            .find_residue_by_id(system_to_run.find_chain_by_id('A').unwrap(), 1)
+            .unwrap();
+        let gly_res_id = system_to_run
+            .find_residue_by_id(system_to_run.find_chain_by_id('A').unwrap(), 2)
+            .unwrap();
+
+        let initial_ala_centroid = get_sidechain_centroid(&system_to_run, ala_res_id);
+        let initial_gly_centroid = get_sidechain_centroid(&system_to_run, gly_res_id);
 
         let result = run(&system_to_run, &config, &reporter);
-
         assert!(result.is_ok(), "Workflow failed: {:?}", result.err());
-        let solutions = result.unwrap();
-        assert!(!solutions.is_empty());
 
-        let final_system = &solutions[0].state.system;
-        let final_ala_centroid = get_sidechain_centroid(
-            final_system,
-            final_system
-                .find_residue_by_id(final_system.find_chain_by_id('A').unwrap(), 1)
-                .unwrap(),
-        );
-        let final_gly_centroid = get_sidechain_centroid(
-            final_system,
-            final_system
-                .find_residue_by_id(final_system.find_chain_by_id('A').unwrap(), 2)
-                .unwrap(),
-        );
+        let placement_result = result.unwrap();
+        assert!(!placement_result.solutions.is_empty());
+
+        let best_solution = &placement_result.solutions[0];
+        let final_system = &best_solution.state.system;
+
+        let final_ala_centroid = get_sidechain_centroid(final_system, ala_res_id);
+        let final_gly_centroid = get_sidechain_centroid(final_system, gly_res_id);
 
         assert!(
             (final_ala_centroid - initial_ala_centroid).norm() > 1e-6,
@@ -1267,9 +1169,12 @@ mod tests {
         );
         assert!(
             (final_gly_centroid - initial_gly_centroid).norm() < 1e-6,
-            "Glycine sidechain should not have moved"
+            "Glycine has no sidechain to move"
         );
-        assert!(solutions[0].energy < 0.0, "Final energy should be negative");
+        assert!(
+            best_solution.total_energy < placement_result.initial_state.total_energy,
+            "Final total energy should be lower than initial"
+        );
     }
 
     #[test]
@@ -1283,14 +1188,20 @@ mod tests {
             .unwrap();
         let reporter = ProgressReporter::new();
 
-        let system_to_run = env.initial_system.clone();
-        let solutions = run(&system_to_run, &config, &reporter).unwrap();
+        let solutions = run(&env.initial_system, &config, &reporter)
+            .unwrap()
+            .solutions;
 
         assert!(
             solutions.len() <= 3 && !solutions.is_empty(),
             "Expected between 1 and 3 solutions"
         );
-        assert!(solutions.windows(2).all(|w| w[0].energy <= w[1].energy));
+        assert!(
+            solutions
+                .windows(2)
+                .all(|w| w[0].optimization_score <= w[1].optimization_score),
+            "Solutions should be sorted by optimization score"
+        );
     }
 
     #[test]
@@ -1310,35 +1221,26 @@ mod tests {
             .unwrap();
         let reporter = ProgressReporter::new();
 
-        let system_to_run = env.initial_system.clone();
-        let initial_ala_centroid = get_sidechain_centroid(
-            &system_to_run,
-            system_to_run
-                .find_residue_by_id(system_to_run.find_chain_by_id('A').unwrap(), 1)
-                .unwrap(),
-        );
-        let initial_leu_centroid = get_sidechain_centroid(
-            &system_to_run,
-            system_to_run
-                .find_residue_by_id(system_to_run.find_chain_by_id('A').unwrap(), 3)
-                .unwrap(),
-        );
+        let chain_a_id = env.initial_system.find_chain_by_id('A').unwrap();
+        let ala_res_id = env
+            .initial_system
+            .find_residue_by_id(chain_a_id, 1)
+            .unwrap();
+        let leu_res_id = env
+            .initial_system
+            .find_residue_by_id(chain_a_id, 3)
+            .unwrap();
 
-        let solutions = run(&system_to_run, &config, &reporter).unwrap();
+        let initial_ala_centroid = get_sidechain_centroid(&env.initial_system, ala_res_id);
+        let initial_leu_centroid = get_sidechain_centroid(&env.initial_system, leu_res_id);
+
+        let solutions = run(&env.initial_system, &config, &reporter)
+            .unwrap()
+            .solutions;
 
         let final_system = &solutions[0].state.system;
-        let final_ala_centroid = get_sidechain_centroid(
-            final_system,
-            final_system
-                .find_residue_by_id(final_system.find_chain_by_id('A').unwrap(), 1)
-                .unwrap(),
-        );
-        let final_leu_centroid = get_sidechain_centroid(
-            final_system,
-            final_system
-                .find_residue_by_id(final_system.find_chain_by_id('A').unwrap(), 3)
-                .unwrap(),
-        );
+        let final_ala_centroid = get_sidechain_centroid(final_system, ala_res_id);
+        let final_leu_centroid = get_sidechain_centroid(final_system, leu_res_id);
 
         assert!(
             (final_ala_centroid - initial_ala_centroid).norm() < 1e-6,
@@ -1380,38 +1282,44 @@ mod tests {
             .unwrap();
         let reporter = ProgressReporter::new();
         let forcefield = Forcefield::load(&env.forcefield_path, &env.delta_path).unwrap();
-        let scorer = Scorer::new(&clashing_system, &forcefield);
+        let scorer = crate::core::forcefield::scoring::Scorer::new(&clashing_system, &forcefield);
 
-        let initial_energy = scorer
+        let initial_interaction = scorer
             .score_interaction(
-                clashing_system.residue(ala_res_id).unwrap().atoms(),
-                clashing_system.residue(leu_res_id).unwrap().atoms(),
+                &clashing_system
+                    .residue(ala_res_id)
+                    .unwrap()
+                    .atoms()
+                    .iter()
+                    .map(|&id| id)
+                    .collect::<Vec<_>>(),
+                &clashing_system
+                    .residue(leu_res_id)
+                    .unwrap()
+                    .atoms()
+                    .iter()
+                    .map(|&id| id)
+                    .collect::<Vec<_>>(),
             )
             .unwrap();
 
         assert!(
-            initial_energy.vdw > 10.0,
+            initial_interaction.vdw > 10.0,
             "Test setup should create a severe clash. Got VdW energy: {}",
-            initial_energy.vdw
+            initial_interaction.vdw
         );
 
-        let result = run(&clashing_system, &config, &reporter);
-        assert!(
-            result.is_ok(),
-            "Workflow failed with error: {:?}",
-            result.err()
-        );
-        let solutions = result.unwrap();
+        let result = run(&clashing_system, &config, &reporter).unwrap();
 
         assert!(
-            !solutions.is_empty(),
+            !result.solutions.is_empty(),
             "Workflow should produce at least one solution"
         );
         assert!(
-            solutions[0].energy < initial_energy.total(),
-            "Final energy ({:.4}) should be much lower than the initial clashing energy ({:.4})",
-            solutions[0].energy,
-            initial_energy.total()
+            result.solutions[0].total_energy < result.initial_state.total_energy,
+            "Final total energy ({:.4}) should be much lower than the initial clashing energy ({:.4})",
+            result.solutions[0].total_energy,
+            result.initial_state.total_energy
         );
     }
 
@@ -1441,8 +1349,7 @@ mod tests {
             }
         }));
 
-        let system_to_run = env.initial_system.clone();
-        let result = run(&system_to_run, &config, &reporter);
+        let result = run(&env.initial_system, &config, &reporter);
 
         assert!(result.is_ok());
         assert!(
@@ -1465,16 +1372,15 @@ mod tests {
             .unwrap();
         let reporter = ProgressReporter::new();
 
-        let system_to_run = env.initial_system.clone();
-        let solutions = run(&system_to_run, &config, &reporter).unwrap();
+        let result = run(&env.initial_system, &config, &reporter).unwrap();
 
-        assert_eq!(solutions.len(), 1);
-        let final_system = &solutions[0].state.system;
+        assert_eq!(result.solutions.len(), 1);
+        let final_system = &result.solutions[0].state.system;
 
-        assert_eq!(
-            final_system.atoms_iter().count(),
-            env.initial_system.atoms_iter().count()
+        assert!(
+            (result.initial_state.total_energy - result.solutions[0].total_energy).abs() < 1e-9
         );
+
         for (id, initial_atom) in env.initial_system.atoms_iter() {
             let final_atom = final_system.atom(id).unwrap();
             assert!((final_atom.position - initial_atom.position).norm() < 1e-9);

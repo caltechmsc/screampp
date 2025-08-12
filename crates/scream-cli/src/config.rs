@@ -78,8 +78,6 @@ struct PartialForcefieldConfig {
 struct PartialSamplingConfig {
     #[serde(rename = "rotamer-library")]
     rotamer_library: Option<String>,
-    #[serde(rename = "placement-registry")]
-    placement_registry: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -128,6 +126,8 @@ pub struct PartialPlacementConfig {
     optimization: Option<PartialOptimizationConfig>,
     #[serde(rename = "residues-to-optimize")]
     residues_to_optimize: Option<PartialResidueSelection>,
+    #[serde(rename = "topology-registry-path")]
+    topology_registry: Option<String>,
 }
 
 impl PartialPlacementConfig {
@@ -201,11 +201,11 @@ impl PartialPlacementConfig {
                 .or(sampling_config.rotamer_library.as_ref()),
             "rotamer-library",
         )?;
-        let placement_registry_path = resolve(
-            args.placement_registry
+        let topology_registry_path = resolve(
+            args.topology_registry
                 .as_ref()
-                .or(sampling_config.placement_registry.as_ref()),
-            "placement-registry",
+                .or(self.topology_registry.as_ref()),
+            "topology-registry",
         )?;
         let s_factor = args
             .s_factor
@@ -221,7 +221,7 @@ impl PartialPlacementConfig {
             .delta_params_path(delta_params_path)
             .s_factor(s_factor)
             .rotamer_library_path(rotamer_library_path)
-            .placement_registry_path(placement_registry_path)
+            .topology_registry_path(topology_registry_path)
             .max_iterations(
                 args.max_iterations
                     .or(opt_config.max_iterations)
@@ -459,6 +459,8 @@ mod tests {
 
         let config_content = format!(
             r#"
+        topology-registry-path = "{}"
+
         [forcefield]
         s-factor = 0.8
         forcefield-path = "lj-12-6@0.4"
@@ -466,13 +468,12 @@ mod tests {
 
         [sampling]
         rotamer-library = "amber@rmsd-1.0"
-        placement-registry = "{}"
 
         [residues-to-optimize]
         type = "all"
         "#,
-            delta_csv_path.to_str().unwrap(),
-            reg_toml_path.to_str().unwrap()
+            reg_toml_path.to_str().unwrap(),
+            delta_csv_path.to_str().unwrap()
         );
 
         let config_path = write_config_file("config_defaults.toml", &config_content);
@@ -523,6 +524,8 @@ mod tests {
 
         let config_content = format!(
             r#"
+        topology-registry-path = "{}"
+
         [forcefield]
         s-factor = 0.5 # Will be overridden
         forcefield-path = "lj-12-6@0.4"
@@ -530,7 +533,6 @@ mod tests {
 
         [sampling]
         rotamer-library = "amber@rmsd-1.0"
-        placement-registry = "{}"
 
         [optimization]
         num-solutions = 5 # Will be overridden
@@ -538,8 +540,8 @@ mod tests {
         [residues-to-optimize]
         type = "all"
         "#,
-            delta_csv_path.to_str().unwrap(),
-            reg_toml_path.to_str().unwrap()
+            reg_toml_path.to_str().unwrap(),
+            delta_csv_path.to_str().unwrap()
         );
 
         let config_path = write_config_file("config_override.toml", &config_content);
@@ -582,6 +584,8 @@ mod tests {
 
         let config_content = format!(
             r#"
+        topology-registry-path = "{}"
+
         [forcefield]
         s-factor = 0.8
         forcefield-path = "lj-12-6@0.4"
@@ -589,7 +593,6 @@ mod tests {
 
         [sampling]
         rotamer-library = "amber@rmsd-1.0"
-        placement-registry = "{}"
 
         [optimization]
         num-solutions = 5 # Will be overridden by --set
@@ -597,8 +600,8 @@ mod tests {
         [residues-to-optimize]
         type = "all"
         "#,
-            delta_csv_path.to_str().unwrap(),
-            reg_toml_path.to_str().unwrap()
+            reg_toml_path.to_str().unwrap(),
+            delta_csv_path.to_str().unwrap()
         );
 
         let config_path = write_config_file("config_set.toml", &config_content);
@@ -639,9 +642,10 @@ mod tests {
 
         let config_content = format!(
             r#"
+        topology-registry-path = "{}"
+
         [sampling]
         rotamer-library = "amber@rmsd-1.0"
-        placement-registry = "{}"
         [residues-to-optimize]
         type = "all"
         "#,

@@ -6,7 +6,7 @@ use crate::ui::{CliProgressHandler, UiEvent};
 use screampp::{
     core::io::{bgf::BgfFile, traits::MolecularFile},
     engine::{progress::ProgressReporter, state::Solution},
-    workflows,
+    workflows::place,
 };
 use std::path::{Path, PathBuf};
 use tokio::sync::mpsc;
@@ -31,14 +31,13 @@ pub async fn run(args: PlaceArgs, ui_sender: mpsc::Sender<UiEvent>) -> Result<()
     let progress_handler = CliProgressHandler::new(ui_sender);
     let reporter = ProgressReporter::with_callback(progress_handler.get_callback());
 
-    println!("Starting side-chain placement...");
+    println!("\n🚀 Starting side-chain placement...");
     info!("Invoking the core placement workflow...");
 
-    let workflow_task =
-        task::spawn_blocking(move || workflows::place::run(&system, &final_config, &reporter));
+    let workflow_task = task::spawn_blocking(move || place::run(&system, &final_config, &reporter));
 
-    let solutions_result = match workflow_task.await {
-        Ok(Ok(solutions)) => Ok(solutions),
+    let placement_result = match workflow_task.await {
+        Ok(Ok(result)) => Ok(result),
         Ok(Err(e)) => Err(e.into()),
         Err(join_err) => {
             if join_err.is_panic() {
@@ -52,36 +51,110 @@ pub async fn run(args: PlaceArgs, ui_sender: mpsc::Sender<UiEvent>) -> Result<()
                 )))
             }
         }
-    };
+    }?;
 
-    let solutions = solutions_result?;
+    process_and_display_results(placement_result, &args.output, &metadata).await?;
+
+    Ok(())
+}
+
+async fn process_and_display_results(
+    result: place::PlacementResult,
+    output_template: &Path,
+    metadata: &screampp::core::io::bgf::BgfMetadata,
+) -> Result<()> {
+    let initial_state = result.initial_state;
+    let solutions = result.solutions;
 
     info!(
-        "Workflow finished, received {} solution(s).",
+        "Workflow finished. Initial score: {:.4}, Found {} solution(s).",
+        initial_state.optimization_score,
         solutions.len()
+    );
+
+    println!("\nWorkflow complete.\n");
+    println!("Initial System State:");
+    println!(
+        "  - Total Energy:       {:>12.4} kcal/mol",
+        initial_state.total_energy
+    );
+    println!(
+        "  - Optimization Score: {:>12.4} kcal/mol",
+        initial_state.optimization_score
     );
 
     if solutions.is_empty() {
         warn!("Workflow completed but found no valid solutions.");
-        println!("Warning: SCREAM finished but found no valid solutions.");
+        println!("\nWarning: SCREAM finished but found no valid solutions.");
     } else {
-        println!(
-            "Workflow complete. Writing {} solution(s)...",
-            solutions.len()
-        );
+        println!("\nFound {} solution(s):\n", solutions.len());
 
         for (i, solution) in solutions.iter().enumerate() {
-            let output_path = generate_output_path(&args.output, solution, i + 1, solutions.len());
+            let is_input_conformation =
+                (solution.optimization_score - initial_state.optimization_score).abs() < 1e-6;
+
+            let delta_total_energy = initial_state.total_energy - solution.total_energy;
+            let delta_opt_score = initial_state.optimization_score - solution.optimization_score;
+
+            let format_improvement = |delta: f64| -> String {
+                if delta > 1e-4 {
+                    format!("🔻 {:.2} kcal/mol", delta.abs())
+                } else if delta < -1e-4 {
+                    format!("🔺 {:.2} kcal/mol", delta.abs())
+                } else {
+                    format!("No change")
+                }
+            };
+
+            let total_energy_improvement_str = format_improvement(delta_total_energy);
+            let opt_score_improvement_str = format_improvement(delta_opt_score);
+
+            let title = if i == 0 {
+                format!("Solution {} (Best):", i + 1)
+            } else {
+                format!("Solution {}:", i + 1)
+            };
+            println!("{}", title);
+
+            if is_input_conformation {
+                println!(
+                    "  - Total Energy:       {:>12.4} kcal/mol (Input Conformation)",
+                    solution.total_energy
+                );
+                println!(
+                    "  - Optimization Score: {:>12.4} kcal/mol (Input Conformation)",
+                    solution.optimization_score
+                );
+            } else {
+                println!(
+                    "  - Total Energy:       {:>12.4} kcal/mol ({})",
+                    solution.total_energy, total_energy_improvement_str
+                );
+                println!(
+                    "  - Optimization Score: {:>12.4} kcal/mol ({})",
+                    solution.optimization_score, opt_score_improvement_str
+                );
+            }
+
+            let output_path =
+                generate_output_path(output_template, solution, i + 1, solutions.len());
             info!(
-                "Writing solution {} (Energy: {:.4}) to {:?}",
+                "Writing solution {} (Total Energy: {:.4}, Opt Score: {:.4}) to {:?}",
                 i + 1,
-                solution.energy,
+                solution.total_energy,
+                solution.optimization_score,
                 &output_path
             );
 
+            let system_to_write = if is_input_conformation {
+                &initial_state.system
+            } else {
+                &solution.state.system
+            };
+
             BgfFile::write_to(
-                &solution.state.system,
-                &metadata,
+                system_to_write,
+                metadata,
                 &mut std::fs::File::create(&output_path)?,
             )
             .map_err(|e| CliError::FileParsing {
@@ -89,23 +162,12 @@ pub async fn run(args: PlaceArgs, ui_sender: mpsc::Sender<UiEvent>) -> Result<()
                 source: e.into(),
             })?;
 
-            if i == 0 {
-                println!(
-                    "✓ Best solution (Energy: {:.4} kcal/mol) written to: {}",
-                    solution.energy,
-                    output_path.display()
-                );
-            } else {
-                println!(
-                    "  Solution {} (Energy: {:.4} kcal/mol) written to: {}",
-                    i + 1,
-                    solution.energy,
-                    output_path.display()
-                );
-            }
+            println!("  - Written to: {}", output_path.display());
+            println!();
         }
     }
 
+    println!("✅ Done.");
     Ok(())
 }
 
@@ -115,7 +177,7 @@ fn generate_output_path(
     index: usize,
     total: usize,
 ) -> PathBuf {
-    if total <= 1 {
+    if total == 1 && !base_path_template.to_str().unwrap_or("").contains('{') {
         return base_path_template.to_path_buf();
     }
 
@@ -126,9 +188,18 @@ fn generate_output_path(
         }
     };
 
-    let contains_placeholder = ["{n}", "{i}", "{N}", "{total}", "{energy}"]
-        .iter()
-        .any(|p| template_str.contains(p));
+    let contains_placeholder = [
+        "{n}",
+        "{i}",
+        "{N}",
+        "{total}",
+        "{total_energy}",
+        "{energy}",
+        "{opt_score}",
+        "{score}",
+    ]
+    .iter()
+    .any(|p| template_str.contains(p));
 
     if contains_placeholder {
         let path_str = template_str
@@ -136,7 +207,13 @@ fn generate_output_path(
             .replace("{i}", &index.to_string())
             .replace("{N}", &total.to_string())
             .replace("{total}", &total.to_string())
-            .replace("{energy}", &format!("{:.2}", solution.energy));
+            .replace("{total_energy}", &format!("{:.2}", solution.total_energy))
+            .replace("{energy}", &format!("{:.2}", solution.total_energy))
+            .replace(
+                "{opt_score}",
+                &format!("{:.2}", solution.optimization_score),
+            )
+            .replace("{score}", &format!("{:.2}", solution.optimization_score));
         PathBuf::from(path_str)
     } else {
         generate_indexed_path(base_path_template, index)
@@ -174,15 +251,14 @@ mod tests {
 
     fn mock_solution(energy: f64) -> Solution {
         Solution {
-            energy,
+            total_energy: energy,
+            optimization_score: energy,
             state: SolutionState {
                 system: MolecularSystem::new(),
                 rotamers: HashMap::new(),
             },
         }
     }
-
-    const PLACEHOLDERS: &[&str] = &["{n}", "{i}", "{N}", "{total}", "{energy}"];
 
     #[test]
     fn generate_indexed_path_should_add_suffix_to_filename_with_extension() {
