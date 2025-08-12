@@ -1,7 +1,7 @@
 use clap::{Args, Parser, Subcommand};
 use std::path::PathBuf;
 
-const AUTHORS: &str = "Tony Kan, Ted Yu, William A. Goddard III, Victor Wai Tak Kam";
+const AUTHORS: &str = "Tony Kan, Ted Yu, Soo-Kyung Kim, William A. Goddard III, Victor Wai Tak Kam";
 const ABOUT: &str = "SCREAM++ CLI - A command-line interface for SCREAM++, an advanced computational framework for automated protein side-chain placement and structural redesign.";
 const COPYRIGHT: &str = "Copyright (c) 2025 California Institute of Technology, Materials and Process Simulation Center (MSC)";
 const HELP_TEMPLATE: &str = "\
