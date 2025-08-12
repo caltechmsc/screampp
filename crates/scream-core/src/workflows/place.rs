@@ -396,6 +396,11 @@ fn final_refinement(
         context.reporter.report(Progress::StatusUpdate {
             text: format!("Pass {}/{}", i + 1, iterations),
         });
+
+        context.reporter.report(Progress::TaskStart {
+            total: active_residues.len() as u64,
+        });
+
         let mut changed_in_cycle = false;
         let mut residues_to_process: Vec<_> = active_residues.iter().cloned().collect();
         residues_to_process.shuffle(&mut thread_rng());
@@ -410,14 +415,15 @@ fn final_refinement(
                 .unwrap();
             let rotamers = context.rotamer_library.get_rotamers_for(res_type).unwrap();
 
-            let mut best_idx = state.working_state.rotamers[&res_id];
+            let current_rot_idx = state.working_state.rotamers[&res_id];
+            let mut best_idx = current_rot_idx;
             let mut best_score = state.current_optimization_score;
 
             let original_system = state.working_state.system.clone();
             let original_rotamers = state.working_state.rotamers.clone();
 
             for idx in 0..rotamers.len() {
-                if idx == best_idx {
+                if idx == current_rot_idx {
                     continue;
                 }
 
@@ -434,15 +440,28 @@ fn final_refinement(
                 state.working_state.rotamers = original_rotamers.clone();
             }
 
-            if best_idx != original_rotamers[&res_id] {
+            if best_idx != current_rot_idx {
                 changed_in_cycle = true;
                 update_rotamers_in_state(state, res_id, best_idx, context)?;
                 state.current_optimization_score = best_score;
                 state.submit_current_solution();
             }
+
+            context
+                .reporter
+                .report(Progress::TaskIncrement { amount: 1 });
         }
+
+        context.reporter.report(Progress::TaskFinish);
+
         if !changed_in_cycle {
-            info!(iteration = i + 1, "Refinement converged.");
+            info!(
+                iteration = i + 1,
+                "Refinement converged as no changes occurred in this pass."
+            );
+            context
+                .reporter
+                .report(Progress::Message(format!("Converged after pass {}", i + 1)));
             break;
         }
     }
