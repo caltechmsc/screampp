@@ -216,7 +216,7 @@ fn initialize_optimization_state(
 fn resolve_clashes(
     state: &mut OptimizationState,
     active_residues: &HashSet<ResidueId>,
-    context: &OptimizationContext<'a, PlacementConfig>,
+    context: &OptimizationContext<PlacementConfig>,
     el_cache: &ELCache,
 ) -> Result<(), EngineError> {
     context.reporter.report(Progress::PhaseStart {
@@ -224,150 +224,82 @@ fn resolve_clashes(
     });
     info!("Starting iterative clash resolution loop.");
 
-    let max_iterations = context.config.optimization.max_iterations;
-    let convergence_energy_threshold = context.config.optimization.convergence.energy_threshold;
-    let convergence_patience_iterations =
-        context.config.optimization.convergence.patience_iterations;
+    let max_iter = context.config.optimization.max_iterations;
+    let energy_threshold = context.config.optimization.convergence.energy_threshold;
+    let patience_iterations = context.config.optimization.convergence.patience_iterations;
 
-    let mut last_total_energy = state.best_solution().map(|s| s.energy).unwrap_or(f64::MAX);
-    let mut iterations_without_significant_improvement = 0;
+    let mut last_best_score = state.best_energy();
+    let mut iterations_without_improvement = 0;
 
-    for iteration in 0..max_iterations {
+    for iter in 0..max_iter {
         let clashes = tasks::clash_detection::run(
             &state.working_state.system,
             context.forcefield,
             active_residues,
-            CLASH_THRESHOLD,
+            CLASH_THRESHOLD_KCAL_MOL,
             context.reporter,
         )?;
 
         context.reporter.report(Progress::StatusUpdate {
-            text: format!(
-                "Pass {}/{}, Clashes Found: {}",
-                iteration + 1,
-                max_iterations,
-                clashes.len()
-            ),
+            text: format!("Pass {}/{}, Clashes: {}", iter + 1, max_iter, clashes.len()),
         });
 
         if clashes.is_empty() {
             info!(
-                "System converged after {} clash resolution iterations (no clashes found).",
-                iteration
+                iteration = iter + 1,
+                "Convergence reached: no clashes found."
             );
             context.reporter.report(Progress::Message(format!(
                 "Converged after {} iterations (no clashes).",
-                iteration
+                iter + 1
             )));
             break;
         }
 
         let worst_clash = &clashes[0];
+        let (res_a_id, res_b_id) = (worst_clash.residue_a, worst_clash.residue_b);
 
         let doublet_result = tasks::doublet_optimization::run(
-            worst_clash.residue_a,
-            worst_clash.residue_b,
+            res_a_id,
+            res_b_id,
             &state.working_state.system,
             el_cache,
             context,
         )?;
 
-        let res_a_id = worst_clash.residue_a;
-        let res_b_id = worst_clash.residue_b;
-        let res_a_type = state
-            .working_state
-            .system
-            .residue(res_a_id)
-            .unwrap()
-            .residue_type
-            .unwrap();
-        let rotamer_a = &context
-            .rotamer_library
-            .get_rotamers_for(res_a_type)
-            .unwrap()[doublet_result.rotamer_idx_a];
+        update_rotamers_in_state(state, res_a_id, doublet_result.rotamer_idx_a, context)?;
+        update_rotamers_in_state(state, res_b_id, doublet_result.rotamer_idx_b, context)?;
 
-        let res_name_a = res_a_type.to_three_letter();
-        let topology_a = context.topology_registry.get(res_name_a).ok_or_else(|| {
-            EngineError::TopologyNotFound {
-                residue_name: res_name_a.to_string(),
-            }
-        })?;
-        place_rotamer_on_system(
-            &mut state.working_state.system,
-            res_a_id,
-            rotamer_a,
-            topology_a,
-        )?;
-
-        state
-            .working_state
-            .rotamers
-            .insert(res_a_id, doublet_result.rotamer_idx_a);
-
-        let res_b_type = state
-            .working_state
-            .system
-            .residue(res_b_id)
-            .unwrap()
-            .residue_type
-            .unwrap();
-        let rotamer_b = &context
-            .rotamer_library
-            .get_rotamers_for(res_b_type)
-            .unwrap()[doublet_result.rotamer_idx_b];
-
-        let res_name_b = res_b_type.to_three_letter();
-        let topology_b = context.topology_registry.get(res_name_b).ok_or_else(|| {
-            EngineError::TopologyNotFound {
-                residue_name: res_name_b.to_string(),
-            }
-        })?;
-        place_rotamer_on_system(
-            &mut state.working_state.system,
-            res_b_id,
-            rotamer_b,
-            topology_b,
-        )?;
-
-        state
-            .working_state
-            .rotamers
-            .insert(res_b_id, doublet_result.rotamer_idx_b);
-
-        let energy_after_update = tasks::total_energy::run(
-            &state.working_state.system,
-            context.forcefield,
-            active_residues,
-            &state.working_state.rotamers,
-            el_cache,
-        )?
-        .total();
-        state.current_energy = energy_after_update;
+        let new_score = calculate_optimization_score(state, active_residues, context, el_cache)?;
+        state.current_optimization_score = new_score;
         state.submit_current_solution();
 
-        let current_best_energy = state.best_solution().unwrap().energy;
-        let energy_improvement = last_total_energy - current_best_energy;
+        let current_best_score = state.best_energy();
+        let improvement = last_best_score - current_best_score;
 
-        if energy_improvement < convergence_energy_threshold {
-            iterations_without_significant_improvement += 1;
+        if improvement < energy_threshold {
+            iterations_without_improvement += 1;
         } else {
-            iterations_without_significant_improvement = 0;
+            iterations_without_improvement = 0;
         }
 
-        last_total_energy = current_best_energy;
+        last_best_score = current_best_score;
 
-        if iterations_without_significant_improvement >= convergence_patience_iterations {
+        if iterations_without_improvement >= patience_iterations {
             info!(
-                "System converged after {} clash resolution iterations (energy stabilized below {}).",
-                iteration, convergence_energy_threshold
+                iteration = iter + 1,
+                patience = patience_iterations,
+                threshold = energy_threshold,
+                "Convergence reached: energy stabilized."
             );
             context.reporter.report(Progress::Message(format!(
                 "Converged after {} iterations (energy stabilized).",
-                iteration
+                iter + 1
             )));
             break;
         }
     }
+
     context.reporter.report(Progress::PhaseFinish);
     Ok(())
 }
