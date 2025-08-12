@@ -161,76 +161,59 @@ fn calculate_initial_state(
     Ok((initial_state, energy_offset_constant))
 }
 
-#[instrument(skip_all, name = "state_initialization")]
-fn initialize_state<'a>(
-    working_system: &MolecularSystem,
+fn initialize_optimization_state(
+    context: &OptimizationContext<PlacementConfig>,
     active_residues: &HashSet<ResidueId>,
-    context: &OptimizationContext<'a, PlacementConfig>,
     el_cache: &ELCache,
 ) -> Result<OptimizationState, EngineError> {
     context.reporter.report(Progress::PhaseStart {
-        name: "Initialization",
+        name: "Initializing Ground State",
     });
-    info!("Initializing system with ground-state rotamers.");
+    info!("Placing ground-state rotamers to initialize optimization.");
 
-    let mut initial_rotamers = HashMap::new();
-    let mut working_system = working_system.clone();
+    let mut ground_state_system = context.system.clone();
+    let mut ground_state_rotamers = HashMap::new();
+    let mut ground_state_el_energy = EnergyTerm::default();
 
     for &residue_id in active_residues {
-        let residue = working_system.residue(residue_id).unwrap();
+        let residue = context.system.residue(residue_id).unwrap();
         if let Some(residue_type) = residue.residue_type {
-            let (ground_state_idx, _) = el_cache
-                .find_ground_state_for(residue_id, residue_type)
-                .ok_or_else(|| {
-                    EngineError::Internal(format!(
-                        "Could not find ground state for active residue {:?} in ELCache.",
-                        residue_id
-                    ))
-                })?;
+            if let Some((idx, energy)) = el_cache.find_ground_state_for(residue_id, residue_type) {
+                ground_state_rotamers.insert(residue_id, idx);
+                ground_state_el_energy += *energy;
 
-            initial_rotamers.insert(residue_id, ground_state_idx);
-
-            let rotamers = context
-                .rotamer_library
-                .get_rotamers_for(residue_type)
-                .unwrap();
-
-            if let Some(rotamer) = rotamers.get(ground_state_idx) {
-                let residue_name = residue_type.to_three_letter();
-                let topology = context.topology_registry.get(residue_name).ok_or_else(|| {
-                    EngineError::TopologyNotFound {
-                        residue_name: residue_name.to_string(),
-                    }
-                })?;
-
-                place_rotamer_on_system(&mut working_system, residue_id, rotamer, topology)?;
+                let rotamer = &context
+                    .rotamer_library
+                    .get_rotamers_for(residue_type)
+                    .unwrap()[idx];
+                let res_name = residue_type.to_three_letter();
+                let topology = context.topology_registry.get(res_name).unwrap();
+                place_rotamer_on_system(&mut ground_state_system, residue_id, rotamer, topology)?;
             }
         }
     }
 
-    let initial_energy_term = tasks::total_energy::run(
-        &working_system,
-        context.forcefield,
-        active_residues,
-        &initial_rotamers,
-        el_cache,
-    )?;
-    let initial_energy = initial_energy_term.total();
-    info!(initial_energy, "Initial system energy calculated.");
+    let ground_state_interaction =
+        tasks::interaction_energy::run(&ground_state_system, context.forcefield, active_residues)?;
 
-    let state = OptimizationState::new(
-        working_system,
-        initial_rotamers,
-        initial_energy,
-        context.config.optimization.num_solutions,
+    let ground_state_optimization_score =
+        (ground_state_el_energy + ground_state_interaction).total();
+
+    info!(
+        score = ground_state_optimization_score,
+        "Ground state optimization score calculated."
     );
-
     context.reporter.report(Progress::PhaseFinish);
-    Ok(state)
+
+    Ok(OptimizationState::new(
+        ground_state_system,
+        ground_state_rotamers,
+        ground_state_optimization_score,
+        context.config.optimization.num_solutions,
+    ))
 }
 
-#[instrument(skip_all, name = "clash_resolution_loop")]
-fn resolve_clashes_iteratively<'a>(
+fn resolve_clashes(
     state: &mut OptimizationState,
     active_residues: &HashSet<ResidueId>,
     context: &OptimizationContext<'a, PlacementConfig>,
