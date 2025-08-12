@@ -251,7 +251,8 @@ mod tests {
 
     fn mock_solution(energy: f64) -> Solution {
         Solution {
-            energy,
+            total_energy: energy,
+            optimization_score: energy,
             state: SolutionState {
                 system: MolecularSystem::new(),
                 rotamers: HashMap::new(),
