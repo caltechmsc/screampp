@@ -372,149 +372,77 @@ fn run_simulated_annealing(
     Ok(())
 }
 
-#[instrument(skip_all, name = "simulated_annealing_loop")]
-fn run_simulated_annealing<'a>(
+fn final_refinement(
     state: &mut OptimizationState,
     active_residues: &HashSet<ResidueId>,
-    context: &OptimizationContext<'a, PlacementConfig>,
+    context: &OptimizationContext<PlacementConfig>,
     el_cache: &ELCache,
 ) -> Result<(), EngineError> {
+    let iterations = context.config.optimization.final_refinement_iterations;
+    if iterations == 0 {
+        return Ok(());
+    }
+
     context.reporter.report(Progress::PhaseStart {
-        name: "Simulated Annealing",
+        name: "Final Refinement",
     });
-    info!("Starting Simulated Annealing exploration.");
+    info!("Starting final refinement (singlet optimization).");
 
-    let sa_config = context
-        .config
-        .optimization
-        .simulated_annealing
-        .as_ref()
-        .unwrap();
-
-    let initial_temperature = sa_config.initial_temperature;
-    let final_temperature = sa_config.final_temperature;
-    let cooling_rate = sa_config.cooling_rate;
-    let steps_per_temperature = sa_config.steps_per_temperature;
-
-    let mut rng = thread_rng();
-    let mut current_temperature = initial_temperature;
-
-    let active_residues_vec: Vec<ResidueId> = active_residues.iter().cloned().collect();
-
-    let mut temp_step_current = 0;
-    while current_temperature > final_temperature {
-        temp_step_current += 1;
+    for i in 0..iterations {
         context.reporter.report(Progress::StatusUpdate {
-            text: format!(
-                "SA Temp: {:.4} (Step {})",
-                current_temperature, temp_step_current
-            ),
+            text: format!("Pass {}/{}", i + 1, iterations),
         });
+        let mut changed_in_cycle = false;
+        let mut residues_to_process: Vec<_> = active_residues.iter().cloned().collect();
+        residues_to_process.shuffle(&mut thread_rng());
 
-        context.reporter.report(Progress::TaskStart {
-            total: steps_per_temperature as u64,
-        });
-
-        for _step in 0..steps_per_temperature {
-            let residue_to_perturb_id = *active_residues_vec.choose(&mut rng).unwrap();
-
-            let residue_type = state
+        for res_id in residues_to_process {
+            let res_type = state
                 .working_state
                 .system
-                .residue(residue_to_perturb_id)
+                .residue(res_id)
                 .unwrap()
                 .residue_type
                 .unwrap();
-            let rotamers = context
-                .rotamer_library
-                .get_rotamers_for(residue_type)
-                .unwrap();
+            let rotamers = context.rotamer_library.get_rotamers_for(res_type).unwrap();
 
-            let residue_name = residue_type.to_three_letter();
-            let topology = context.topology_registry.get(residue_name).ok_or_else(|| {
-                EngineError::TopologyNotFound {
-                    residue_name: residue_name.to_string(),
+            let mut best_idx = state.working_state.rotamers[&res_id];
+            let mut best_score = state.current_optimization_score;
+
+            let original_system = state.working_state.system.clone();
+            let original_rotamers = state.working_state.rotamers.clone();
+
+            for idx in 0..rotamers.len() {
+                if idx == best_idx {
+                    continue;
                 }
-            })?;
 
-            if rotamers.len() <= 1 {
-                context
-                    .reporter
-                    .report(Progress::TaskIncrement { amount: 1 });
-                continue;
+                update_rotamers_in_state(state, res_id, idx, context)?;
+                let score =
+                    calculate_optimization_score(state, active_residues, context, el_cache)?;
+
+                if score < best_score {
+                    best_score = score;
+                    best_idx = idx;
+                }
+
+                state.working_state.system = original_system.clone();
+                state.working_state.rotamers = original_rotamers.clone();
             }
 
-            let current_rot_idx = *state
-                .working_state
-                .rotamers
-                .get(&residue_to_perturb_id)
-                .unwrap();
-            let new_rot_idx = loop {
-                let r_idx = rng.gen_range(0..rotamers.len());
-                if r_idx != current_rot_idx {
-                    break r_idx;
-                }
-            };
-            let new_rotamer = &rotamers[new_rot_idx];
-
-            let current_total_energy = state.current_energy;
-
-            let mut temp_system_for_eval = state.working_state.system.clone();
-            let mut temp_rotamers_for_eval = state.working_state.rotamers.clone();
-
-            place_rotamer_on_system(
-                &mut temp_system_for_eval,
-                residue_to_perturb_id,
-                new_rotamer,
-                topology,
-            )?;
-            temp_rotamers_for_eval.insert(residue_to_perturb_id, new_rot_idx);
-
-            let energy_after_change = tasks::total_energy::run(
-                &temp_system_for_eval,
-                context.forcefield,
-                active_residues,
-                &temp_rotamers_for_eval,
-                el_cache,
-            )?
-            .total();
-
-            let delta_e = energy_after_change - current_total_energy;
-
-            if delta_e < 0.0 {
-                info!("  SA accepted: ΔE={:.4} (downhill)", delta_e);
-                state.working_state.system = temp_system_for_eval;
-                state.working_state.rotamers = temp_rotamers_for_eval;
-                state.current_energy = energy_after_change;
+            if best_idx != original_rotamers[&res_id] {
+                changed_in_cycle = true;
+                update_rotamers_in_state(state, res_id, best_idx, context)?;
+                state.current_optimization_score = best_score;
                 state.submit_current_solution();
-            } else {
-                let acceptance_probability = (-delta_e / current_temperature).exp();
-                if rng.r#gen::<f64>() < acceptance_probability {
-                    info!(
-                        "  SA accepted: ΔE={:.4} (uphill, prob={:.4})",
-                        delta_e, acceptance_probability
-                    );
-                    state.working_state.system = temp_system_for_eval;
-                    state.working_state.rotamers = temp_rotamers_for_eval;
-                    state.current_energy = energy_after_change;
-                    state.submit_current_solution();
-                } else {
-                    info!(
-                        "  SA rejected: ΔE={:.4} (uphill, prob={:.4})",
-                        delta_e, acceptance_probability
-                    );
-                }
             }
-            context
-                .reporter
-                .report(Progress::TaskIncrement { amount: 1 });
         }
-
-        context.reporter.report(Progress::TaskFinish);
-
-        current_temperature *= cooling_rate;
+        if !changed_in_cycle {
+            info!(iteration = i + 1, "Refinement converged.");
+            break;
+        }
     }
-    info!("Simulated Annealing finished. Final temperature reached.");
+
     context.reporter.report(Progress::PhaseFinish);
     Ok(())
 }
