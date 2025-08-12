@@ -61,16 +61,27 @@ pub struct PlaceArgs {
 
     /// Path for the output molecular structure file(s).
     ///
-    /// This path acts as a template when generating multiple solutions (using -n/--num-solutions).
-    /// The following placeholders can be used in the filename:
-    ///   {n} or {i}   - The index of the solution (1-based).
-    ///   {N} or {total} - The total number of solutions.
-    ///   {energy}     - The energy of the solution (formatted to 2 decimal places).
+    /// This path acts as a template for naming output files, especially when generating
+    /// multiple solutions (e.g., using --num-solutions). The following placeholders
+    /// can be used in the filename to create dynamic names:
     ///
-    /// Example: `solution_{n}_of_{N}.bgf` will generate `solution_1_of_3.bgf`, etc.
+    ///   {n}, {i}        - The rank/index of the solution (1-based, 1 is the best).
+    ///   {N}, {total}    - The total number of solutions being written.
+    ///   {total_energy}  - The final total system energy of the solution.
+    ///   {energy}        - An alias for {total_energy}.
+    ///   {opt_score}     - The internal optimization score of the solution.
+    ///   {score}         - An alias for {opt_score}.
     ///
-    /// If multiple solutions are generated and no placeholder is found, a `-best-{n}`
-    /// suffix will be automatically added before the file extension.
+    /// All energy/score values are formatted to two decimal places.
+    ///
+    /// Example Usage:
+    ///   -o "solution_{i}.bgf"          -> solution_1.bgf, solution_2.bgf, ...
+    ///   -o "run_A_sol_{i}_of_{N}.bgf"  -> run_A_sol_1_of_3.bgf, ...
+    ///   -o "result_E_{energy}.bgf"     -> result_E_-15343.92.bgf, ...
+    ///
+    /// If multiple solutions are generated and no placeholder is found in the path, a
+    /// "-best-{n}" suffix will be automatically added before the file extension to
+    /// prevent overwriting files. For a single solution, the path is used as-is.
     #[arg(short, long, required = true, value_name = "PATH_TEMPLATE")]
     pub output: PathBuf,
 
