@@ -129,14 +129,36 @@ fn prepare_context(
 }
 
 fn calculate_initial_state(
-    context: &OptimizationContext<'a, PlacementConfig>,
-) -> Result<ELCache, EngineError> {
+    context: &OptimizationContext<PlacementConfig>,
+    active_residues: &HashSet<ResidueId>,
+) -> Result<(InitialState, EnergyTerm), EngineError> {
     context.reporter.report(Progress::PhaseStart {
-        name: "EL Pre-computation",
+        name: "Calculating Initial State",
     });
-    let el_cache = tasks::el_energy::run(context)?;
+    info!("Calculating energy of the initial input conformation.");
+
+    let energy_offset_constant = tasks::fixed_energy::run(context)?;
+    let initial_interaction_energy =
+        tasks::interaction_energy::run(context.system, context.forcefield, active_residues)?;
+    let initial_el_energy = tasks::el_energy::calculate_current(context)?;
+
+    let initial_optimization_score_term = initial_interaction_energy + initial_el_energy;
+    let initial_optimization_score = initial_optimization_score_term.total();
+    let initial_total_energy = initial_optimization_score + energy_offset_constant.total();
+
+    let initial_state = InitialState {
+        system: context.system.clone(),
+        total_energy: initial_total_energy,
+        optimization_score: initial_optimization_score,
+    };
+
+    info!(
+        total_energy = initial_total_energy,
+        optimization_score = initial_optimization_score,
+        "Initial state calculated."
+    );
     context.reporter.report(Progress::PhaseFinish);
-    Ok(el_cache)
+    Ok((initial_state, energy_offset_constant))
 }
 
 #[instrument(skip_all, name = "state_initialization")]
