@@ -105,8 +105,30 @@ pub fn run(
     Ok(result)
 }
 
-#[instrument(skip_all, name = "el_energy_precomputation")]
-fn precompute_el_energies<'a>(
+fn prepare_context(
+    initial_system: &MolecularSystem,
+    config: &PlacementConfig,
+    rotamer_library: &mut RotamerLibrary,
+    topology_registry: &TopologyRegistry,
+) -> Result<HashSet<ResidueId>, EngineError> {
+    let active_residues = resolve_selection_to_ids(
+        initial_system,
+        &config.residues_to_optimize,
+        rotamer_library,
+    )?;
+
+    if config.optimization.include_input_conformation {
+        info!("Including original side-chain conformations in the rotamer library.");
+        rotamer_library.include_system_conformations(
+            initial_system,
+            &active_residues,
+            topology_registry,
+        );
+    }
+    Ok(active_residues)
+}
+
+fn calculate_initial_state(
     context: &OptimizationContext<'a, PlacementConfig>,
 ) -> Result<ELCache, EngineError> {
     context.reporter.report(Progress::PhaseStart {
