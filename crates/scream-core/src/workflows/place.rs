@@ -11,9 +11,7 @@ use crate::engine::context::{OptimizationContext, resolve_selection_to_ids};
 use crate::engine::error::EngineError;
 use crate::engine::placement::place_rotamer_on_system;
 use crate::engine::progress::{Progress, ProgressReporter};
-use crate::engine::state::{
-    InitialState, OptimizationState, PlacementResult, Solution, SolutionState,
-};
+use crate::engine::state::{InitialState, OptimizationState, Solution, SolutionState};
 use crate::engine::tasks;
 use rand::prelude::IteratorRandom;
 use rand::{Rng, seq::SliceRandom, thread_rng};
@@ -21,6 +19,12 @@ use std::collections::{HashMap, HashSet};
 use tracing::{info, instrument};
 
 const CLASH_THRESHOLD_KCAL_MOL: f64 = 25.0;
+
+#[derive(Debug, Clone)]
+pub struct PlacementResult {
+    pub initial_state: InitialState,
+    pub solutions: Vec<Solution>,
+}
 
 #[instrument(skip_all, name = "placement_workflow")]
 pub fn run(
