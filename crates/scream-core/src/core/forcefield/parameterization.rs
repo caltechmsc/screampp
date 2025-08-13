@@ -13,6 +13,8 @@ use std::collections::{HashMap, HashSet};
 use thiserror::Error;
 use tracing::warn;
 
+const DREIDING_HBOND_DONOR_HYDROGEN: &str = "H___A";
+
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum ParameterizationError {
     #[error(
@@ -216,7 +218,7 @@ impl<'a> Parameterizer<'a> {
         system: &MolecularSystem,
     ) -> i8 {
         let atom = system.atom(atom_id).unwrap();
-        self.determine_hbond_role(&atom.name, &atom.force_field_type, || {
+        self.determine_hbond_role(&atom.force_field_type, || {
             system.get_bonded_neighbors(atom_id).and_then(|neighbors| {
                 if neighbors.len() == 1 {
                     system
@@ -231,7 +233,7 @@ impl<'a> Parameterizer<'a> {
 
     fn determine_hbond_role_for_rotamer_atom(&self, atom_index: usize, rotamer: &Rotamer) -> i8 {
         let atom = &rotamer.atoms[atom_index];
-        self.determine_hbond_role(&atom.name, &atom.force_field_type, || {
+        self.determine_hbond_role(&atom.force_field_type, || {
             let neighbors: Vec<usize> = rotamer
                 .bonds
                 .iter()
@@ -254,22 +256,15 @@ impl<'a> Parameterizer<'a> {
         })
     }
 
-    fn determine_hbond_role<'b, F>(
-        &self,
-        atom_name: &str,
-        ff_type: &str,
-        get_neighbor_ff_type: F,
-    ) -> i8
+    fn determine_hbond_role<'b, F>(&self, ff_type: &str, get_neighbor_ff_type: F) -> i8
     where
         F: Fn() -> Option<&'b str>,
     {
+        let is_donor_hydrogen = ff_type == DREIDING_HBOND_DONOR_HYDROGEN;
+
         let mut hbond_type_id = -1;
 
-        if self.forcefield.non_bonded.hbond_acceptors.contains(ff_type) {
-            hbond_type_id = 1;
-        }
-
-        if atom_name.starts_with('H') {
+        if is_donor_hydrogen {
             if let Some(heavy_atom_ff_type) = get_neighbor_ff_type() {
                 if self
                     .forcefield
@@ -277,9 +272,13 @@ impl<'a> Parameterizer<'a> {
                     .hbond_donors
                     .contains(heavy_atom_ff_type)
                 {
-                    hbond_type_id = 0;
+                    return 0;
                 }
             }
+        }
+
+        if !is_donor_hydrogen && self.forcefield.non_bonded.hbond_acceptors.contains(ff_type) {
+            hbond_type_id = 1;
         }
 
         hbond_type_id
