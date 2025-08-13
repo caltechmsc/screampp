@@ -159,7 +159,7 @@ mod tests {
             radius = 3.2
             well_depth = 0.05
 
-            [hbond.N_H]
+            [hbond.N-H]
             equilibrium_distance = 2.7
             well_depth = 5.0
             "#
@@ -184,12 +184,16 @@ mod tests {
             })
         );
         assert_eq!(
-            params.hbond.get("N_H"),
+            params.hbond.get("N-H"),
             Some(&HBondParam {
                 equilibrium_distance: 2.7,
                 well_depth: 5.0
             })
         );
+        assert!(params.hbond_donors.contains("N"));
+        assert!(params.hbond_acceptors.contains("H"));
+        assert_eq!(params.hbond_donors.len(), 1);
+        assert_eq!(params.hbond_acceptors.len(), 1);
     }
 
     #[test]
@@ -278,5 +282,71 @@ mod tests {
             &delta_path, // delta.csv does not exist
         );
         assert!(matches!(result, Err(ParamLoadError::Toml { .. })));
+    }
+
+    #[test]
+    fn hbond_donor_acceptor_sets_with_multiple_entries() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("hbonds.toml");
+        fs::write(
+            &file_path,
+            r#"
+            [globals]
+            dielectric_constant = 2.0
+            potential_function = "lennard-jones-12-6"
+
+            [vdw.C]
+            radius = 1.0
+            well_depth = 1.0
+
+            [hbond.N-H]
+            equilibrium_distance = 2.0
+            well_depth = 3.0
+
+            [hbond.O-HX-Extra]
+            equilibrium_distance = 2.5
+            well_depth = 4.0
+        "#,
+        )
+        .unwrap();
+
+        let params = Forcefield::load_non_bonded(&file_path).unwrap();
+
+        assert!(params.hbond.contains_key("N-H"));
+        assert!(params.hbond.contains_key("O-HX-Extra"));
+        assert!(params.hbond_donors.contains("N"));
+        assert!(params.hbond_donors.contains("O"));
+        assert!(params.hbond_acceptors.contains("H"));
+        assert!(params.hbond_acceptors.contains("HX-Extra"));
+        assert_eq!(params.hbond_donors.len(), 2);
+        assert_eq!(params.hbond_acceptors.len(), 2);
+    }
+
+    #[test]
+    fn hbond_donor_acceptor_sets_empty_without_hyphen() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("hbonds_no_hyphen.toml");
+        fs::write(
+            &file_path,
+            r#"
+            [globals]
+            dielectric_constant = 3.0
+            potential_function = "lennard-jones-12-6"
+
+            [vdw.C]
+            radius = 1.0
+            well_depth = 1.0
+
+            [hbond.N_H]
+            equilibrium_distance = 2.0
+            well_depth = 3.0
+        "#,
+        )
+        .unwrap();
+
+        let params = Forcefield::load_non_bonded(&file_path).unwrap();
+        assert!(params.hbond.contains_key("N_H"));
+        assert!(params.hbond_donors.is_empty());
+        assert!(params.hbond_acceptors.is_empty());
     }
 }
