@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use thiserror::Error;
 
@@ -34,6 +34,11 @@ pub struct NonBondedParams {
     pub globals: GlobalParams,
     pub vdw: HashMap<String, VdwParam>,
     pub hbond: HashMap<String, HBondParam>,
+
+    #[serde(skip)]
+    pub hbond_donors: HashSet<String>,
+    #[serde(skip)]
+    pub hbond_acceptors: HashSet<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -79,10 +84,28 @@ impl Forcefield {
             path: path.to_string_lossy().to_string(),
             source: e,
         })?;
-        toml::from_str(&content).map_err(|e| ParamLoadError::Toml {
-            path: path.to_string_lossy().to_string(),
-            source: e,
-        })
+
+        let mut params: NonBondedParams =
+            toml::from_str(&content).map_err(|e| ParamLoadError::Toml {
+                path: path.to_string_lossy().to_string(),
+                source: e,
+            })?;
+
+        let mut donors = HashSet::new();
+        let mut acceptors = HashSet::new();
+
+        for key in params.hbond.keys() {
+            let parts: Vec<&str> = key.splitn(2, '-').collect();
+            if parts.len() == 2 {
+                donors.insert(parts[0].to_string());
+                acceptors.insert(parts[1].to_string());
+            }
+        }
+
+        params.hbond_donors = donors;
+        params.hbond_acceptors = acceptors;
+
+        Ok(params)
     }
 
     fn load_delta_csv(
