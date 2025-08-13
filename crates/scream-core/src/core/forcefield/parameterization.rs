@@ -38,6 +38,12 @@ pub struct Parameterizer<'a> {
     delta_s_factor: f64,
 }
 
+struct CalculatedAtomParams {
+    delta: f64,
+    vdw_param: CachedVdwParam,
+    hbond_type_id: i8,
+}
+
 impl<'a> Parameterizer<'a> {
     pub fn new(
         forcefield: &'a Forcefield,
@@ -60,15 +66,31 @@ impl<'a> Parameterizer<'a> {
             self.assign_atom_roles_for_residue(residue_id, system)?;
         }
 
-        // Pass 2: Assign physicochemical parameters to each atom.
-        for atom_id in system.atoms_iter().map(|(id, _)| id).collect::<Vec<_>>() {
-            let residue_name = system
-                .residue(system.atom(atom_id).unwrap().residue_id)
-                .unwrap()
-                .name
-                .clone();
+        // Pass 2, Step A: "Collect" phase - compute all parameters, but do not modify the system yet
+        let mut calculated_params = HashMap::new();
+        for (atom_id, atom) in system.atoms_iter() {
+            let residue = system.residue(atom.residue_id).unwrap();
+
+            let (delta, vdw_param) = self.calculate_core_params(atom, &residue.name)?;
+
+            let hbond_type_id = self.determine_hbond_role_for_system_atom(atom_id, system);
+
+            calculated_params.insert(
+                atom_id,
+                CalculatedAtomParams {
+                    delta,
+                    vdw_param,
+                    hbond_type_id,
+                },
+            );
+        }
+
+        // Pass 2, Step B: "Apply" phase - now it's safe to mutably borrow the system
+        for (atom_id, params) in calculated_params {
             let atom = system.atom_mut(atom_id).unwrap();
-            self.assign_physicochemical_params(atom, &residue_name)?;
+            atom.delta = params.delta;
+            atom.vdw_param = params.vdw_param;
+            atom.hbond_type_id = params.hbond_type_id;
         }
 
         Ok(())
@@ -88,8 +110,18 @@ impl<'a> Parameterizer<'a> {
             residue_name,
         )?;
 
-        for atom in &mut rotamer.atoms {
-            self.assign_physicochemical_params(atom, residue_name)?;
+        for i in 0..rotamer.atoms.len() {
+            let (delta, vdw_param) = {
+                let atom = &rotamer.atoms[i];
+                self.calculate_core_params(atom, residue_name)?
+            };
+
+            let hbond_type_id = self.determine_hbond_role_for_rotamer_atom(i, rotamer);
+
+            let atom = &mut rotamer.atoms[i];
+            atom.delta = delta;
+            atom.vdw_param = vdw_param;
+            atom.hbond_type_id = hbond_type_id;
         }
 
         Ok(())
@@ -153,46 +185,104 @@ impl<'a> Parameterizer<'a> {
         Ok(())
     }
 
-    fn assign_physicochemical_params(
+    fn calculate_core_params(
         &self,
-        atom: &mut Atom,
+        atom: &Atom,
         residue_name: &str,
-    ) -> Result<(), ParameterizationError> {
-        let delta_param = self
+    ) -> Result<(f64, CachedVdwParam), ParameterizationError> {
+        let delta = self
             .forcefield
             .deltas
-            .get(&(residue_name.to_string(), atom.name.clone()));
-        atom.delta = match delta_param {
-            Some(p) => p.mu + self.delta_s_factor * p.sigma,
-            None => 0.0,
+            .get(&(residue_name.to_string(), atom.name.clone()))
+            .map_or(0.0, |p| p.mu + self.delta_s_factor * p.sigma);
+
+        let vdw_param = if !atom.force_field_type.is_empty() {
+            self.forcefield
+                .non_bonded
+                .vdw
+                .get(&atom.force_field_type)
+                .map(|p| p.clone().into())
+                .unwrap_or(CachedVdwParam::None)
+        } else {
+            CachedVdwParam::None
         };
 
-        let ff_type = &atom.force_field_type;
-        if ff_type.is_empty() {
-            return Ok(());
+        Ok((delta, vdw_param))
+    }
+
+    fn determine_hbond_role_for_system_atom(
+        &self,
+        atom_id: AtomId,
+        system: &MolecularSystem,
+    ) -> i8 {
+        let atom = system.atom(atom_id).unwrap();
+        self.determine_hbond_role(&atom.name, &atom.force_field_type, || {
+            system.get_bonded_neighbors(atom_id).and_then(|neighbors| {
+                if neighbors.len() == 1 {
+                    system
+                        .atom(neighbors[0])
+                        .map(|heavy_atom| heavy_atom.force_field_type.as_str())
+                } else {
+                    None
+                }
+            })
+        })
+    }
+
+    fn determine_hbond_role_for_rotamer_atom(&self, atom_index: usize, rotamer: &Rotamer) -> i8 {
+        let atom = &rotamer.atoms[atom_index];
+        self.determine_hbond_role(&atom.name, &atom.force_field_type, || {
+            let neighbors: Vec<usize> = rotamer
+                .bonds
+                .iter()
+                .filter_map(|&(i, j)| {
+                    if i == atom_index {
+                        Some(j)
+                    } else if j == atom_index {
+                        Some(i)
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+
+            if neighbors.len() == 1 {
+                Some(rotamer.atoms[neighbors[0]].force_field_type.as_str())
+            } else {
+                None
+            }
+        })
+    }
+
+    fn determine_hbond_role<'b, F>(
+        &self,
+        atom_name: &str,
+        ff_type: &str,
+        get_neighbor_ff_type: F,
+    ) -> i8
+    where
+        F: Fn() -> Option<&'b str>,
+    {
+        let mut hbond_type_id = -1;
+
+        if self.forcefield.non_bonded.hbond_acceptors.contains(ff_type) {
+            hbond_type_id = 1;
         }
 
-        let vdw_param = self.forcefield.non_bonded.vdw.get(ff_type).ok_or_else(|| {
-            ParameterizationError::MissingVdwParams {
-                ff_type: ff_type.clone(),
-                atom_name: atom.name.clone(),
-                residue_name: residue_name.to_string(),
+        if atom_name.starts_with('H') {
+            if let Some(heavy_atom_ff_type) = get_neighbor_ff_type() {
+                if self
+                    .forcefield
+                    .non_bonded
+                    .hbond_donors
+                    .contains(heavy_atom_ff_type)
+                {
+                    hbond_type_id = 0;
+                }
             }
-        })?;
+        }
 
-        atom.vdw_param = (*vdw_param).clone().into();
-
-        atom.hbond_type_id = if self.forcefield.non_bonded.hbond.contains_key(ff_type) {
-            if ff_type.starts_with('H') {
-                0 // Donor Hydrogen
-            } else {
-                1 // Acceptor
-            }
-        } else {
-            -1 // Not involved in H-bonding
-        };
-
-        Ok(())
+        hbond_type_id
     }
 }
 
