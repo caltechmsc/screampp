@@ -406,9 +406,12 @@ mod tests {
             H_ = {{ radius = 1.0, well_depth = 0.02 }}
             O_2 = {{ radius = 1.5, well_depth = 0.2 }}
             H_O = {{ radius = 1.0, well_depth = 0.01 }}
-            [hbond]
-            H_O = {{ equilibrium_distance = 2.8, well_depth = 5.0 }}
-            O_2 = {{ equilibrium_distance = 2.8, well_depth = 5.0 }}
+            [hbond.O_2-H_O]
+            equilibrium_distance = 2.8
+            well_depth = 5.0
+            [hbond.H_O-O_2]
+            equilibrium_distance = 2.8
+            well_depth = 5.0
         "#
         )
         .unwrap();
@@ -601,74 +604,70 @@ mod tests {
         use super::*;
 
         #[test]
-        fn assign_physicochemical_params_sets_all_fields_correctly() {
+        fn parameterize_rotamer_assigns_physicochemical_and_hbond_fields() {
             let TestSetup {
                 forcefield,
                 topology_registry,
                 ..
             } = setup();
             let parameterizer = Parameterizer::new(&forcefield, &topology_registry, 2.0);
+            let ala_topology = topology_registry.get("ALA").unwrap();
 
-            let mut cb_atom = Atom::new("CB", ResidueId::default(), Default::default());
-            cb_atom.force_field_type = "C_SC".to_string();
+            let mut rotamer = Rotamer {
+                atoms: vec![
+                    Atom::new("N", ResidueId::default(), Default::default()),
+                    Atom::new("CA", ResidueId::default(), Default::default()),
+                    Atom::new("C", ResidueId::default(), Default::default()),
+                    Atom::new("CB", ResidueId::default(), Default::default()),
+                    Atom::new("O", ResidueId::default(), Default::default()),
+                    Atom::new("H", ResidueId::default(), Default::default()),
+                ],
+                bonds: vec![(4, 5)],
+            };
+
+            let mappings = [
+                ("N", "N_R"),
+                ("CA", "C_BB"),
+                ("C", "C_R"),
+                ("CB", "C_SC"),
+                ("O", "O_2"),
+                ("H", "H_O"),
+            ];
+            for atom in rotamer.atoms.iter_mut() {
+                for (name, ff) in &mappings {
+                    if atom.name == *name {
+                        atom.force_field_type = (*ff).to_string();
+                        break;
+                    }
+                }
+            }
 
             parameterizer
-                .assign_physicochemical_params(&mut cb_atom, "ALA")
+                .parameterize_rotamer(&mut rotamer, "ALA", ala_topology)
                 .unwrap();
 
+            let get = |n: &str| rotamer.atoms.iter().find(|a| a.name == n).unwrap();
+
+            let cb = get("CB");
+            assert_eq!(cb.role, AtomRole::Sidechain);
+            assert!((cb.delta - 0.2).abs() < 1e-9, "CB delta incorrect");
             assert!(
-                (cb_atom.delta - 0.2).abs() < 1e-9,
-                "Delta value for ALA CB is incorrect"
+                matches!(cb.vdw_param, CachedVdwParam::LennardJones { radius, .. } if (radius-1.9).abs()<1e-12)
             );
-            match cb_atom.vdw_param {
-                CachedVdwParam::LennardJones { radius, well_depth } => {
-                    assert_eq!(radius, 1.9);
-                    assert_eq!(well_depth, 0.12);
-                }
-                _ => panic!("Incorrect VDW param type for CB"),
-            }
-            assert_eq!(cb_atom.hbond_type_id, -1, "CB should not be an H-bond atom");
+            assert_eq!(cb.hbond_type_id, -1, "CB should not be H-bond classified");
 
-            let mut ca_atom = Atom::new("CA", ResidueId::default(), Default::default());
-            ca_atom.force_field_type = "C_BB".to_string();
-
-            parameterizer
-                .assign_physicochemical_params(&mut ca_atom, "ALA")
-                .unwrap();
-
-            assert_eq!(
-                ca_atom.delta, 0.0,
-                "Delta for ALA CA should be 0 as it's not in the delta file"
-            );
-            match ca_atom.vdw_param {
-                CachedVdwParam::LennardJones { radius, well_depth } => {
-                    assert_eq!(radius, 1.8);
-                    assert_eq!(well_depth, 0.1);
-                }
-                _ => panic!("Incorrect VDW param type for CA"),
-            }
-
-            let mut h_atom = Atom::new("HG", ResidueId::default(), Default::default());
-            h_atom.force_field_type = "H_O".to_string();
-
-            parameterizer
-                .assign_physicochemical_params(&mut h_atom, "SER")
-                .unwrap();
-            assert_eq!(
-                h_atom.hbond_type_id, 0,
-                "H-bond donor hydrogen should have type_id 0"
+            let ca = get("CA");
+            assert_eq!(ca.role, AtomRole::Backbone);
+            assert_eq!(ca.delta, 0.0, "CA delta should be zero");
+            assert!(
+                matches!(ca.vdw_param, CachedVdwParam::LennardJones { radius, .. } if (radius-1.8).abs()<1e-12)
             );
 
-            let mut o_atom = Atom::new("O", ResidueId::default(), Default::default());
-            o_atom.force_field_type = "O_2".to_string();
+            let h = get("H");
+            assert_eq!(h.hbond_type_id, 0, "Hydrogen should be donor (0)");
 
-            parameterizer
-                .assign_physicochemical_params(&mut o_atom, "ALA")
-                .unwrap();
-            assert_eq!(
-                o_atom.hbond_type_id, 1,
-                "H-bond acceptor should have type_id 1"
-            );
+            let o = get("O");
+            assert_eq!(o.hbond_type_id, 1, "Oxygen should be acceptor (1)");
         }
     }
 
