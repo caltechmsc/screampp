@@ -408,6 +408,8 @@ mod tests {
                     },
                     vdw: HashMap::new(),
                     hbond,
+                    hbond_donors: HashSet::new(),
+                    hbond_acceptors: HashSet::new(),
                 },
                 deltas: HashMap::new(),
             }
