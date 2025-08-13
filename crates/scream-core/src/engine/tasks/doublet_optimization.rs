@@ -1,10 +1,12 @@
 use crate::core::forcefield::scoring::Scorer;
+use crate::core::models::atom::AtomRole;
 use crate::core::models::ids::{AtomId, ResidueId};
 use crate::core::models::system::MolecularSystem;
 use crate::engine::cache::ELCache;
 use crate::engine::context::{OptimizationContext, ProvidesResidueSelections};
 use crate::engine::error::EngineError;
 use crate::engine::placement;
+use std::collections::HashSet;
 use tracing::{debug, instrument, trace};
 
 #[cfg(feature = "parallel")]
@@ -24,14 +26,31 @@ pub fn run<C>(
     system: &MolecularSystem,
     el_cache: &ELCache,
     context: &OptimizationContext<C>,
+    active_residues: &HashSet<ResidueId>,
 ) -> Result<DoubletResult, EngineError>
 where
     C: ProvidesResidueSelections + Sync,
 {
-    let residue_a = system.residue(res_a_id).unwrap();
-    let residue_b = system.residue(res_b_id).unwrap();
-    let res_type_a = residue_a.residue_type.unwrap();
-    let res_type_b = residue_b.residue_type.unwrap();
+    // --- 1. Prepare data ---
+    let residue_a = system.residue(res_a_id).ok_or_else(|| {
+        EngineError::Internal(format!("Residue {:?} not found in system", res_a_id))
+    })?;
+    let residue_b = system.residue(res_b_id).ok_or_else(|| {
+        EngineError::Internal(format!("Residue {:?} not found in system", res_b_id))
+    })?;
+
+    let res_type_a = residue_a.residue_type.ok_or_else(|| {
+        EngineError::Internal(format!(
+            "Residue {:?} is not a standard residue type",
+            res_a_id
+        ))
+    })?;
+    let res_type_b = residue_b.residue_type.ok_or_else(|| {
+        EngineError::Internal(format!(
+            "Residue {:?} is not a standard residue type",
+            res_b_id
+        ))
+    })?;
 
     let rotamers_a = context
         .rotamer_library
@@ -40,7 +59,6 @@ where
             residue_type: res_type_a.to_string(),
             message: "No rotamers found for doublet optimization.".to_string(),
         })?;
-
     let rotamers_b = context
         .rotamer_library
         .get_rotamers_for(res_type_b)
@@ -60,6 +78,24 @@ where
         });
     }
 
+    let res_name_a = res_type_a.to_three_letter();
+    let topology_a =
+        context
+            .topology_registry
+            .get(res_name_a)
+            .ok_or_else(|| EngineError::TopologyNotFound {
+                residue_name: res_name_a.to_string(),
+            })?;
+    let res_name_b = res_type_b.to_three_letter();
+    let topology_b =
+        context
+            .topology_registry
+            .get(res_name_b)
+            .ok_or_else(|| EngineError::TopologyNotFound {
+                residue_name: res_name_b.to_string(),
+            })?;
+
+    // --- 2. Generate all conformation pairs and prepare for parallel computation ---
     let index_pairs: Vec<(usize, usize)> = (0..rotamers_a.len())
         .flat_map(|i| (0..rotamers_b.len()).map(move |j| (i, j)))
         .collect();
@@ -71,23 +107,11 @@ where
         index_pairs.len()
     );
 
-    let res_name_a = res_type_a.to_three_letter();
-    let topology_a =
-        context
-            .topology_registry
-            .get(res_name_a)
-            .ok_or_else(|| EngineError::TopologyNotFound {
-                residue_name: res_name_a.to_string(),
-            })?;
-
-    let res_name_b = res_type_b.to_three_letter();
-    let topology_b =
-        context
-            .topology_registry
-            .get(res_name_b)
-            .ok_or_else(|| EngineError::TopologyNotFound {
-                residue_name: res_name_b.to_string(),
-            })?;
+    let other_active_residue_ids: Vec<ResidueId> = active_residues
+        .iter()
+        .filter(|&&id| id != res_a_id && id != res_b_id)
+        .cloned()
+        .collect();
 
     #[cfg(not(feature = "parallel"))]
     let iterator = index_pairs.iter();
@@ -95,60 +119,74 @@ where
     #[cfg(feature = "parallel")]
     let iterator = index_pairs.par_iter();
 
+    // --- 3. Core energy evaluation loop ---
     let best_pair = iterator
         .map(|&(idx_a, idx_b)| {
             let rot_a = &rotamers_a[idx_a];
             let rot_b = &rotamers_b[idx_b];
 
-            let el_a_term = el_cache
-                .get(res_a_id, res_type_a, idx_a)
-                .copied()
-                .unwrap_or_default();
-            let el_b_term = el_cache
-                .get(res_b_id, res_type_b, idx_b)
-                .copied()
-                .unwrap_or_default();
-            let el_a_total = el_a_term.total();
-            let el_b_total = el_b_term.total();
+            // a. Get precomputed EL energy (interaction energy with fixed environment + internal energy)
+            let el_a_term = el_cache.get(res_a_id, res_type_a, idx_a).copied().unwrap_or_default();
+            let el_b_term = el_cache.get(res_b_id, res_type_b, idx_b).copied().unwrap_or_default();
 
+            // b. Place conformations on a temporary system
             let mut temp_system = system.clone();
             placement::place_rotamer_on_system(&mut temp_system, res_a_id, rot_a, topology_a)?;
             placement::place_rotamer_on_system(&mut temp_system, res_b_id, rot_b, topology_b)?;
 
-            let atoms_a_all_ids: Vec<AtomId> =
-                temp_system.residue(res_a_id).unwrap().atoms().to_vec();
-            let atoms_b_all_ids: Vec<AtomId> =
-                temp_system.residue(res_b_id).unwrap().atoms().to_vec();
-
             let scorer = Scorer::new(&temp_system, context.forcefield);
-            let interaction_term = scorer.score_interaction(&atoms_a_all_ids, &atoms_b_all_ids)?;
-            let interaction_total = interaction_term.total();
-            let local_energy = el_a_total + el_b_total + interaction_total;
+
+            // c. Extract atom groups for energy calculation
+            let get_sc_atoms = |sys: &MolecularSystem, res_id: ResidueId| -> Vec<AtomId> {
+                sys.residue(res_id).unwrap().atoms().iter()
+                    .filter_map(|&id| sys.atom(id).and_then(|a| if a.role == AtomRole::Sidechain { Some(id) } else { None }))
+                    .collect()
+            };
+
+            let atoms_a_sc = get_sc_atoms(&temp_system, res_a_id);
+            let atoms_b_sc = get_sc_atoms(&temp_system, res_b_id);
+            let other_active_sc_atoms: Vec<AtomId> = other_active_residue_ids.iter().flat_map(|&id| get_sc_atoms(&temp_system, id)).collect();
+
+            // d. Calculate all relevant interaction energies
+            let inter_ab = scorer.score_interaction(&atoms_a_sc, &atoms_b_sc)?;
+            let inter_a_others = scorer.score_interaction(&atoms_a_sc, &other_active_sc_atoms)?;
+            let inter_b_others = scorer.score_interaction(&atoms_b_sc, &other_active_sc_atoms)?;
+
+            let total_interaction_energy = inter_ab + inter_a_others + inter_b_others;
+
+            // e. Calculate the final local energy comparable to global OptimizationScore
+            let comparable_local_energy = el_a_term.total() + el_b_term.total() + total_interaction_energy.total();
 
             trace!(
-                "Pair (A:{}, B:{}): E_local = {:.2} (EL_A={:.2}, EL_B={:.2}, Int={:.2})",
-                idx_a, idx_b, local_energy, el_a_total, el_b_total, interaction_total
+                "Pair (A:{}, B:{}): E_local = {:.2} (EL_A={:.2}, EL_B={:.2}, Int_AB={:.2}, Int_A_others={:.2}, Int_B_others={:.2})",
+                idx_a, idx_b, comparable_local_energy, el_a_term.total(), el_b_term.total(),
+                inter_ab.total(), inter_a_others.total(), inter_b_others.total()
             );
 
-            Ok((local_energy, (idx_a, idx_b)))
+            Ok((comparable_local_energy, (idx_a, idx_b)))
         })
         .collect::<Result<Vec<_>, EngineError>>()?
         .into_iter()
         .min_by(|(energy_1, _), (energy_2, _)| {
-            energy_1
-                .partial_cmp(energy_2)
-                .unwrap_or(std::cmp::Ordering::Equal)
+            energy_1.partial_cmp(energy_2).unwrap_or(std::cmp::Ordering::Equal)
         });
 
+    // --- 4. Return the best result ---
     match best_pair {
-        Some((best_energy, (best_idx_a, best_idx_b))) => Ok(DoubletResult {
-            rotamer_idx_a: best_idx_a,
-            rotamer_idx_b: best_idx_b,
-            best_local_energy: best_energy,
-        }),
+        Some((best_energy, (best_idx_a, best_idx_b))) => {
+            debug!(
+                "Found best pair (A:{}, B:{}) with local energy {:.4} kcal/mol",
+                best_idx_a, best_idx_b, best_energy
+            );
+            Ok(DoubletResult {
+                rotamer_idx_a: best_idx_a,
+                rotamer_idx_b: best_idx_b,
+                best_local_energy: best_energy,
+            })
+        }
         None => Err(EngineError::PhaseFailed {
             phase: "Doublet Optimization",
-            reason: "No valid rotamer pairs could be evaluated.".to_string(),
+            reason: "No valid rotamer pairs could be evaluated. This should not happen if rotamer lists are not empty.".to_string(),
         }),
     }
 }
