@@ -1837,7 +1837,7 @@ checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
 name = "scream-cli"
-version = "0.2.0-alpha.1"
+version = "0.2.0-alpha.2"
 dependencies = [
  "anyhow",
  "chrono",
@@ -1864,14 +1864,14 @@ dependencies = [
 
 [[package]]
 name = "scream-ffi"
-version = "0.2.0-alpha.1"
+version = "0.2.0-alpha.2"
 dependencies = [
  "screampp",
 ]
 
 [[package]]
 name = "scream-python-bindings"
-version = "0.2.0-alpha.1"
+version = "0.2.0-alpha.2"
 dependencies = [
  "pyo3",
  "screampp",
@@ -1879,7 +1879,7 @@ dependencies = [
 
 [[package]]
 name = "screampp"
-version = "0.2.0-alpha.1"
+version = "0.2.0-alpha.2"
 dependencies = [
  "csv",
  "itertools",
