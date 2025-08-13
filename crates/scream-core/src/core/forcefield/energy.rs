@@ -60,9 +60,9 @@ impl EnergyCalculator {
     }
 
     pub fn calculate_hbond(
-        acceptor: &Atom,
-        hydrogen: &Atom,
         donor: &Atom,
+        hydrogen: &Atom,
+        acceptor: &Atom,
         r_hb: f64,
         d_hb: f64,
     ) -> f64 {
