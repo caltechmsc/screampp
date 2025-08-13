@@ -327,6 +327,31 @@ fn run_simulated_annealing(
     let mut rng = thread_rng();
     let mut current_temp = sa_config.initial_temperature;
     let active_residue_vec: Vec<_> = active_residues.iter().cloned().collect();
+    let n_levels: u64 = if sa_config.cooling_rate > 0.0
+        && sa_config.cooling_rate < 1.0
+        && sa_config.final_temperature < sa_config.initial_temperature
+    {
+        let ratio = sa_config.final_temperature / sa_config.initial_temperature;
+        if ratio <= 0.0 {
+            0
+        } else {
+            let raw = (ratio.ln() / sa_config.cooling_rate.ln()).ceil();
+            if raw.is_finite() && raw > 0.0 {
+                raw as u64
+            } else {
+                0
+            }
+        }
+    } else {
+        0
+    };
+    let total_steps: u64 = n_levels * sa_config.steps_per_temperature as u64;
+    if total_steps > 0 {
+        context
+            .reporter
+            .report(Progress::TaskStart { total: total_steps });
+    }
+    let mut performed_steps: u64 = 0;
 
     while current_temp > sa_config.final_temperature {
         context.reporter.report(Progress::StatusUpdate {
@@ -343,6 +368,12 @@ fn run_simulated_annealing(
                 .unwrap();
             let rotamers = context.rotamer_library.get_rotamers_for(res_type).unwrap();
             if rotamers.len() <= 1 {
+                if total_steps > 0 {
+                    performed_steps += 1;
+                    context
+                        .reporter
+                        .report(Progress::TaskIncrement { amount: 1 });
+                }
                 continue;
             }
 
@@ -369,8 +400,27 @@ fn run_simulated_annealing(
                 state.working_state.rotamers = original_rotamers;
                 state.current_optimization_score = original_score;
             }
+
+            if total_steps > 0 {
+                performed_steps += 1;
+                context
+                    .reporter
+                    .report(Progress::TaskIncrement { amount: 1 });
+            }
         }
         current_temp *= sa_config.cooling_rate;
+    }
+
+    if total_steps > 0 {
+        if performed_steps < total_steps {
+            let remaining = (total_steps - performed_steps) as u64;
+            if remaining > 0 {
+                context
+                    .reporter
+                    .report(Progress::TaskIncrement { amount: remaining });
+            }
+        }
+        context.reporter.report(Progress::TaskFinish);
     }
 
     context.reporter.report(Progress::PhaseFinish);
