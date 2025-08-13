@@ -209,13 +209,29 @@ mod tests {
         progress::ProgressReporter,
     };
     use nalgebra::Point3;
-    use std::{collections::HashMap, fs, path::Path};
+    use std::{
+        collections::{HashMap, HashSet},
+        fs,
+        path::Path,
+    };
     use tempfile::TempDir;
 
-    struct TestSetup {
+    struct TestSetupBasic {
         system: MolecularSystem,
         res_a_id: ResidueId,
         res_b_id: ResidueId,
+        el_cache: ELCache,
+        forcefield: Forcefield,
+        rotamer_library: RotamerLibrary,
+        topology_registry: TopologyRegistry,
+        _temp_dir: TempDir,
+    }
+
+    struct TestSetupWithEnv {
+        system: MolecularSystem,
+        res_a_id: ResidueId,
+        res_b_id: ResidueId,
+        res_c_id: ResidueId,
         el_cache: ELCache,
         forcefield: Forcefield,
         rotamer_library: RotamerLibrary,
@@ -227,7 +243,7 @@ mod tests {
         fs::write(path, content).expect("Failed to write temporary file for test");
     }
 
-    fn setup_test_data() -> TestSetup {
+    fn setup_basic_test_data() -> TestSetupBasic {
         let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
         let dir_path = temp_dir.path();
 
@@ -354,7 +370,7 @@ sidechain_atoms = ["CB"]
         el_cache.insert(res_b_id, ResidueType::Leucine, 0, Default::default());
         el_cache.insert(res_b_id, ResidueType::Leucine, 1, Default::default());
 
-        TestSetup {
+        TestSetupBasic {
             system,
             res_a_id,
             res_b_id,
@@ -366,9 +382,149 @@ sidechain_atoms = ["CB"]
         }
     }
 
+    fn setup_env_test_data() -> TestSetupWithEnv {
+        let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let dir_path = temp_dir.path();
+
+        let topology_path = dir_path.join("topology.toml");
+        write_file(
+            &topology_path,
+            r#"
+            [ALA]
+            anchor_atoms = ["N", "CA", "C"]
+            sidechain_atoms = ["CB"]
+            "#,
+        );
+
+        let mut system = MolecularSystem::new();
+        let chain_id = system.add_chain('A', ChainType::Protein);
+        let res_a_id = system
+            .add_residue(chain_id, 1, "ALA", Some(ResidueType::Alanine))
+            .unwrap();
+        let res_b_id = system
+            .add_residue(chain_id, 2, "ALA", Some(ResidueType::Alanine))
+            .unwrap();
+        let res_c_id = system
+            .add_residue(chain_id, 3, "ALA", Some(ResidueType::Alanine))
+            .unwrap();
+
+        let add_residue_atoms = |system: &mut MolecularSystem, res_id: ResidueId, offset: f64| {
+            let backbone_pos = vec![
+                ("N", Point3::new(offset, 1.0, 0.0)),
+                ("CA", Point3::new(offset, 0.0, 0.0)),
+                ("C", Point3::new(offset + 1.0, 0.0, 0.0)),
+            ];
+            for (name, pos) in backbone_pos {
+                let mut atom = Atom::new(name, res_id, pos);
+                atom.force_field_type = "BB".to_string();
+                system.add_atom_to_residue(res_id, atom).unwrap();
+            }
+            let mut cb_atom = Atom::new("CB", res_id, Point3::new(offset, -0.5, 1.2));
+            cb_atom.force_field_type = "C_SC".to_string();
+            system.add_atom_to_residue(res_id, cb_atom).unwrap();
+        };
+
+        add_residue_atoms(&mut system, res_a_id, 0.0);
+        add_residue_atoms(&mut system, res_b_id, 5.0);
+        add_residue_atoms(&mut system, res_c_id, 10.0);
+
+        let mut vdw = HashMap::new();
+        vdw.insert(
+            "BB".to_string(),
+            VdwParam::LennardJones {
+                radius: 1.0,
+                well_depth: 0.0,
+            },
+        );
+        vdw.insert(
+            "C_SC".to_string(),
+            VdwParam::LennardJones {
+                radius: 3.8,
+                well_depth: 0.1,
+            },
+        );
+        let forcefield = Forcefield {
+            non_bonded: NonBondedParams {
+                globals: GlobalParams {
+                    dielectric_constant: 1.0,
+                    potential_function: "lennard-jones-12-6".to_string(),
+                },
+                vdw,
+                hbond: HashMap::new(),
+            },
+            deltas: HashMap::new(),
+        };
+
+        let topology_registry = TopologyRegistry::load(&topology_path).unwrap();
+        let parameterizer = Parameterizer::new(&forcefield, &topology_registry, 0.0);
+
+        let create_rotamer = |cb_pos: Point3<f64>| -> Rotamer {
+            let placeholder_residue_id = ResidueId::default();
+            let mut atoms = vec![
+                Atom::new("N", placeholder_residue_id, Point3::new(0.0, 1.0, 0.0)),
+                Atom::new("CA", placeholder_residue_id, Point3::new(0.0, 0.0, 0.0)),
+                Atom::new("C", placeholder_residue_id, Point3::new(1.0, 0.0, 0.0)),
+                Atom::new("CB", placeholder_residue_id, cb_pos),
+            ];
+            atoms.iter_mut().for_each(|a| {
+                a.force_field_type = if a.name == "CB" {
+                    "C_SC".to_string()
+                } else {
+                    "BB".to_string()
+                }
+            });
+            let mut rotamer = Rotamer {
+                atoms,
+                bonds: vec![(0, 1), (1, 2), (1, 3)],
+            };
+            let topo = topology_registry.get("ALA").unwrap();
+            parameterizer
+                .parameterize_rotamer(&mut rotamer, "ALA", topo)
+                .unwrap();
+            rotamer
+        };
+
+        let rotamer0 = create_rotamer(Point3::new(0.0, 0.0, 0.0));
+        let rotamer1 = create_rotamer(Point3::new(-0.5, -0.8, 0.0));
+
+        let mut rot_lib_map = HashMap::new();
+        rot_lib_map.insert(ResidueType::Alanine, vec![rotamer0, rotamer1]);
+        let rotamer_library = RotamerLibrary {
+            rotamers: rot_lib_map,
+        };
+
+        parameterizer.parameterize_system(&mut system).unwrap();
+
+        let res_c_cb_id = system
+            .residue(res_c_id)
+            .unwrap()
+            .get_first_atom_id_by_name("CB")
+            .unwrap();
+        system.atom_mut(res_c_cb_id).unwrap().position = Point3::new(5.05, 0.0, 0.0);
+
+        let mut el_cache = ELCache::new();
+        el_cache.insert(res_a_id, ResidueType::Alanine, 0, Default::default());
+        el_cache.insert(res_a_id, ResidueType::Alanine, 1, Default::default());
+        el_cache.insert(res_b_id, ResidueType::Alanine, 0, Default::default());
+        el_cache.insert(res_b_id, ResidueType::Alanine, 1, Default::default());
+        el_cache.insert(res_c_id, ResidueType::Alanine, 0, Default::default());
+
+        TestSetupWithEnv {
+            system,
+            res_a_id,
+            res_b_id,
+            res_c_id,
+            el_cache,
+            forcefield,
+            rotamer_library,
+            topology_registry,
+            _temp_dir: temp_dir,
+        }
+    }
+
     #[test]
     fn run_finds_optimal_pair_with_less_clash() {
-        let setup = setup_test_data();
+        let setup = setup_basic_test_data();
 
         let config = PlacementConfigBuilder::new()
             .forcefield_path("dummy.ff")
@@ -397,12 +553,15 @@ sidechain_atoms = ["CB"]
             &setup.topology_registry,
         );
 
+        let active_residues: HashSet<ResidueId> =
+            [setup.res_a_id, setup.res_b_id].into_iter().collect();
         let result = run(
             setup.res_a_id,
             setup.res_b_id,
             &setup.system,
             &setup.el_cache,
             &context,
+            &active_residues,
         )
         .unwrap();
 
@@ -415,7 +574,7 @@ sidechain_atoms = ["CB"]
 
     #[test]
     fn run_handles_empty_rotamer_list() {
-        let mut setup = setup_test_data();
+        let mut setup = setup_basic_test_data();
         setup
             .rotamer_library
             .rotamers
@@ -450,14 +609,68 @@ sidechain_atoms = ["CB"]
             &setup.topology_registry,
         );
 
+        let active_residues = HashSet::new();
         let result = run(
             setup.res_a_id,
             setup.res_b_id,
             &setup.system,
             &setup.el_cache,
             &context,
+            &active_residues,
         );
 
         assert!(matches!(result, Err(EngineError::RotamerLibrary { .. })));
+    }
+
+    #[test]
+    fn run_considers_other_active_residues_in_decision() {
+        let setup = setup_env_test_data();
+
+        let config = PlacementConfigBuilder::new()
+            .forcefield_path("dummy.ff")
+            .delta_params_path("dummy.delta")
+            .s_factor(0.0)
+            .rotamer_library_path("dummy.rotlib")
+            .topology_registry_path("dummy.topo")
+            .max_iterations(1)
+            .final_refinement_iterations(0)
+            .convergence_config(ConvergenceConfig {
+                energy_threshold: 0.1,
+                patience_iterations: 1,
+            })
+            .num_solutions(1)
+            .residues_to_optimize(ResidueSelection::All)
+            .build()
+            .unwrap();
+
+        let reporter = ProgressReporter::new();
+        let context = OptimizationContext::new(
+            &setup.system,
+            &setup.forcefield,
+            &reporter,
+            &config,
+            &setup.rotamer_library,
+            &setup.topology_registry,
+        );
+
+        let active_residues: HashSet<ResidueId> = [setup.res_a_id, setup.res_b_id, setup.res_c_id]
+            .into_iter()
+            .collect();
+
+        let result = run(
+            setup.res_a_id,
+            setup.res_b_id,
+            &setup.system,
+            &setup.el_cache,
+            &context,
+            &active_residues,
+        )
+        .unwrap();
+
+        assert!(
+            result.rotamer_idx_b == 1,
+            "Expected residue B to choose rotamer 1 to minimize clash with residue C (got {})",
+            result.rotamer_idx_b
+        );
     }
 }
