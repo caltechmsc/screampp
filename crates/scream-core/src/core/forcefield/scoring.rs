@@ -397,7 +397,7 @@ mod tests {
         fn create_test_forcefield() -> Forcefield {
             let mut hbond = HashMap::new();
             hbond.insert(
-                "O_2-O_H".to_string(),
+                "O_H-O_2".to_string(),
                 HBondParam {
                     equilibrium_distance: 2.8,
                     well_depth: 5.0,
@@ -598,7 +598,7 @@ mod tests {
                 .forcefield
                 .non_bonded
                 .hbond
-                .get("O_2-O_H")
+                .get("O_H-O_2")
                 .unwrap()
                 .equilibrium_distance;
 
@@ -615,7 +615,7 @@ mod tests {
                 .forcefield
                 .non_bonded
                 .hbond
-                .get("O_2-O_H")
+                .get("O_H-O_2")
                 .unwrap()
                 .well_depth;
 
