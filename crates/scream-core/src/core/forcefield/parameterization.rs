@@ -630,7 +630,7 @@ mod tests {
                 ("C", "C_R"),
                 ("CB", "C_SC"),
                 ("O", "O_2"),
-                ("H", "H_O"),
+                ("H", "H___A"),
             ];
             for atom in rotamer.atoms.iter_mut() {
                 for (name, ff) in &mappings {
