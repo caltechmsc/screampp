@@ -269,6 +269,7 @@ fn resolve_clashes(
             &state.working_state.system,
             el_cache,
             context,
+            active_residues,
         )?;
 
         update_rotamers_in_state(state, res_a_id, doublet_result.rotamer_idx_a, context)?;
