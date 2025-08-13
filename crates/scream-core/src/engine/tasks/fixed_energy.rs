@@ -151,7 +151,7 @@ mod tests {
             C_LIG = {{ radius = 1.75, well_depth = 0.11 }}
 
             [hbond]
-            O_2-O_H = {{ equilibrium_distance = 2.8, well_depth = 5.0 }}
+            O_H-O_2 = {{ equilibrium_distance = 2.8, well_depth = 5.0 }}
             "#
         )
         .unwrap();

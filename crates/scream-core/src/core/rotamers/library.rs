@@ -312,6 +312,8 @@ mod tests {
                 },
                 vdw,
                 hbond: HashMap::new(),
+                hbond_donors: HashSet::new(),
+                hbond_acceptors: HashSet::new(),
             },
         };
 

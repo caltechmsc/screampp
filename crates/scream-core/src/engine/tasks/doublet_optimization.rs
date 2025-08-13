@@ -312,6 +312,8 @@ sidechain_atoms = ["CB"]
                 },
                 vdw,
                 hbond: HashMap::new(),
+                hbond_donors: HashSet::new(),
+                hbond_acceptors: HashSet::new(),
             },
             deltas: HashMap::new(),
         };
@@ -451,6 +453,8 @@ sidechain_atoms = ["CB"]
                 },
                 vdw,
                 hbond: HashMap::new(),
+                hbond_donors: HashSet::new(),
+                hbond_acceptors: HashSet::new(),
             },
             deltas: HashMap::new(),
         };

@@ -155,16 +155,19 @@ impl<'a> Scorer<'a> {
 
                     if acceptor.hbond_type_id > 0 {
                         let hbond_key =
-                            format!("{}-{}", acceptor.force_field_type, donor.force_field_type);
+                            format!("{}-{}", donor.force_field_type, acceptor.force_field_type);
+
                         if let Some(hbond_param) = self.forcefield.non_bonded.hbond.get(&hbond_key)
                         {
-                            hbond_energy += EnergyCalculator::calculate_hbond(
-                                acceptor,
-                                hydrogen,
+                            let energy_contribution = EnergyCalculator::calculate_hbond(
                                 donor,
+                                hydrogen,
+                                acceptor,
                                 hbond_param.equilibrium_distance,
                                 hbond_param.well_depth,
                             );
+
+                            hbond_energy += energy_contribution;
                         }
                     }
                 }
@@ -394,7 +397,7 @@ mod tests {
         fn create_test_forcefield() -> Forcefield {
             let mut hbond = HashMap::new();
             hbond.insert(
-                "O_2-O_H".to_string(),
+                "O_H-O_2".to_string(),
                 HBondParam {
                     equilibrium_distance: 2.8,
                     well_depth: 5.0,
@@ -408,6 +411,8 @@ mod tests {
                     },
                     vdw: HashMap::new(),
                     hbond,
+                    hbond_donors: HashSet::new(),
+                    hbond_acceptors: HashSet::new(),
                 },
                 deltas: HashMap::new(),
             }
@@ -593,7 +598,7 @@ mod tests {
                 .forcefield
                 .non_bonded
                 .hbond
-                .get("O_2-O_H")
+                .get("O_H-O_2")
                 .unwrap()
                 .equilibrium_distance;
 
@@ -610,7 +615,7 @@ mod tests {
                 .forcefield
                 .non_bonded
                 .hbond
-                .get("O_2-O_H")
+                .get("O_H-O_2")
                 .unwrap()
                 .well_depth;
 

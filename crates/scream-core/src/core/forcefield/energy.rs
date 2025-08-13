@@ -60,9 +60,9 @@ impl EnergyCalculator {
     }
 
     pub fn calculate_hbond(
-        acceptor: &Atom,
-        hydrogen: &Atom,
         donor: &Atom,
+        hydrogen: &Atom,
+        acceptor: &Atom,
         r_hb: f64,
         d_hb: f64,
     ) -> f64 {
@@ -178,7 +178,7 @@ mod tests {
         let acceptor = atom_with_params("A", [0.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(1));
         let hydrogen = atom_with_params("H", [1.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(1));
         let donor = atom_with_params("D", [0.5, 0.5, 0.0], 0.0, 0.0, residue_id_from_usize(2));
-        let energy = EnergyCalculator::calculate_hbond(&acceptor, &hydrogen, &donor, 2.0, 1.0);
+        let energy = EnergyCalculator::calculate_hbond(&donor, &hydrogen, &acceptor, 2.0, 1.0);
         assert_eq!(energy, 0.0);
     }
 
@@ -187,7 +187,7 @@ mod tests {
         let acceptor = atom_with_params("A", [0.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(1));
         let hydrogen = atom_with_params("H", [1.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(1));
         let donor = atom_with_params("D", [1.0, 1.0, 0.0], 0.0, 0.0, residue_id_from_usize(2));
-        let energy = EnergyCalculator::calculate_hbond(&acceptor, &hydrogen, &donor, 2.0, 1.0);
+        let energy = EnergyCalculator::calculate_hbond(&donor, &hydrogen, &acceptor, 2.0, 1.0);
         assert!(energy.is_finite());
     }
 
@@ -196,7 +196,7 @@ mod tests {
         let acceptor = atom_with_params("A", [0.0, 0.0, 0.0], 0.0, 1.0, residue_id_from_usize(1));
         let hydrogen = atom_with_params("H", [1.0, 0.0, 0.0], 0.0, 0.0, residue_id_from_usize(1));
         let donor = atom_with_params("D", [1.0, 1.0, 0.0], 0.0, 1.0, residue_id_from_usize(2));
-        let energy = EnergyCalculator::calculate_hbond(&acceptor, &hydrogen, &donor, 2.0, 1.0);
+        let energy = EnergyCalculator::calculate_hbond(&donor, &hydrogen, &acceptor, 2.0, 1.0);
         assert!(energy.is_finite());
     }
 
