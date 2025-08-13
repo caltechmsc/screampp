@@ -155,16 +155,19 @@ impl<'a> Scorer<'a> {
 
                     if acceptor.hbond_type_id > 0 {
                         let hbond_key =
-                            format!("{}-{}", acceptor.force_field_type, donor.force_field_type);
+                            format!("{}-{}", donor.force_field_type, acceptor.force_field_type);
+
                         if let Some(hbond_param) = self.forcefield.non_bonded.hbond.get(&hbond_key)
                         {
-                            hbond_energy += EnergyCalculator::calculate_hbond(
-                                acceptor,
-                                hydrogen,
+                            let energy_contribution = EnergyCalculator::calculate_hbond(
                                 donor,
+                                hydrogen,
+                                acceptor,
                                 hbond_param.equilibrium_distance,
                                 hbond_param.well_depth,
                             );
+
+                            hbond_energy += energy_contribution;
                         }
                     }
                 }
