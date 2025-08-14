@@ -583,7 +583,7 @@ bonds = [[1, 99]]"#;
             let ala_id = system
                 .add_residue(chain_id, 1, "ALA", Some(ResidueType::Alanine))
                 .unwrap();
-            for name in &["N", "CA", "C", "CB"] {
+            for name in &["N", "CA", "C", "CB", "HB1", "HB2", "HB3"] {
                 system
                     .add_atom_to_residue(ala_id, Atom::new(name, ala_id, Default::default()))
                     .unwrap();
