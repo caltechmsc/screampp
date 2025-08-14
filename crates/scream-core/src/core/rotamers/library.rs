@@ -184,13 +184,28 @@ impl RotamerLibrary {
         system: &MolecularSystem,
         active_residues: &HashSet<ResidueId>,
         topology_registry: &TopologyRegistry,
+        parameterizer: &Parameterizer,
     ) {
         for &residue_id in active_residues {
-            if let Some(rotamer) =
+            if let Some(mut rotamer) =
                 self.extract_rotamer_from_system(system, residue_id, topology_registry)
             {
                 let residue = system.residue(residue_id).unwrap();
                 let residue_type = residue.residue_type.unwrap();
+                let topology = topology_registry.get(&residue.name).unwrap();
+
+                if let Err(e) =
+                    parameterizer.parameterize_rotamer(&mut rotamer, &residue.name, topology)
+                {
+                    tracing::error!(
+                        "Failed to parameterize system-extracted rotamer for residue {} {}: {}",
+                        residue.residue_number,
+                        residue.name,
+                        e
+                    );
+                    continue;
+                }
+
                 self.rotamers.entry(residue_type).or_default().push(rotamer);
             }
         }
