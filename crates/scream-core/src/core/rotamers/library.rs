@@ -184,13 +184,28 @@ impl RotamerLibrary {
         system: &MolecularSystem,
         active_residues: &HashSet<ResidueId>,
         topology_registry: &TopologyRegistry,
+        parameterizer: &Parameterizer,
     ) {
         for &residue_id in active_residues {
-            if let Some(rotamer) =
+            if let Some(mut rotamer) =
                 self.extract_rotamer_from_system(system, residue_id, topology_registry)
             {
                 let residue = system.residue(residue_id).unwrap();
                 let residue_type = residue.residue_type.unwrap();
+                let topology = topology_registry.get(&residue.name).unwrap();
+
+                if let Err(e) =
+                    parameterizer.parameterize_rotamer(&mut rotamer, &residue.name, topology)
+                {
+                    tracing::error!(
+                        "Failed to parameterize system-extracted rotamer for residue {} {}: {}",
+                        residue.residue_number,
+                        residue.name,
+                        e
+                    );
+                    continue;
+                }
+
                 self.rotamers.entry(residue_type).or_default().push(rotamer);
             }
         }
@@ -205,34 +220,70 @@ impl RotamerLibrary {
         let residue = system.residue(residue_id)?;
         let topology = topology_registry.get(&residue.name)?;
 
+        // --- Step 1: Build the consuming pool of atoms from the source residue ---
         let mut atom_pool: HashMap<String, Vec<AtomId>> = HashMap::new();
         for &atom_id in residue.atoms() {
-            let atom = system.atom(atom_id)?;
-            atom_pool
-                .entry(atom.name.clone())
-                .or_default()
-                .push(atom_id);
+            if let Some(atom) = system.atom(atom_id) {
+                atom_pool
+                    .entry(atom.name.clone())
+                    .or_default()
+                    .push(atom_id);
+            }
         }
 
-        let mut new_rotamer_atoms = Vec::new();
+        let mut extracted_atoms = Vec::new();
         let mut old_id_to_new_index = HashMap::new();
+        let mut consumed_atom_ids = HashSet::new();
 
-        let all_atom_names: HashSet<_> = topology
-            .anchor_atoms
-            .iter()
-            .chain(&topology.sidechain_atoms)
-            .collect();
-
-        for name in all_atom_names {
-            if let Some(ids) = atom_pool.get_mut(name) {
-                if let Some(atom_id) = ids.pop() {
-                    let atom = system.atom(atom_id)?;
-                    old_id_to_new_index.insert(atom_id, new_rotamer_atoms.len());
-                    new_rotamer_atoms.push(atom.clone());
+        // --- Step 2: Extract ANCHOR atoms (Mandatory) ---
+        for anchor_name in &topology.anchor_atoms {
+            match atom_pool.get_mut(anchor_name) {
+                Some(ids) if !ids.is_empty() => {
+                    let atom_id = ids.remove(0);
+                    if consumed_atom_ids.insert(atom_id) {
+                        let atom = system.atom(atom_id)?;
+                        old_id_to_new_index.insert(atom_id, extracted_atoms.len());
+                        extracted_atoms.push(atom.clone());
+                    }
+                }
+                _ => {
+                    tracing::warn!(
+                        "Skipping conformation extraction for residue {} {} (ID: {:?}): Missing mandatory ANCHOR atom '{}'.",
+                        residue.residue_number,
+                        residue.name,
+                        residue_id,
+                        anchor_name
+                    );
+                    return None;
                 }
             }
         }
 
+        // --- Step 3: Extract SIDECHAIN atoms (Mandatory) ---
+        for sidechain_name in &topology.sidechain_atoms {
+            match atom_pool.get_mut(sidechain_name) {
+                Some(ids) if !ids.is_empty() => {
+                    let atom_id = ids.pop().unwrap();
+                    if consumed_atom_ids.insert(atom_id) {
+                        let atom = system.atom(atom_id)?;
+                        old_id_to_new_index.insert(atom_id, extracted_atoms.len());
+                        extracted_atoms.push(atom.clone());
+                    }
+                }
+                _ => {
+                    tracing::warn!(
+                        "Skipping conformation extraction for residue {} {} (ID: {:?}): Incomplete sidechain, missing atom '{}'.",
+                        residue.residue_number,
+                        residue.name,
+                        residue_id,
+                        sidechain_name
+                    );
+                    return None;
+                }
+            }
+        }
+
+        // --- Step 4: Reconstruct bonds for the new, complete rotamer ---
         let mut new_rotamer_bonds = Vec::new();
         for (&old_id_a, &new_idx_a) in &old_id_to_new_index {
             if let Some(neighbors) = system.get_bonded_neighbors(old_id_a) {
@@ -247,7 +298,7 @@ impl RotamerLibrary {
         }
 
         Some(Rotamer {
-            atoms: new_rotamer_atoms,
+            atoms: extracted_atoms,
             bonds: new_rotamer_bonds,
         })
     }
@@ -256,6 +307,7 @@ impl RotamerLibrary {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::forcefield::parameterization::Parameterizer;
     use crate::core::forcefield::params::{DeltaParam, GlobalParams, NonBondedParams, VdwParam};
     use crate::core::{
         models::{
@@ -478,7 +530,14 @@ bonds = [[1, 99]]"#;
             }
             let active = [ala_id].iter().cloned().collect();
 
-            library.include_system_conformations(&system, &active, &setup.topology_registry);
+            let parameterizer =
+                Parameterizer::new(&setup.forcefield, &setup.topology_registry, 1.0);
+            library.include_system_conformations(
+                &system,
+                &active,
+                &setup.topology_registry,
+                &parameterizer,
+            );
 
             let rotamers = library.get_rotamers_for(ResidueType::Alanine).unwrap();
             assert_eq!(rotamers.len(), 1);
@@ -501,7 +560,14 @@ bonds = [[1, 99]]"#;
             }
             let active = [gly_id].iter().cloned().collect();
 
-            library.include_system_conformations(&system, &active, &setup.topology_registry);
+            let parameterizer =
+                Parameterizer::new(&setup.forcefield, &setup.topology_registry, 1.0);
+            library.include_system_conformations(
+                &system,
+                &active,
+                &setup.topology_registry,
+                &parameterizer,
+            );
 
             let rotamers = library.get_rotamers_for(ResidueType::Glycine).unwrap();
             assert_eq!(rotamers.len(), 1);
@@ -517,12 +583,21 @@ bonds = [[1, 99]]"#;
             let ala_id = system
                 .add_residue(chain_id, 1, "ALA", Some(ResidueType::Alanine))
                 .unwrap();
-            system
-                .add_atom_to_residue(ala_id, Atom::new("N", ala_id, Default::default()))
-                .unwrap();
+            for name in &["N", "CA", "C", "CB", "HB1", "HB2", "HB3"] {
+                system
+                    .add_atom_to_residue(ala_id, Atom::new(name, ala_id, Default::default()))
+                    .unwrap();
+            }
             let active = [ala_id].iter().cloned().collect();
 
-            library.include_system_conformations(&system, &active, &setup.topology_registry);
+            let parameterizer =
+                Parameterizer::new(&setup.forcefield, &setup.topology_registry, 1.0);
+            library.include_system_conformations(
+                &system,
+                &active,
+                &setup.topology_registry,
+                &parameterizer,
+            );
             assert_eq!(
                 library
                     .get_rotamers_for(ResidueType::Alanine)
@@ -531,7 +606,12 @@ bonds = [[1, 99]]"#;
                 1
             );
 
-            library.include_system_conformations(&system, &active, &setup.topology_registry);
+            library.include_system_conformations(
+                &system,
+                &active,
+                &setup.topology_registry,
+                &parameterizer,
+            );
             assert_eq!(
                 library
                     .get_rotamers_for(ResidueType::Alanine)
@@ -552,7 +632,14 @@ bonds = [[1, 99]]"#;
                 .unwrap();
             let active = [pro_id].iter().cloned().collect();
 
-            library.include_system_conformations(&system, &active, &setup.topology_registry);
+            let parameterizer =
+                Parameterizer::new(&setup.forcefield, &setup.topology_registry, 1.0);
+            library.include_system_conformations(
+                &system,
+                &active,
+                &setup.topology_registry,
+                &parameterizer,
+            );
 
             assert!(library.get_rotamers_for(ResidueType::Proline).is_none());
         }
