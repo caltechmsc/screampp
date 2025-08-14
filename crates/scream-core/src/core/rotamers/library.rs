@@ -271,6 +271,7 @@ impl RotamerLibrary {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::forcefield::parameterization::Parameterizer;
     use crate::core::forcefield::params::{DeltaParam, GlobalParams, NonBondedParams, VdwParam};
     use crate::core::{
         models::{
@@ -493,7 +494,14 @@ bonds = [[1, 99]]"#;
             }
             let active = [ala_id].iter().cloned().collect();
 
-            library.include_system_conformations(&system, &active, &setup.topology_registry);
+            let parameterizer =
+                Parameterizer::new(&setup.forcefield, &setup.topology_registry, 1.0);
+            library.include_system_conformations(
+                &system,
+                &active,
+                &setup.topology_registry,
+                &parameterizer,
+            );
 
             let rotamers = library.get_rotamers_for(ResidueType::Alanine).unwrap();
             assert_eq!(rotamers.len(), 1);
@@ -516,7 +524,14 @@ bonds = [[1, 99]]"#;
             }
             let active = [gly_id].iter().cloned().collect();
 
-            library.include_system_conformations(&system, &active, &setup.topology_registry);
+            let parameterizer =
+                Parameterizer::new(&setup.forcefield, &setup.topology_registry, 1.0);
+            library.include_system_conformations(
+                &system,
+                &active,
+                &setup.topology_registry,
+                &parameterizer,
+            );
 
             let rotamers = library.get_rotamers_for(ResidueType::Glycine).unwrap();
             assert_eq!(rotamers.len(), 1);
@@ -532,12 +547,21 @@ bonds = [[1, 99]]"#;
             let ala_id = system
                 .add_residue(chain_id, 1, "ALA", Some(ResidueType::Alanine))
                 .unwrap();
-            system
-                .add_atom_to_residue(ala_id, Atom::new("N", ala_id, Default::default()))
-                .unwrap();
+            for name in &["N", "CA", "C", "CB"] {
+                system
+                    .add_atom_to_residue(ala_id, Atom::new(name, ala_id, Default::default()))
+                    .unwrap();
+            }
             let active = [ala_id].iter().cloned().collect();
 
-            library.include_system_conformations(&system, &active, &setup.topology_registry);
+            let parameterizer =
+                Parameterizer::new(&setup.forcefield, &setup.topology_registry, 1.0);
+            library.include_system_conformations(
+                &system,
+                &active,
+                &setup.topology_registry,
+                &parameterizer,
+            );
             assert_eq!(
                 library
                     .get_rotamers_for(ResidueType::Alanine)
@@ -546,7 +570,12 @@ bonds = [[1, 99]]"#;
                 1
             );
 
-            library.include_system_conformations(&system, &active, &setup.topology_registry);
+            library.include_system_conformations(
+                &system,
+                &active,
+                &setup.topology_registry,
+                &parameterizer,
+            );
             assert_eq!(
                 library
                     .get_rotamers_for(ResidueType::Alanine)
@@ -567,7 +596,14 @@ bonds = [[1, 99]]"#;
                 .unwrap();
             let active = [pro_id].iter().cloned().collect();
 
-            library.include_system_conformations(&system, &active, &setup.topology_registry);
+            let parameterizer =
+                Parameterizer::new(&setup.forcefield, &setup.topology_registry, 1.0);
+            library.include_system_conformations(
+                &system,
+                &active,
+                &setup.topology_registry,
+                &parameterizer,
+            );
 
             assert!(library.get_rotamers_for(ResidueType::Proline).is_none());
         }
