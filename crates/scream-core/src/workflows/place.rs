@@ -50,17 +50,22 @@ pub fn run(
         config.forcefield.s_factor,
     )?;
 
-    let active_residues = prepare_context(
-        initial_system,
-        config,
-        &mut rotamer_library,
-        &topology_registry,
-    )?;
+    let active_residues = prepare_context(initial_system, config, &mut rotamer_library)?;
 
     let parameterizer =
         Parameterizer::new(&forcefield, &topology_registry, config.forcefield.s_factor);
     let mut working_system = initial_system.clone();
     parameterizer.parameterize_system(&mut working_system)?;
+
+    if config.optimization.include_input_conformation {
+        info!("Including original side-chain conformations in the rotamer library.");
+        rotamer_library.include_system_conformations(
+            initial_system,
+            &active_residues,
+            &topology_registry,
+            &parameterizer,
+        );
+    }
 
     let context = OptimizationContext::new(
         &working_system,
@@ -113,22 +118,12 @@ fn prepare_context(
     initial_system: &MolecularSystem,
     config: &PlacementConfig,
     rotamer_library: &mut RotamerLibrary,
-    topology_registry: &TopologyRegistry,
 ) -> Result<HashSet<ResidueId>, EngineError> {
     let active_residues = resolve_selection_to_ids(
         initial_system,
         &config.residues_to_optimize,
         rotamer_library,
     )?;
-
-    if config.optimization.include_input_conformation {
-        info!("Including original side-chain conformations in the rotamer library.");
-        rotamer_library.include_system_conformations(
-            initial_system,
-            &active_residues,
-            topology_registry,
-        );
-    }
     Ok(active_residues)
 }
 
