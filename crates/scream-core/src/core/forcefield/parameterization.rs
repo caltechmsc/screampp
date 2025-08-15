@@ -126,6 +126,8 @@ impl<'a> Parameterizer<'a> {
             atom.hbond_type_id = hbond_type_id;
         }
 
+        rotamer.energy = Default::default();
+
         Ok(())
     }
 
@@ -622,6 +624,7 @@ mod tests {
                     Atom::new("H", ResidueId::default(), Default::default()),
                 ],
                 bonds: vec![(4, 5)],
+                energy: Default::default(),
             };
 
             let mappings = [
@@ -691,6 +694,7 @@ mod tests {
                     Atom::new("CB", ResidueId::default(), Default::default()),
                 ],
                 bonds: vec![],
+                energy: Default::default(),
             };
             ala_rotamer.atoms.iter_mut().for_each(|a| {
                 a.force_field_type = match a.name.as_str() {
