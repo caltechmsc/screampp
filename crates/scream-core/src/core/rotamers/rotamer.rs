@@ -10,7 +10,7 @@ pub struct RotamerAtomData {
     pub force_field_type: String,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, Default)]
 pub struct EnergyData {
     pub bond: f64,
     pub angle: f64,
@@ -22,6 +22,7 @@ pub struct EnergyData {
 pub struct RotamerData {
     pub atoms: Vec<RotamerAtomData>,
     pub bonds: Vec<[usize; 2]>,
+    #[serde(default)]
     pub energy: EnergyData,
 }
 
