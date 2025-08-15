@@ -162,7 +162,7 @@ impl RotamerLibrary {
             bonds.push((index1, index2));
         }
 
-        let mut rotamer = Rotamer { atoms, bonds };
+        let mut rotamer = Rotamer { atoms, bonds, energy: raw_rotamer_data.energy.clone() };
 
         parameterizer
             .parameterize_rotamer(&mut rotamer, res_name, topology)
