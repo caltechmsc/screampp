@@ -3,6 +3,7 @@ use crate::core::{
     forcefield::{
         parameterization::{ParameterizationError, Parameterizer},
         params::Forcefield,
+        term::EnergyTerm,
     },
     models::{
         atom::Atom,
@@ -162,10 +163,20 @@ impl RotamerLibrary {
             bonds.push((index1, index2));
         }
 
+        let energy = EnergyTerm {
+            bond: raw_rotamer_data.energy.bond,
+            angle: raw_rotamer_data.energy.angle,
+            torsion: raw_rotamer_data.energy.torsion,
+            inversion: raw_rotamer_data.energy.inversion,
+            vdw: 0.0,
+            coulomb: 0.0,
+            hbond: 0.0,
+        };
+
         let mut rotamer = Rotamer {
             atoms,
             bonds,
-            energy: raw_rotamer_data.energy.clone(),
+            energy,
         };
 
         parameterizer
