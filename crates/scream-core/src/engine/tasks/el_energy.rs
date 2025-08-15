@@ -463,7 +463,11 @@ mod tests {
             };
 
             let topology = topology_registry.get(res_name).unwrap();
-            let mut rotamer = Rotamer { atoms, bonds };
+            let mut rotamer = Rotamer {
+                atoms,
+                bonds,
+                energy: Default::default(),
+            };
             parameterizer
                 .parameterize_rotamer(&mut rotamer, res_name, topology)
                 .unwrap();

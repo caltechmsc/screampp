@@ -278,6 +278,7 @@ mod tests {
             vec![Rotamer {
                 atoms: vec![],
                 bonds: vec![],
+                energy: Default::default(),
             }],
         );
 
@@ -398,6 +399,7 @@ mod tests {
             vec![Rotamer {
                 atoms: vec![],
                 bonds: vec![],
+                energy: Default::default(),
             }],
         );
         let reporter = ProgressReporter::default();

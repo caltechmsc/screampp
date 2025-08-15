@@ -350,6 +350,7 @@ mod tests {
         Rotamer {
             atoms,
             bonds: vec![(0, 1), (1, 2), (1, 3), (3, 4)],
+            energy: Default::default(),
         }
     }
 
