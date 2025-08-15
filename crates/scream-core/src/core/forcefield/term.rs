@@ -5,20 +5,54 @@ pub struct EnergyTerm {
     pub vdw: f64,
     pub coulomb: f64,
     pub hbond: f64,
+    pub bond: f64,
+    pub angle: f64,
+    pub torsion: f64,
+    pub inversion: f64,
 }
 
 impl EnergyTerm {
-    pub fn new(vdw: f64, coulomb: f64, hbond: f64) -> Self {
+    pub fn new(
+        vdw: f64,
+        coulomb: f64,
+        hbond: f64,
+        bond: f64,
+        angle: f64,
+        torsion: f64,
+        inversion: f64,
+    ) -> Self {
         Self {
             vdw,
             coulomb,
             hbond,
+            bond,
+            angle,
+            torsion,
+            inversion,
+        }
+    }
+
+    pub fn from_nonbonded(vdw: f64, coulomb: f64, hbond: f64) -> Self {
+        Self {
+            vdw,
+            coulomb,
+            hbond,
+            bond: 0.0,
+            angle: 0.0,
+            torsion: 0.0,
+            inversion: 0.0,
         }
     }
 
     #[inline]
     pub fn total(&self) -> f64 {
-        self.vdw + self.coulomb + self.hbond
+        self.vdw
+            + self.coulomb
+            + self.hbond
+            + self.bond
+            + self.angle
+            + self.torsion
+            + self.inversion
     }
 }
 
@@ -30,6 +64,10 @@ impl Add for EnergyTerm {
             vdw: self.vdw + rhs.vdw,
             coulomb: self.coulomb + rhs.coulomb,
             hbond: self.hbond + rhs.hbond,
+            bond: self.bond + rhs.bond,
+            angle: self.angle + rhs.angle,
+            torsion: self.torsion + rhs.torsion,
+            inversion: self.inversion + rhs.inversion,
         }
     }
 }
@@ -39,6 +77,10 @@ impl AddAssign for EnergyTerm {
         self.vdw += rhs.vdw;
         self.coulomb += rhs.coulomb;
         self.hbond += rhs.hbond;
+        self.bond += rhs.bond;
+        self.angle += rhs.angle;
+        self.torsion += rhs.torsion;
+        self.inversion += rhs.inversion;
     }
 }
 
