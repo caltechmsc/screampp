@@ -333,7 +333,6 @@ sidechain_atoms = ["CB"]
             let mut rotamer = Rotamer {
                 atoms,
                 bonds: vec![(0, 1), (1, 2), (1, 3)],
-                energy: Default::default(),
             };
 
             rotamer.atoms.iter_mut().for_each(|a| {
@@ -481,7 +480,6 @@ sidechain_atoms = ["CB"]
             let mut rotamer = Rotamer {
                 atoms,
                 bonds: vec![(0, 1), (1, 2), (1, 3)],
-                energy: Default::default(),
             };
             let topo = topology_registry.get("ALA").unwrap();
             parameterizer

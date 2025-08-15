@@ -90,7 +90,7 @@ mod tests {
         let mut cache = ELCache::new();
         let rid = dummy_residue_id(1);
         let rtype = ResidueType::Alanine;
-        let energy = EnergyTerm::from_nonbonded(1.0, 2.0, 3.0);
+        let energy = EnergyTerm::new(1.0, 2.0, 3.0);
 
         cache.insert(rid, rtype, 0, energy);
         let retrieved = cache.get(rid, rtype, 0).unwrap();
@@ -110,8 +110,8 @@ mod tests {
         let mut cache = ELCache::new();
         let rid = dummy_residue_id(3);
         let rtype = ResidueType::Leucine;
-        cache.insert(rid, rtype, 0, EnergyTerm::from_nonbonded(1.0, 0.0, 0.0));
-        cache.insert(rid, rtype, 1, EnergyTerm::from_nonbonded(2.0, 0.0, 0.0));
+        cache.insert(rid, rtype, 0, EnergyTerm::new(1.0, 0.0, 0.0));
+        cache.insert(rid, rtype, 1, EnergyTerm::new(2.0, 0.0, 0.0));
 
         let energies = cache.get_energies_for(rid, rtype).unwrap();
         assert_eq!(energies.len(), 2);
@@ -132,13 +132,13 @@ mod tests {
         let mut cache = ELCache::new();
         let rid = dummy_residue_id(5);
         let rtype = ResidueType::Valine;
-        cache.insert(rid, rtype, 0, EnergyTerm::from_nonbonded(1.0, 2.0, 3.0));
-        cache.insert(rid, rtype, 1, EnergyTerm::from_nonbonded(-1.0, 0.0, 0.0));
-        cache.insert(rid, rtype, 2, EnergyTerm::from_nonbonded(0.0, 0.0, 0.0));
+        cache.insert(rid, rtype, 0, EnergyTerm::new(1.0, 2.0, 3.0));
+        cache.insert(rid, rtype, 1, EnergyTerm::new(-1.0, 0.0, 0.0));
+        cache.insert(rid, rtype, 2, EnergyTerm::new(0.0, 0.0, 0.0));
 
         let (idx, energy) = cache.find_ground_state_for(rid, rtype).unwrap();
         assert_eq!(idx, 1);
-        assert_eq!(*energy, EnergyTerm::from_nonbonded(-1.0, 0.0, 0.0));
+        assert_eq!(*energy, EnergyTerm::new(-1.0, 0.0, 0.0));
     }
 
     #[test]
@@ -154,10 +154,10 @@ mod tests {
         let mut cache = ELCache::new();
         let rid = dummy_residue_id(7);
         let rtype = ResidueType::Serine;
-        cache.insert(rid, rtype, 0, EnergyTerm::from_nonbonded(1.0, 1.0, 1.0));
-        cache.insert(rid, rtype, 0, EnergyTerm::from_nonbonded(2.0, 2.0, 2.0));
+        cache.insert(rid, rtype, 0, EnergyTerm::new(1.0, 1.0, 1.0));
+        cache.insert(rid, rtype, 0, EnergyTerm::new(2.0, 2.0, 2.0));
         let retrieved = cache.get(rid, rtype, 0).unwrap();
-        assert_eq!(*retrieved, EnergyTerm::from_nonbonded(2.0, 2.0, 2.0));
+        assert_eq!(*retrieved, EnergyTerm::new(2.0, 2.0, 2.0));
     }
 
     #[test]

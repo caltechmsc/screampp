@@ -18,7 +18,6 @@ bonds = [
   [5, 7],
   [5, 8]
 ]
-energy = { bond = 0.000, angle = 0.000, torsion = 0.000, inversion = 0.000 }
 
 [[ARG]]
 atoms = [
@@ -68,7 +67,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.278, angle = 1.212, torsion = 0.137, inversion = 0.002 }
 
 [[ARG]]
 atoms = [
@@ -118,7 +116,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.417, angle = 1.705, torsion = 0.179, inversion = 0.004 }
 
 [[ARG]]
 atoms = [
@@ -168,7 +165,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.431, angle = 1.286, torsion = 0.320, inversion = 0.000 }
 
 [[ARG]]
 atoms = [
@@ -218,7 +214,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.364, angle = 1.570, torsion = 0.108, inversion = 0.002 }
 
 [[ARG]]
 atoms = [
@@ -268,7 +263,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.352, angle = 0.810, torsion = 1.037, inversion = 0.005 }
 
 [[ARG]]
 atoms = [
@@ -318,7 +312,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.392, angle = 1.448, torsion = 0.440, inversion = 0.003 }
 
 [[ARG]]
 atoms = [
@@ -368,7 +361,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.301, angle = 1.382, torsion = 0.729, inversion = 0.006 }
 
 [[ARG]]
 atoms = [
@@ -418,7 +410,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.359, angle = 1.202, torsion = 0.787, inversion = 0.001 }
 
 [[ARG]]
 atoms = [
@@ -468,7 +459,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.243, angle = 0.790, torsion = 1.290, inversion = 0.011 }
 
 [[ARG]]
 atoms = [
@@ -518,7 +508,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.297, angle = 2.001, torsion = 0.289, inversion = 0.004 }
 
 [[ARG]]
 atoms = [
@@ -568,7 +557,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.449, angle = 1.757, torsion = 0.134, inversion = 0.001 }
 
 [[ARG]]
 atoms = [
@@ -618,7 +606,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.279, angle = 1.180, torsion = 1.061, inversion = 0.010 }
 
 [[ARG]]
 atoms = [
@@ -668,7 +655,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.322, angle = 1.140, torsion = 0.769, inversion = 0.001 }
 
 [[ARG]]
 atoms = [
@@ -718,7 +704,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.337, angle = 1.173, torsion = 1.334, inversion = 0.006 }
 
 [[ARG]]
 atoms = [
@@ -768,7 +753,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.315, angle = 1.037, torsion = 1.107, inversion = 0.009 }
 
 [[ARG]]
 atoms = [
@@ -818,7 +802,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.255, angle = 0.688, torsion = 1.554, inversion = 0.004 }
 
 [[ARG]]
 atoms = [
@@ -868,7 +851,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.420, angle = 1.621, torsion = 1.186, inversion = 0.009 }
 
 [[ARG]]
 atoms = [
@@ -918,7 +900,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.424, angle = 1.148, torsion = 0.990, inversion = 0.021 }
 
 [[ARG]]
 atoms = [
@@ -968,7 +949,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.359, angle = 1.491, torsion = 0.995, inversion = 0.008 }
 
 [[ARG]]
 atoms = [
@@ -1018,7 +998,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.297, angle = 1.933, torsion = 0.522, inversion = 0.005 }
 
 [[ARG]]
 atoms = [
@@ -1068,7 +1047,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.355, angle = 1.553, torsion = 0.665, inversion = 0.025 }
 
 [[ARG]]
 atoms = [
@@ -1118,7 +1096,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.421, angle = 2.020, torsion = 0.797, inversion = 0.013 }
 
 [[ARG]]
 atoms = [
@@ -1168,7 +1145,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.473, angle = 1.328, torsion = 0.828, inversion = 0.006 }
 
 [[ARG]]
 atoms = [
@@ -1218,7 +1194,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.381, angle = 1.173, torsion = 1.575, inversion = 0.015 }
 
 [[ARG]]
 atoms = [
@@ -1268,7 +1243,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.286, angle = 1.477, torsion = 0.448, inversion = 0.004 }
 
 [[ARG]]
 atoms = [
@@ -1318,7 +1292,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.339, angle = 1.762, torsion = 1.379, inversion = 0.008 }
 
 [[ARG]]
 atoms = [
@@ -1368,7 +1341,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.397, angle = 1.730, torsion = 1.167, inversion = 0.008 }
 
 [[ARG]]
 atoms = [
@@ -1418,7 +1390,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.373, angle = 1.416, torsion = 1.504, inversion = 0.004 }
 
 [[ARG]]
 atoms = [
@@ -1468,7 +1439,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.406, angle = 1.171, torsion = 2.015, inversion = 0.006 }
 
 [[ARG]]
 atoms = [
@@ -1518,7 +1488,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.455, angle = 2.033, torsion = 0.566, inversion = 0.007 }
 
 [[ARG]]
 atoms = [
@@ -1568,7 +1537,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.468, angle = 1.576, torsion = 1.262, inversion = 0.041 }
 
 [[ARG]]
 atoms = [
@@ -1618,7 +1586,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.410, angle = 1.836, torsion = 1.121, inversion = 0.002 }
 
 [[ARG]]
 atoms = [
@@ -1668,7 +1635,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.453, angle = 1.445, torsion = 1.861, inversion = 0.025 }
 
 [[ARG]]
 atoms = [
@@ -1718,7 +1684,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.313, angle = 1.429, torsion = 1.352, inversion = 0.077 }
 
 [[ARG]]
 atoms = [
@@ -1768,7 +1733,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.381, angle = 1.608, torsion = 1.826, inversion = 0.007 }
 
 [[ARG]]
 atoms = [
@@ -1818,7 +1782,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.361, angle = 1.453, torsion = 1.385, inversion = 0.003 }
 
 [[ARG]]
 atoms = [
@@ -1868,7 +1831,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.550, angle = 2.758, torsion = 1.599, inversion = 0.060 }
 
 [[ARG]]
 atoms = [
@@ -1918,7 +1880,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.379, angle = 1.319, torsion = 2.377, inversion = 0.024 }
 
 [[ARG]]
 atoms = [
@@ -1968,7 +1929,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.539, angle = 2.085, torsion = 2.996, inversion = 0.004 }
 
 [[ARG]]
 atoms = [
@@ -2018,7 +1978,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.479, angle = 2.466, torsion = 2.365, inversion = 0.002 }
 
 [[ARG]]
 atoms = [
@@ -2068,7 +2027,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.421, angle = 2.348, torsion = 2.197, inversion = 0.057 }
 
 [[ARG]]
 atoms = [
@@ -2118,7 +2076,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.377, angle = 1.784, torsion = 2.752, inversion = 0.006 }
 
 [[ARG]]
 atoms = [
@@ -2168,7 +2125,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.598, angle = 3.273, torsion = 1.259, inversion = 0.013 }
 
 [[ARG]]
 atoms = [
@@ -2218,7 +2174,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.481, angle = 2.780, torsion = 0.906, inversion = 0.002 }
 
 [[ARG]]
 atoms = [
@@ -2268,7 +2223,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.474, angle = 1.579, torsion = 3.197, inversion = 0.008 }
 
 [[ARG]]
 atoms = [
@@ -2318,7 +2272,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.153, angle = 0.578, torsion = 3.101, inversion = 0.001 }
 
 [[ARG]]
 atoms = [
@@ -2368,7 +2321,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.458, angle = 1.844, torsion = 3.680, inversion = 0.041 }
 
 [[ARG]]
 atoms = [
@@ -2418,7 +2370,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.368, angle = 3.216, torsion = 3.784, inversion = 0.002 }
 
 [[ARG]]
 atoms = [
@@ -2468,7 +2419,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.761, angle = 1.468, torsion = 4.084, inversion = 0.017 }
 
 [[ARG]]
 atoms = [
@@ -2518,7 +2468,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.982, angle = 6.531, torsion = 2.102, inversion = 0.002 }
 
 [[ARG]]
 atoms = [
@@ -2568,7 +2517,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 0.742, angle = 3.351, torsion = 0.483, inversion = 0.038 }
 
 [[ARG]]
 atoms = [
@@ -2618,7 +2566,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 1.536, angle = 19.242, torsion = 3.833, inversion = 0.112 }
 
 [[ARG]]
 atoms = [
@@ -2668,7 +2615,6 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
-energy = { bond = 6.071, angle = 88.782, torsion = 10.213, inversion = 0.638 }
 
 [[ASN]]
 atoms = [
@@ -2698,7 +2644,6 @@ bonds = [
   [10, 11],
   [10, 12]
 ]
-energy = { bond = 0.122, angle = 0.266, torsion = 0.018, inversion = 0.001 }
 
 [[ASN]]
 atoms = [
@@ -2728,7 +2673,6 @@ bonds = [
   [10, 11],
   [10, 12]
 ]
-energy = { bond = 0.183, angle = 0.353, torsion = 0.023, inversion = 0.003 }
 
 [[ASN]]
 atoms = [
@@ -2758,7 +2702,6 @@ bonds = [
   [10, 11],
   [10, 12]
 ]
-energy = { bond = 0.134, angle = 0.288, torsion = 0.135, inversion = 0.001 }
 
 [[ASN]]
 atoms = [
@@ -2788,7 +2731,6 @@ bonds = [
   [10, 11],
   [10, 12]
 ]
-energy = { bond = 0.167, angle = 0.596, torsion = 0.031, inversion = 0.000 }
 
 [[ASN]]
 atoms = [
@@ -2818,7 +2760,6 @@ bonds = [
   [10, 11],
   [10, 12]
 ]
-energy = { bond = 0.159, angle = 0.566, torsion = 0.514, inversion = 0.001 }
 
 [[ASN]]
 atoms = [
@@ -2848,7 +2789,6 @@ bonds = [
   [10, 11],
   [10, 12]
 ]
-energy = { bond = 0.177, angle = 0.871, torsion = 0.774, inversion = 0.007 }
 
 [[ASN]]
 atoms = [
@@ -2878,7 +2818,6 @@ bonds = [
   [10, 11],
   [10, 12]
 ]
-energy = { bond = 0.146, angle = 0.897, torsion = 2.719, inversion = 0.034 }
 
 [[ASN]]
 atoms = [
@@ -2908,7 +2847,6 @@ bonds = [
   [10, 11],
   [10, 12]
 ]
-energy = { bond = 0.162, angle = 3.357, torsion = 1.702, inversion = 0.014 }
 
 [[ASN]]
 atoms = [
@@ -2938,7 +2876,6 @@ bonds = [
   [10, 11],
   [10, 12]
 ]
-energy = { bond = 1.284, angle = 2.657, torsion = 2.573, inversion = 0.111 }
 
 [[ASN]]
 atoms = [
@@ -2968,7 +2905,6 @@ bonds = [
   [10, 11],
   [10, 12]
 ]
-energy = { bond = 2.489, angle = 14.726, torsion = 2.064, inversion = 0.009 }
 
 [[ASP]]
 atoms = [
@@ -2994,7 +2930,6 @@ bonds = [
   [8, 9],
   [8, 10]
 ]
-energy = { bond = 0.147, angle = 0.248, torsion = 0.043, inversion = 0.001 }
 
 [[ASP]]
 atoms = [
@@ -3020,7 +2955,6 @@ bonds = [
   [8, 9],
   [8, 10]
 ]
-energy = { bond = 0.172, angle = 0.299, torsion = 0.051, inversion = 0.001 }
 
 [[ASP]]
 atoms = [
@@ -3046,7 +2980,6 @@ bonds = [
   [8, 9],
   [8, 10]
 ]
-energy = { bond = 0.177, angle = 0.745, torsion = 0.057, inversion = 0.006 }
 
 [[ASP]]
 atoms = [
@@ -3072,7 +3005,6 @@ bonds = [
   [8, 9],
   [8, 10]
 ]
-energy = { bond = 0.195, angle = 0.271, torsion = 2.098, inversion = 0.000 }
 
 [[ASP]]
 atoms = [
@@ -3098,7 +3030,6 @@ bonds = [
   [8, 9],
   [8, 10]
 ]
-energy = { bond = 0.342, angle = 1.164, torsion = 2.024, inversion = 0.014 }
 
 [[CYS]]
 atoms = [
@@ -3122,7 +3053,6 @@ bonds = [
   [5, 8],
   [8, 9]
 ]
-energy = { bond = 0.050, angle = 0.253, torsion = 0.044, inversion = 0.000 }
 
 [[CYS]]
 atoms = [
@@ -3146,7 +3076,6 @@ bonds = [
   [5, 8],
   [8, 9]
 ]
-energy = { bond = 0.065, angle = 0.149, torsion = 0.111, inversion = 0.000 }
 
 [[CYS]]
 atoms = [
@@ -3170,7 +3099,6 @@ bonds = [
   [5, 8],
   [8, 9]
 ]
-energy = { bond = 0.074, angle = 0.497, torsion = 0.028, inversion = 0.000 }
 
 [[GLN]]
 atoms = [
@@ -3206,7 +3134,6 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
-energy = { bond = 0.173, angle = 0.281, torsion = 0.041, inversion = 0.002 }
 
 [[GLN]]
 atoms = [
@@ -3242,7 +3169,6 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
-energy = { bond = 0.206, angle = 0.519, torsion = 0.087, inversion = 0.002 }
 
 [[GLN]]
 atoms = [
@@ -3278,7 +3204,6 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
-energy = { bond = 0.190, angle = 0.654, torsion = 0.036, inversion = 0.000 }
 
 [[GLN]]
 atoms = [
@@ -3314,7 +3239,6 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
-energy = { bond = 0.323, angle = 0.965, torsion = 0.155, inversion = 0.001 }
 
 [[GLN]]
 atoms = [
@@ -3350,7 +3274,6 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
-energy = { bond = 0.243, angle = 0.821, torsion = 0.363, inversion = 0.001 }
 
 [[GLN]]
 atoms = [
@@ -3386,7 +3309,6 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
-energy = { bond = 0.241, angle = 0.547, torsion = 0.118, inversion = 0.005 }
 
 [[GLN]]
 atoms = [
@@ -3422,7 +3344,6 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
-energy = { bond = 0.318, angle = 1.424, torsion = 0.212, inversion = 0.003 }
 
 [[GLN]]
 atoms = [
@@ -3458,7 +3379,6 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
-energy = { bond = 0.386, angle = 0.787, torsion = 0.487, inversion = 0.015 }
 
 [[GLN]]
 atoms = [
@@ -3494,7 +3414,6 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
-energy = { bond = 0.252, angle = 0.993, torsion = 1.163, inversion = 0.015 }
 
 [[GLN]]
 atoms = [
@@ -3530,7 +3449,6 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
-energy = { bond = 0.415, angle = 0.750, torsion = 0.569, inversion = 0.062 }
 
 [[GLN]]
 atoms = [
@@ -3566,7 +3484,6 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
-energy = { bond = 0.291, angle = 1.267, torsion = 1.217, inversion = 0.016 }
 
 [[GLN]]
 atoms = [
@@ -3602,7 +3519,6 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
-energy = { bond = 0.215, angle = 0.444, torsion = 1.429, inversion = 0.007 }
 
 [[GLN]]
 atoms = [
@@ -3638,7 +3554,6 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
-energy = { bond = 0.279, angle = 0.641, torsion = 1.783, inversion = 0.001 }
 
 [[GLN]]
 atoms = [
@@ -3674,7 +3589,6 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
-energy = { bond = 0.267, angle = 1.540, torsion = 1.289, inversion = 0.002 }
 
 [[GLN]]
 atoms = [
@@ -3710,7 +3624,6 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
-energy = { bond = 0.302, angle = 1.676, torsion = 1.707, inversion = 0.001 }
 
 [[GLN]]
 atoms = [
@@ -3746,7 +3659,6 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
-energy = { bond = 0.440, angle = 1.988, torsion = 1.708, inversion = 0.029 }
 
 [[GLN]]
 atoms = [
@@ -3782,7 +3694,6 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
-energy = { bond = 0.329, angle = 1.161, torsion = 1.079, inversion = 0.014 }
 
 [[GLN]]
 atoms = [
@@ -3818,7 +3729,6 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
-energy = { bond = 0.402, angle = 1.732, torsion = 1.565, inversion = 0.033 }
 
 [[GLN]]
 atoms = [
@@ -3854,7 +3764,6 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
-energy = { bond = 0.248, angle = 0.363, torsion = 3.142, inversion = 0.007 }
 
 [[GLN]]
 atoms = [
@@ -3890,7 +3799,6 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
-energy = { bond = 0.207, angle = 1.881, torsion = 1.080, inversion = 0.014 }
 
 [[GLN]]
 atoms = [
@@ -3926,7 +3834,6 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
-energy = { bond = 0.411, angle = 1.962, torsion = 1.839, inversion = 0.003 }
 
 [[GLN]]
 atoms = [
@@ -3962,7 +3869,6 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
-energy = { bond = 0.723, angle = 2.408, torsion = 3.287, inversion = 0.122 }
 
 [[GLU]]
 atoms = [
@@ -3994,7 +3900,6 @@ bonds = [
   [11, 12],
   [11, 13]
 ]
-energy = { bond = 0.202, angle = 0.324, torsion = 0.026, inversion = 0.005 }
 
 [[GLU]]
 atoms = [
@@ -4026,7 +3931,6 @@ bonds = [
   [11, 12],
   [11, 13]
 ]
-energy = { bond = 0.274, angle = 0.427, torsion = 0.088, inversion = 0.002 }
 
 [[GLU]]
 atoms = [
@@ -4058,7 +3962,6 @@ bonds = [
   [11, 12],
   [11, 13]
 ]
-energy = { bond = 0.265, angle = 0.560, torsion = 0.126, inversion = 0.000 }
 
 [[GLU]]
 atoms = [
@@ -4090,7 +3993,6 @@ bonds = [
   [11, 12],
   [11, 13]
 ]
-energy = { bond = 0.230, angle = 0.730, torsion = 0.091, inversion = 0.000 }
 
 [[GLU]]
 atoms = [
@@ -4122,7 +4024,6 @@ bonds = [
   [11, 12],
   [11, 13]
 ]
-energy = { bond = 0.308, angle = 0.926, torsion = 0.315, inversion = 0.000 }
 
 [[GLU]]
 atoms = [
@@ -4154,7 +4055,6 @@ bonds = [
   [11, 12],
   [11, 13]
 ]
-energy = { bond = 0.279, angle = 0.783, torsion = 0.037, inversion = 0.000 }
 
 [[GLU]]
 atoms = [
@@ -4186,7 +4086,6 @@ bonds = [
   [11, 12],
   [11, 13]
 ]
-energy = { bond = 0.272, angle = 1.361, torsion = 0.216, inversion = 0.002 }
 
 [[GLU]]
 atoms = [
@@ -4218,7 +4117,6 @@ bonds = [
   [11, 12],
   [11, 13]
 ]
-energy = { bond = 0.190, angle = 0.960, torsion = 0.790, inversion = 0.000 }
 
 [[GLU]]
 atoms = [
@@ -4250,7 +4148,6 @@ bonds = [
   [11, 12],
   [11, 13]
 ]
-energy = { bond = 0.346, angle = 1.055, torsion = 1.131, inversion = 0.007 }
 
 [[GLU]]
 atoms = [
@@ -4282,7 +4179,6 @@ bonds = [
   [11, 12],
   [11, 13]
 ]
-energy = { bond = 0.364, angle = 1.477, torsion = 1.406, inversion = 0.010 }
 
 [[GLU]]
 atoms = [
@@ -4314,7 +4210,6 @@ bonds = [
   [11, 12],
   [11, 13]
 ]
-energy = { bond = 0.273, angle = 0.820, torsion = 2.265, inversion = 0.003 }
 
 [[GLY]]
 atoms = [
@@ -4330,7 +4225,6 @@ bonds = [
   [2, 4],
   [2, 5]
 ]
-energy = { bond = 0.000, angle = 0.000, torsion = 0.000, inversion = 0.000 }
 
 [[HIS]]
 atoms = [
@@ -4367,7 +4261,6 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
-energy = { bond = 0.204, angle = 15.576, torsion = 0.065, inversion = 0.000 }
 
 [[HIS]]
 atoms = [
@@ -4404,7 +4297,6 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
-energy = { bond = 0.223, angle = 15.584, torsion = 0.269, inversion = 0.002 }
 
 [[HIS]]
 atoms = [
@@ -4441,7 +4333,6 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
-energy = { bond = 0.205, angle = 15.649, torsion = 0.417, inversion = 0.010 }
 
 [[HIS]]
 atoms = [
@@ -4478,7 +4369,6 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
-energy = { bond = 0.196, angle = 16.115, torsion = 0.104, inversion = 0.009 }
 
 [[HIS]]
 atoms = [
@@ -4515,7 +4405,6 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
-energy = { bond = 0.207, angle = 15.874, torsion = 0.256, inversion = 0.003 }
 
 [[HIS]]
 atoms = [
@@ -4552,7 +4441,6 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
-energy = { bond = 0.377, angle = 16.403, torsion = 1.149, inversion = 0.040 }
 
 [[HIS]]
 atoms = [
@@ -4589,7 +4477,6 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
-energy = { bond = 0.157, angle = 15.416, torsion = 1.447, inversion = 0.018 }
 
 [[HIS]]
 atoms = [
@@ -4626,7 +4513,6 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
-energy = { bond = 0.294, angle = 15.944, torsion = 1.585, inversion = 0.010 }
 
 [[HIS]]
 atoms = [
@@ -4663,7 +4549,6 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
-energy = { bond = 0.228, angle = 15.896, torsion = 1.570, inversion = 0.006 }
 
 [[HIS]]
 atoms = [
@@ -4700,7 +4585,6 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
-energy = { bond = 0.268, angle = 16.729, torsion = 1.748, inversion = 0.077 }
 
 [[HSE]]
 atoms = [
@@ -4737,7 +4621,6 @@ bonds = [
   [12, 14],
   [14, 15]
 ]
-energy = { bond = 0.204, angle = 15.576, torsion = 0.065, inversion = 0.000 }
 
 [[HSE]]
 atoms = [
@@ -4774,7 +4657,6 @@ bonds = [
   [12, 14],
   [14, 15]
 ]
-energy = { bond = 0.223, angle = 15.584, torsion = 0.269, inversion = 0.002 }
 
 [[HSE]]
 atoms = [
@@ -4811,7 +4693,6 @@ bonds = [
   [12, 14],
   [14, 15]
 ]
-energy = { bond = 0.205, angle = 15.649, torsion = 0.417, inversion = 0.010 }
 
 [[HSE]]
 atoms = [
@@ -4848,7 +4729,6 @@ bonds = [
   [12, 14],
   [14, 15]
 ]
-energy = { bond = 0.196, angle = 16.115, torsion = 0.104, inversion = 0.009 }
 
 [[HSE]]
 atoms = [
@@ -4885,7 +4765,6 @@ bonds = [
   [12, 14],
   [14, 15]
 ]
-energy = { bond = 0.207, angle = 15.874, torsion = 0.256, inversion = 0.003 }
 
 [[HSE]]
 atoms = [
@@ -4922,7 +4801,6 @@ bonds = [
   [12, 14],
   [14, 15]
 ]
-energy = { bond = 0.377, angle = 16.403, torsion = 1.149, inversion = 0.040 }
 
 [[HSE]]
 atoms = [
@@ -4959,7 +4837,6 @@ bonds = [
   [12, 14],
   [14, 15]
 ]
-energy = { bond = 0.157, angle = 15.416, torsion = 1.447, inversion = 0.018 }
 
 [[HSE]]
 atoms = [
@@ -4996,7 +4873,6 @@ bonds = [
   [12, 14],
   [14, 15]
 ]
-energy = { bond = 0.294, angle = 15.944, torsion = 1.585, inversion = 0.010 }
 
 [[HSE]]
 atoms = [
@@ -5033,7 +4909,6 @@ bonds = [
   [12, 14],
   [14, 15]
 ]
-energy = { bond = 0.228, angle = 15.896, torsion = 1.570, inversion = 0.006 }
 
 [[HSE]]
 atoms = [
@@ -5070,7 +4945,6 @@ bonds = [
   [12, 14],
   [14, 15]
 ]
-energy = { bond = 0.268, angle = 16.729, torsion = 1.748, inversion = 0.077 }
 
 [[HSP]]
 atoms = [
@@ -5109,7 +4983,6 @@ bonds = [
   [13, 15],
   [15, 16]
 ]
-energy = { bond = 0.204, angle = 15.576, torsion = 0.065, inversion = 0.000 }
 
 [[HSP]]
 atoms = [
@@ -5148,7 +5021,6 @@ bonds = [
   [13, 15],
   [15, 16]
 ]
-energy = { bond = 0.223, angle = 15.584, torsion = 0.269, inversion = 0.002 }
 
 [[HSP]]
 atoms = [
@@ -5187,7 +5059,6 @@ bonds = [
   [13, 15],
   [15, 16]
 ]
-energy = { bond = 0.205, angle = 15.649, torsion = 0.417, inversion = 0.010 }
 
 [[HSP]]
 atoms = [
@@ -5226,7 +5097,6 @@ bonds = [
   [13, 15],
   [15, 16]
 ]
-energy = { bond = 0.196, angle = 16.115, torsion = 0.104, inversion = 0.009 }
 
 [[HSP]]
 atoms = [
@@ -5265,7 +5135,6 @@ bonds = [
   [13, 15],
   [15, 16]
 ]
-energy = { bond = 0.207, angle = 15.874, torsion = 0.256, inversion = 0.003 }
 
 [[HSP]]
 atoms = [
@@ -5304,7 +5173,6 @@ bonds = [
   [13, 15],
   [15, 16]
 ]
-energy = { bond = 0.377, angle = 16.403, torsion = 1.149, inversion = 0.040 }
 
 [[HSP]]
 atoms = [
@@ -5343,7 +5211,6 @@ bonds = [
   [13, 15],
   [15, 16]
 ]
-energy = { bond = 0.157, angle = 15.416, torsion = 1.447, inversion = 0.018 }
 
 [[HSP]]
 atoms = [
@@ -5382,7 +5249,6 @@ bonds = [
   [13, 15],
   [15, 16]
 ]
-energy = { bond = 0.294, angle = 15.944, torsion = 1.585, inversion = 0.010 }
 
 [[HSP]]
 atoms = [
@@ -5421,7 +5287,6 @@ bonds = [
   [13, 15],
   [15, 16]
 ]
-energy = { bond = 0.228, angle = 15.896, torsion = 1.570, inversion = 0.006 }
 
 [[HSP]]
 atoms = [
@@ -5460,7 +5325,6 @@ bonds = [
   [13, 15],
   [15, 16]
 ]
-energy = { bond = 0.268, angle = 16.729, torsion = 1.748, inversion = 0.077 }
 
 [[ILE]]
 atoms = [
@@ -5500,7 +5364,6 @@ bonds = [
   [14, 16],
   [14, 17]
 ]
-energy = { bond = 0.730, angle = 1.035, torsion = 0.315, inversion = 0.000 }
 
 [[ILE]]
 atoms = [
@@ -5540,7 +5403,6 @@ bonds = [
   [14, 16],
   [14, 17]
 ]
-energy = { bond = 0.640, angle = 1.217, torsion = 0.146, inversion = 0.000 }
 
 [[ILE]]
 atoms = [
@@ -5580,7 +5442,6 @@ bonds = [
   [14, 16],
   [14, 17]
 ]
-energy = { bond = 0.716, angle = 0.918, torsion = 0.071, inversion = 0.000 }
 
 [[ILE]]
 atoms = [
@@ -5620,7 +5481,6 @@ bonds = [
   [14, 16],
   [14, 17]
 ]
-energy = { bond = 0.877, angle = 2.130, torsion = 1.138, inversion = 0.000 }
 
 [[ILE]]
 atoms = [
@@ -5660,7 +5520,6 @@ bonds = [
   [14, 16],
   [14, 17]
 ]
-energy = { bond = 0.902, angle = 3.790, torsion = 3.011, inversion = 0.000 }
 
 [[LEU]]
 atoms = [
@@ -5700,7 +5559,6 @@ bonds = [
   [14, 16],
   [14, 17]
 ]
-energy = { bond = 0.428, angle = 0.974, torsion = 0.059, inversion = 0.000 }
 
 [[LEU]]
 atoms = [
@@ -5740,7 +5598,6 @@ bonds = [
   [14, 16],
   [14, 17]
 ]
-energy = { bond = 0.496, angle = 1.162, torsion = 0.059, inversion = 0.000 }
 
 [[LEU]]
 atoms = [
@@ -5780,7 +5637,6 @@ bonds = [
   [14, 16],
   [14, 17]
 ]
-energy = { bond = 0.450, angle = 1.281, torsion = 0.686, inversion = 0.000 }
 
 [[LEU]]
 atoms = [
@@ -5820,7 +5676,6 @@ bonds = [
   [14, 16],
   [14, 17]
 ]
-energy = { bond = 0.538, angle = 2.141, torsion = 0.393, inversion = 0.000 }
 
 [[LEU]]
 atoms = [
@@ -5860,7 +5715,6 @@ bonds = [
   [14, 16],
   [14, 17]
 ]
-energy = { bond = 0.493, angle = 1.437, torsion = 0.317, inversion = 0.000 }
 
 [[LEU]]
 atoms = [
@@ -5900,7 +5754,6 @@ bonds = [
   [14, 16],
   [14, 17]
 ]
-energy = { bond = 0.640, angle = 2.138, torsion = 0.629, inversion = 0.000 }
 
 [[LEU]]
 atoms = [
@@ -5940,7 +5793,6 @@ bonds = [
   [14, 16],
   [14, 17]
 ]
-energy = { bond = 0.592, angle = 2.621, torsion = 0.135, inversion = 0.000 }
 
 [[LEU]]
 atoms = [
@@ -5980,7 +5832,6 @@ bonds = [
   [14, 16],
   [14, 17]
 ]
-energy = { bond = 0.358, angle = 3.982, torsion = 0.628, inversion = 0.000 }
 
 [[LEU]]
 atoms = [
@@ -6020,7 +5871,6 @@ bonds = [
   [14, 16],
   [14, 17]
 ]
-energy = { bond = 0.488, angle = 2.360, torsion = 1.672, inversion = 0.000 }
 
 [[LEU]]
 atoms = [
@@ -6060,7 +5910,6 @@ bonds = [
   [14, 16],
   [14, 17]
 ]
-energy = { bond = 0.544, angle = 7.098, torsion = 0.612, inversion = 0.000 }
 
 [[LEU]]
 atoms = [
@@ -6100,7 +5949,6 @@ bonds = [
   [14, 16],
   [14, 17]
 ]
-energy = { bond = 0.991, angle = 2.260, torsion = 2.348, inversion = 0.000 }
 
 [[LYS]]
 atoms = [
@@ -6146,7 +5994,6 @@ bonds = [
   [17, 19],
   [17, 20]
 ]
-energy = { bond = 0.335, angle = 1.233, torsion = 0.052, inversion = 0.000 }
 
 [[LYS]]
 atoms = [
@@ -6192,7 +6039,6 @@ bonds = [
   [17, 19],
   [17, 20]
 ]
-energy = { bond = 0.266, angle = 1.168, torsion = 0.068, inversion = 0.000 }
 
 [[LYS]]
 atoms = [
@@ -6238,7 +6084,6 @@ bonds = [
   [17, 19],
   [17, 20]
 ]
-energy = { bond = 0.331, angle = 1.699, torsion = 0.111, inversion = 0.000 }
 
 [[LYS]]
 atoms = [
@@ -6284,7 +6129,6 @@ bonds = [
   [17, 19],
   [17, 20]
 ]
-energy = { bond = 0.312, angle = 1.598, torsion = 0.133, inversion = 0.000 }
 
 [[LYS]]
 atoms = [
@@ -6330,7 +6174,6 @@ bonds = [
   [17, 19],
   [17, 20]
 ]
-energy = { bond = 0.283, angle = 2.005, torsion = 0.162, inversion = 0.000 }
 
 [[LYS]]
 atoms = [
@@ -6376,7 +6219,6 @@ bonds = [
   [17, 19],
   [17, 20]
 ]
-energy = { bond = 0.241, angle = 1.474, torsion = 0.244, inversion = 0.000 }
 
 [[LYS]]
 atoms = [
@@ -6422,7 +6264,6 @@ bonds = [
   [17, 19],
   [17, 20]
 ]
-energy = { bond = 0.281, angle = 1.620, torsion = 0.179, inversion = 0.000 }
 
 [[LYS]]
 atoms = [
@@ -6468,7 +6309,6 @@ bonds = [
   [17, 19],
   [17, 20]
 ]
-energy = { bond = 0.296, angle = 1.407, torsion = 0.357, inversion = 0.000 }
 
 [[LYS]]
 atoms = [
@@ -6514,7 +6354,6 @@ bonds = [
   [17, 19],
   [17, 20]
 ]
-energy = { bond = 0.309, angle = 2.081, torsion = 0.157, inversion = 0.000 }
 
 [[LYS]]
 atoms = [
@@ -6560,7 +6399,6 @@ bonds = [
   [17, 19],
   [17, 20]
 ]
-energy = { bond = 0.215, angle = 1.506, torsion = 0.519, inversion = 0.000 }
 
 [[LYS]]
 atoms = [
@@ -6606,7 +6444,6 @@ bonds = [
   [17, 19],
   [17, 20]
 ]
-energy = { bond = 0.312, angle = 1.908, torsion = 0.337, inversion = 0.000 }
 
 [[LYS]]
 atoms = [
@@ -6652,7 +6489,6 @@ bonds = [
   [17, 19],
   [17, 20]
 ]
-energy = { bond = 0.291, angle = 1.929, torsion = 1.310, inversion = 0.000 }
 
 [[LYS]]
 atoms = [
@@ -6698,7 +6534,6 @@ bonds = [
   [17, 19],
   [17, 20]
 ]
-energy = { bond = 0.344, angle = 2.199, torsion = 0.229, inversion = 0.000 }
 
 [[LYS]]
 atoms = [
@@ -6744,7 +6579,6 @@ bonds = [
   [17, 19],
   [17, 20]
 ]
-energy = { bond = 0.473, angle = 2.250, torsion = 1.325, inversion = 0.000 }
 
 [[LYS]]
 atoms = [
@@ -6790,7 +6624,6 @@ bonds = [
   [17, 19],
   [17, 20]
 ]
-energy = { bond = 0.265, angle = 2.737, torsion = 1.600, inversion = 0.000 }
 
 [[LYS]]
 atoms = [
@@ -6836,7 +6669,6 @@ bonds = [
   [17, 19],
   [17, 20]
 ]
-energy = { bond = 0.340, angle = 2.218, torsion = 2.090, inversion = 0.000 }
 
 [[LYS]]
 atoms = [
@@ -6882,7 +6714,6 @@ bonds = [
   [17, 19],
   [17, 20]
 ]
-energy = { bond = 0.364, angle = 2.684, torsion = 0.860, inversion = 0.000 }
 
 [[LYS]]
 atoms = [
@@ -6928,7 +6759,6 @@ bonds = [
   [17, 19],
   [17, 20]
 ]
-energy = { bond = 0.325, angle = 1.922, torsion = 1.084, inversion = 0.000 }
 
 [[LYS]]
 atoms = [
@@ -6974,7 +6804,6 @@ bonds = [
   [17, 19],
   [17, 20]
 ]
-energy = { bond = 0.429, angle = 3.258, torsion = 0.693, inversion = 0.000 }
 
 [[LYS]]
 atoms = [
@@ -7020,7 +6849,6 @@ bonds = [
   [17, 19],
   [17, 20]
 ]
-energy = { bond = 0.322, angle = 1.671, torsion = 1.847, inversion = 0.000 }
 
 [[LYS]]
 atoms = [
@@ -7066,7 +6894,6 @@ bonds = [
   [17, 19],
   [17, 20]
 ]
-energy = { bond = 0.612, angle = 3.157, torsion = 1.790, inversion = 0.000 }
 
 [[LYS]]
 atoms = [
@@ -7112,7 +6939,6 @@ bonds = [
   [17, 19],
   [17, 20]
 ]
-energy = { bond = 0.389, angle = 2.007, torsion = 2.130, inversion = 0.000 }
 
 [[LYS]]
 atoms = [
@@ -7158,7 +6984,6 @@ bonds = [
   [17, 19],
   [17, 20]
 ]
-energy = { bond = 0.798, angle = 2.386, torsion = 1.805, inversion = 0.000 }
 
 [[LYS]]
 atoms = [
@@ -7204,7 +7029,6 @@ bonds = [
   [17, 19],
   [17, 20]
 ]
-energy = { bond = 0.372, angle = 2.394, torsion = 2.266, inversion = 0.000 }
 
 [[LYS]]
 atoms = [
@@ -7250,7 +7074,6 @@ bonds = [
   [17, 19],
   [17, 20]
 ]
-energy = { bond = 0.630, angle = 3.205, torsion = 1.098, inversion = 0.000 }
 
 [[LYS]]
 atoms = [
@@ -7296,7 +7119,6 @@ bonds = [
   [17, 19],
   [17, 20]
 ]
-energy = { bond = 0.535, angle = 2.886, torsion = 3.593, inversion = 0.000 }
 
 [[LYS]]
 atoms = [
@@ -7342,7 +7164,6 @@ bonds = [
   [17, 19],
   [17, 20]
 ]
-energy = { bond = 0.474, angle = 2.468, torsion = 2.625, inversion = 0.000 }
 
 [[LYS]]
 atoms = [
@@ -7388,7 +7209,6 @@ bonds = [
   [17, 19],
   [17, 20]
 ]
-energy = { bond = 1.812, angle = 9.714, torsion = 3.331, inversion = 0.000 }
 
 [[LYS]]
 atoms = [
@@ -7434,7 +7254,6 @@ bonds = [
   [17, 19],
   [17, 20]
 ]
-energy = { bond = 7.314, angle = 80.361, torsion = 3.084, inversion = 0.000 }
 
 [[MET]]
 atoms = [
@@ -7470,7 +7289,6 @@ bonds = [
   [12, 14],
   [12, 15]
 ]
-energy = { bond = 0.173, angle = 0.686, torsion = 0.117, inversion = 0.000 }
 
 [[MET]]
 atoms = [
@@ -7506,7 +7324,6 @@ bonds = [
   [12, 14],
   [12, 15]
 ]
-energy = { bond = 0.142, angle = 0.982, torsion = 0.092, inversion = 0.000 }
 
 [[MET]]
 atoms = [
@@ -7542,7 +7359,6 @@ bonds = [
   [12, 14],
   [12, 15]
 ]
-energy = { bond = 0.167, angle = 0.927, torsion = 0.008, inversion = 0.000 }
 
 [[MET]]
 atoms = [
@@ -7578,7 +7394,6 @@ bonds = [
   [12, 14],
   [12, 15]
 ]
-energy = { bond = 0.174, angle = 0.750, torsion = 0.264, inversion = 0.000 }
 
 [[MET]]
 atoms = [
@@ -7614,7 +7429,6 @@ bonds = [
   [12, 14],
   [12, 15]
 ]
-energy = { bond = 0.292, angle = 1.075, torsion = 0.105, inversion = 0.000 }
 
 [[MET]]
 atoms = [
@@ -7650,7 +7464,6 @@ bonds = [
   [12, 14],
   [12, 15]
 ]
-energy = { bond = 0.234, angle = 1.137, torsion = 0.333, inversion = 0.000 }
 
 [[MET]]
 atoms = [
@@ -7686,7 +7499,6 @@ bonds = [
   [12, 14],
   [12, 15]
 ]
-energy = { bond = 0.268, angle = 1.135, torsion = 0.356, inversion = 0.000 }
 
 [[MET]]
 atoms = [
@@ -7722,7 +7534,6 @@ bonds = [
   [12, 14],
   [12, 15]
 ]
-energy = { bond = 0.259, angle = 1.613, torsion = 0.298, inversion = 0.000 }
 
 [[MET]]
 atoms = [
@@ -7758,7 +7569,6 @@ bonds = [
   [12, 14],
   [12, 15]
 ]
-energy = { bond = 0.226, angle = 1.159, torsion = 0.566, inversion = 0.000 }
 
 [[MET]]
 atoms = [
@@ -7794,7 +7604,6 @@ bonds = [
   [12, 14],
   [12, 15]
 ]
-energy = { bond = 0.228, angle = 1.358, torsion = 0.949, inversion = 0.000 }
 
 [[MET]]
 atoms = [
@@ -7830,7 +7639,6 @@ bonds = [
   [12, 14],
   [12, 15]
 ]
-energy = { bond = 0.244, angle = 1.803, torsion = 0.362, inversion = 0.000 }
 
 [[MET]]
 atoms = [
@@ -7866,7 +7674,6 @@ bonds = [
   [12, 14],
   [12, 15]
 ]
-energy = { bond = 0.268, angle = 0.857, torsion = 1.698, inversion = 0.000 }
 
 [[MET]]
 atoms = [
@@ -7902,7 +7709,6 @@ bonds = [
   [12, 14],
   [12, 15]
 ]
-energy = { bond = 0.297, angle = 1.925, torsion = 0.667, inversion = 0.000 }
 
 [[MET]]
 atoms = [
@@ -7938,7 +7744,6 @@ bonds = [
   [12, 14],
   [12, 15]
 ]
-energy = { bond = 0.267, angle = 1.711, torsion = 2.187, inversion = 0.000 }
 
 [[MET]]
 atoms = [
@@ -7974,7 +7779,6 @@ bonds = [
   [12, 14],
   [12, 15]
 ]
-energy = { bond = 0.216, angle = 4.130, torsion = 0.288, inversion = 0.000 }
 
 [[MET]]
 atoms = [
@@ -8010,7 +7814,6 @@ bonds = [
   [12, 14],
   [12, 15]
 ]
-energy = { bond = 0.259, angle = 2.386, torsion = 2.496, inversion = 0.000 }
 
 [[PHE]]
 atoms = [
@@ -8053,7 +7856,6 @@ bonds = [
   [15, 17],
   [17, 18]
 ]
-energy = { bond = 0.733, angle = 0.478, torsion = 0.133, inversion = 0.009 }
 
 [[PHE]]
 atoms = [
@@ -8096,7 +7898,6 @@ bonds = [
   [15, 17],
   [17, 18]
 ]
-energy = { bond = 0.763, angle = 0.425, torsion = 0.178, inversion = 0.001 }
 
 [[PHE]]
 atoms = [
@@ -8139,7 +7940,6 @@ bonds = [
   [15, 17],
   [17, 18]
 ]
-energy = { bond = 0.835, angle = 0.759, torsion = 0.443, inversion = 0.005 }
 
 [[PHE]]
 atoms = [
@@ -8182,7 +7982,6 @@ bonds = [
   [15, 17],
   [17, 18]
 ]
-energy = { bond = 0.792, angle = 0.362, torsion = 1.626, inversion = 0.025 }
 
 [[PHE]]
 atoms = [
@@ -8225,7 +8024,6 @@ bonds = [
   [15, 17],
   [17, 18]
 ]
-energy = { bond = 0.845, angle = 0.863, torsion = 0.897, inversion = 0.003 }
 
 [[PHE]]
 atoms = [
@@ -8268,7 +8066,6 @@ bonds = [
   [15, 17],
   [17, 18]
 ]
-energy = { bond = 0.906, angle = 0.471, torsion = 1.668, inversion = 0.005 }
 
 [[PHE]]
 atoms = [
@@ -8311,7 +8108,6 @@ bonds = [
   [15, 17],
   [17, 18]
 ]
-energy = { bond = 1.192, angle = 0.703, torsion = 1.635, inversion = 0.043 }
 
 [[PHE]]
 atoms = [
@@ -8354,7 +8150,6 @@ bonds = [
   [15, 17],
   [17, 18]
 ]
-energy = { bond = 1.047, angle = 10.581, torsion = 1.906, inversion = 0.017 }
 
 [[PHE]]
 atoms = [
@@ -8397,7 +8192,6 @@ bonds = [
   [15, 17],
   [17, 18]
 ]
-energy = { bond = 1.166, angle = 3.054, torsion = 26.516, inversion = 6.174 }
 
 [[PRO]]
 atoms = [
@@ -8430,7 +8224,6 @@ bonds = [
   [11, 12],
   [11, 13]
 ]
-energy = { bond = 0.084, angle = 3.642, torsion = 5.420, inversion = 0.000 }
 
 [[PRO]]
 atoms = [
@@ -8463,7 +8256,6 @@ bonds = [
   [11, 12],
   [11, 13]
 ]
-energy = { bond = 0.115, angle = 3.199, torsion = 6.212, inversion = 0.000 }
 
 [[SER]]
 atoms = [
@@ -8487,7 +8279,6 @@ bonds = [
   [5, 8],
   [8, 9]
 ]
-energy = { bond = 0.044, angle = 0.112, torsion = 0.010, inversion = 0.000 }
 
 [[SER]]
 atoms = [
@@ -8511,7 +8302,6 @@ bonds = [
   [5, 8],
   [8, 9]
 ]
-energy = { bond = 0.044, angle = 0.112, torsion = 0.010, inversion = 0.000 }
 
 [[SER]]
 atoms = [
@@ -8535,7 +8325,6 @@ bonds = [
   [5, 8],
   [8, 9]
 ]
-energy = { bond = 0.044, angle = 0.112, torsion = 0.010, inversion = 0.000 }
 
 [[SER]]
 atoms = [
@@ -8559,7 +8348,6 @@ bonds = [
   [5, 8],
   [8, 9]
 ]
-energy = { bond = 0.051, angle = 0.144, torsion = 0.009, inversion = 0.000 }
 
 [[SER]]
 atoms = [
@@ -8583,7 +8371,6 @@ bonds = [
   [5, 8],
   [8, 9]
 ]
-energy = { bond = 0.051, angle = 0.144, torsion = 0.009, inversion = 0.000 }
 
 [[SER]]
 atoms = [
@@ -8607,7 +8394,6 @@ bonds = [
   [5, 8],
   [8, 9]
 ]
-energy = { bond = 0.051, angle = 0.144, torsion = 0.009, inversion = 0.000 }
 
 [[SER]]
 atoms = [
@@ -8631,7 +8417,6 @@ bonds = [
   [5, 8],
   [8, 9]
 ]
-energy = { bond = 0.031, angle = 0.081, torsion = 0.026, inversion = 0.000 }
 
 [[SER]]
 atoms = [
@@ -8655,7 +8440,6 @@ bonds = [
   [5, 8],
   [8, 9]
 ]
-energy = { bond = 0.031, angle = 0.081, torsion = 0.026, inversion = 0.000 }
 
 [[SER]]
 atoms = [
@@ -8679,7 +8463,6 @@ bonds = [
   [5, 8],
   [8, 9]
 ]
-energy = { bond = 0.031, angle = 0.081, torsion = 0.026, inversion = 0.000 }
 
 [[THR]]
 atoms = [
@@ -8709,7 +8492,6 @@ bonds = [
   [9, 11],
   [9, 12]
 ]
-energy = { bond = 0.170, angle = 0.447, torsion = 0.022, inversion = 0.000 }
 
 [[THR]]
 atoms = [
@@ -8739,7 +8521,6 @@ bonds = [
   [9, 11],
   [9, 12]
 ]
-energy = { bond = 0.170, angle = 0.447, torsion = 0.022, inversion = 0.000 }
 
 [[THR]]
 atoms = [
@@ -8769,7 +8550,6 @@ bonds = [
   [9, 11],
   [9, 12]
 ]
-energy = { bond = 0.170, angle = 0.447, torsion = 0.022, inversion = 0.000 }
 
 [[THR]]
 atoms = [
@@ -8799,7 +8579,6 @@ bonds = [
   [9, 11],
   [9, 12]
 ]
-energy = { bond = 0.186, angle = 0.321, torsion = 0.030, inversion = 0.000 }
 
 [[THR]]
 atoms = [
@@ -8829,7 +8608,6 @@ bonds = [
   [9, 11],
   [9, 12]
 ]
-energy = { bond = 0.186, angle = 0.321, torsion = 0.030, inversion = 0.000 }
 
 [[THR]]
 atoms = [
@@ -8859,7 +8637,6 @@ bonds = [
   [9, 11],
   [9, 12]
 ]
-energy = { bond = 0.186, angle = 0.321, torsion = 0.030, inversion = 0.000 }
 
 [[THR]]
 atoms = [
@@ -8889,7 +8666,6 @@ bonds = [
   [9, 11],
   [9, 12]
 ]
-energy = { bond = 0.274, angle = 0.580, torsion = 0.020, inversion = 0.000 }
 
 [[THR]]
 atoms = [
@@ -8919,7 +8695,6 @@ bonds = [
   [9, 11],
   [9, 12]
 ]
-energy = { bond = 0.274, angle = 0.580, torsion = 0.020, inversion = 0.000 }
 
 [[THR]]
 atoms = [
@@ -8949,7 +8724,6 @@ bonds = [
   [9, 11],
   [9, 12]
 ]
-energy = { bond = 0.274, angle = 0.580, torsion = 0.020, inversion = 0.000 }
 
 [[TRP]]
 atoms = [
@@ -9001,7 +8775,6 @@ bonds = [
   [19, 21],
   [21, 22]
 ]
-energy = { bond = 0.666, angle = 18.767, torsion = 0.415, inversion = 0.003 }
 
 [[TRP]]
 atoms = [
@@ -9053,7 +8826,6 @@ bonds = [
   [19, 21],
   [21, 22]
 ]
-energy = { bond = 0.566, angle = 18.634, torsion = 0.314, inversion = 0.003 }
 
 [[TRP]]
 atoms = [
@@ -9105,7 +8877,6 @@ bonds = [
   [19, 21],
   [21, 22]
 ]
-energy = { bond = 0.809, angle = 18.940, torsion = 0.078, inversion = 0.007 }
 
 [[TRP]]
 atoms = [
@@ -9157,7 +8928,6 @@ bonds = [
   [19, 21],
   [21, 22]
 ]
-energy = { bond = 0.629, angle = 18.872, torsion = 0.183, inversion = 0.012 }
 
 [[TRP]]
 atoms = [
@@ -9209,7 +8979,6 @@ bonds = [
   [19, 21],
   [21, 22]
 ]
-energy = { bond = 0.728, angle = 19.255, torsion = 0.740, inversion = 0.005 }
 
 [[TRP]]
 atoms = [
@@ -9261,7 +9030,6 @@ bonds = [
   [19, 21],
   [21, 22]
 ]
-energy = { bond = 0.600, angle = 18.882, torsion = 0.511, inversion = 0.011 }
 
 [[TRP]]
 atoms = [
@@ -9313,7 +9081,6 @@ bonds = [
   [19, 21],
   [21, 22]
 ]
-energy = { bond = 0.662, angle = 18.963, torsion = 0.924, inversion = 0.006 }
 
 [[TRP]]
 atoms = [
@@ -9365,7 +9132,6 @@ bonds = [
   [19, 21],
   [21, 22]
 ]
-energy = { bond = 0.618, angle = 18.612, torsion = 1.486, inversion = 0.003 }
 
 [[TRP]]
 atoms = [
@@ -9417,7 +9183,6 @@ bonds = [
   [19, 21],
   [21, 22]
 ]
-energy = { bond = 0.699, angle = 18.597, torsion = 1.246, inversion = 0.015 }
 
 [[TRP]]
 atoms = [
@@ -9469,7 +9234,6 @@ bonds = [
   [19, 21],
   [21, 22]
 ]
-energy = { bond = 0.843, angle = 19.220, torsion = 0.128, inversion = 0.000 }
 
 [[TRP]]
 atoms = [
@@ -9521,7 +9285,6 @@ bonds = [
   [19, 21],
   [21, 22]
 ]
-energy = { bond = 0.914, angle = 19.526, torsion = 0.183, inversion = 0.000 }
 
 [[TRP]]
 atoms = [
@@ -9573,7 +9336,6 @@ bonds = [
   [19, 21],
   [21, 22]
 ]
-energy = { bond = 0.707, angle = 18.928, torsion = 0.797, inversion = 0.007 }
 
 [[TRP]]
 atoms = [
@@ -9625,7 +9387,6 @@ bonds = [
   [19, 21],
   [21, 22]
 ]
-energy = { bond = 0.873, angle = 19.477, torsion = 1.182, inversion = 0.075 }
 
 [[TRP]]
 atoms = [
@@ -9677,7 +9438,6 @@ bonds = [
   [19, 21],
   [21, 22]
 ]
-energy = { bond = 0.801, angle = 20.098, torsion = 0.766, inversion = 0.024 }
 
 [[TRP]]
 atoms = [
@@ -9729,7 +9489,6 @@ bonds = [
   [19, 21],
   [21, 22]
 ]
-energy = { bond = 0.671, angle = 19.375, torsion = 0.803, inversion = 0.011 }
 
 [[TRP]]
 atoms = [
@@ -9781,7 +9540,6 @@ bonds = [
   [19, 21],
   [21, 22]
 ]
-energy = { bond = 1.156, angle = 20.111, torsion = 0.090, inversion = 0.003 }
 
 [[TRP]]
 atoms = [
@@ -9833,7 +9591,6 @@ bonds = [
   [19, 21],
   [21, 22]
 ]
-energy = { bond = 0.929, angle = 19.731, torsion = 0.980, inversion = 0.012 }
 
 [[TRP]]
 atoms = [
@@ -9885,7 +9642,6 @@ bonds = [
   [19, 21],
   [21, 22]
 ]
-energy = { bond = 0.791, angle = 18.903, torsion = 1.970, inversion = 0.006 }
 
 [[TRP]]
 atoms = [
@@ -9937,7 +9693,6 @@ bonds = [
   [19, 21],
   [21, 22]
 ]
-energy = { bond = 1.115, angle = 20.099, torsion = 1.073, inversion = 0.011 }
 
 [[TRP]]
 atoms = [
@@ -9989,7 +9744,6 @@ bonds = [
   [19, 21],
   [21, 22]
 ]
-energy = { bond = 0.883, angle = 19.768, torsion = 1.796, inversion = 0.004 }
 
 [[TRP]]
 atoms = [
@@ -10041,7 +9795,6 @@ bonds = [
   [19, 21],
   [21, 22]
 ]
-energy = { bond = 0.790, angle = 19.776, torsion = 0.600, inversion = 0.084 }
 
 [[TRP]]
 atoms = [
@@ -10093,7 +9846,6 @@ bonds = [
   [19, 21],
   [21, 22]
 ]
-energy = { bond = 0.882, angle = 20.036, torsion = 2.128, inversion = 0.074 }
 
 [[TYR]]
 atoms = [
@@ -10138,7 +9890,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.008, angle = 0.677, torsion = 0.379, inversion = 0.018 }
 
 [[TYR]]
 atoms = [
@@ -10183,7 +9934,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.008, angle = 0.677, torsion = 0.379, inversion = 0.018 }
 
 [[TYR]]
 atoms = [
@@ -10228,7 +9978,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.008, angle = 0.677, torsion = 0.379, inversion = 0.018 }
 
 [[TYR]]
 atoms = [
@@ -10273,7 +10022,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.008, angle = 0.677, torsion = 0.379, inversion = 0.018 }
 
 [[TYR]]
 atoms = [
@@ -10318,7 +10066,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 0.890, angle = 0.236, torsion = 1.012, inversion = 0.015 }
 
 [[TYR]]
 atoms = [
@@ -10363,7 +10110,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 0.890, angle = 0.236, torsion = 1.012, inversion = 0.015 }
 
 [[TYR]]
 atoms = [
@@ -10408,7 +10154,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 0.890, angle = 0.236, torsion = 1.012, inversion = 0.015 }
 
 [[TYR]]
 atoms = [
@@ -10453,7 +10198,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 0.890, angle = 0.236, torsion = 1.012, inversion = 0.015 }
 
 [[TYR]]
 atoms = [
@@ -10498,7 +10242,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.193, angle = 1.367, torsion = 0.947, inversion = 0.038 }
 
 [[TYR]]
 atoms = [
@@ -10543,7 +10286,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.193, angle = 1.367, torsion = 0.947, inversion = 0.038 }
 
 [[TYR]]
 atoms = [
@@ -10588,7 +10330,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.193, angle = 1.367, torsion = 0.947, inversion = 0.038 }
 
 [[TYR]]
 atoms = [
@@ -10633,7 +10374,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.193, angle = 1.367, torsion = 0.947, inversion = 0.038 }
 
 [[TYR]]
 atoms = [
@@ -10678,7 +10418,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.243, angle = 0.583, torsion = 2.196, inversion = 0.031 }
 
 [[TYR]]
 atoms = [
@@ -10723,7 +10462,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.243, angle = 0.583, torsion = 2.196, inversion = 0.031 }
 
 [[TYR]]
 atoms = [
@@ -10768,7 +10506,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.243, angle = 0.583, torsion = 2.196, inversion = 0.031 }
 
 [[TYR]]
 atoms = [
@@ -10813,7 +10550,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.243, angle = 0.583, torsion = 2.196, inversion = 0.031 }
 
 [[TYR]]
 atoms = [
@@ -10858,7 +10594,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.002, angle = 0.478, torsion = 2.131, inversion = 0.057 }
 
 [[TYR]]
 atoms = [
@@ -10903,7 +10638,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.002, angle = 0.478, torsion = 2.131, inversion = 0.057 }
 
 [[TYR]]
 atoms = [
@@ -10948,7 +10682,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.002, angle = 0.478, torsion = 2.131, inversion = 0.057 }
 
 [[TYR]]
 atoms = [
@@ -10993,7 +10726,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.002, angle = 0.478, torsion = 2.131, inversion = 0.057 }
 
 [[TYR]]
 atoms = [
@@ -11038,7 +10770,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.190, angle = 0.647, torsion = 2.230, inversion = 0.046 }
 
 [[TYR]]
 atoms = [
@@ -11083,7 +10814,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.190, angle = 0.647, torsion = 2.230, inversion = 0.046 }
 
 [[TYR]]
 atoms = [
@@ -11128,7 +10858,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.190, angle = 0.647, torsion = 2.230, inversion = 0.046 }
 
 [[TYR]]
 atoms = [
@@ -11173,7 +10902,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.190, angle = 0.647, torsion = 2.230, inversion = 0.046 }
 
 [[TYR]]
 atoms = [
@@ -11218,7 +10946,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.541, angle = 1.044, torsion = 2.689, inversion = 0.038 }
 
 [[TYR]]
 atoms = [
@@ -11263,7 +10990,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.541, angle = 1.044, torsion = 2.689, inversion = 0.038 }
 
 [[TYR]]
 atoms = [
@@ -11308,7 +11034,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.541, angle = 1.044, torsion = 2.689, inversion = 0.038 }
 
 [[TYR]]
 atoms = [
@@ -11353,7 +11078,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.541, angle = 1.044, torsion = 2.689, inversion = 0.038 }
 
 [[TYR]]
 atoms = [
@@ -11398,7 +11122,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.214, angle = 0.953, torsion = 2.241, inversion = 0.022 }
 
 [[TYR]]
 atoms = [
@@ -11443,7 +11166,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.214, angle = 0.953, torsion = 2.241, inversion = 0.022 }
 
 [[TYR]]
 atoms = [
@@ -11488,7 +11210,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.214, angle = 0.953, torsion = 2.241, inversion = 0.022 }
 
 [[TYR]]
 atoms = [
@@ -11533,7 +11254,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.214, angle = 0.953, torsion = 2.241, inversion = 0.022 }
 
 [[TYR]]
 atoms = [
@@ -11578,7 +11298,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.539, angle = 1.524, torsion = 3.378, inversion = 0.047 }
 
 [[TYR]]
 atoms = [
@@ -11623,7 +11342,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.539, angle = 1.524, torsion = 3.378, inversion = 0.047 }
 
 [[TYR]]
 atoms = [
@@ -11668,7 +11386,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.539, angle = 1.524, torsion = 3.378, inversion = 0.047 }
 
 [[TYR]]
 atoms = [
@@ -11713,7 +11430,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.539, angle = 1.524, torsion = 3.378, inversion = 0.047 }
 
 [[TYR]]
 atoms = [
@@ -11758,7 +11474,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.544, angle = 10.366, torsion = 3.514, inversion = 0.632 }
 
 [[TYR]]
 atoms = [
@@ -11803,7 +11518,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.544, angle = 10.366, torsion = 3.514, inversion = 0.632 }
 
 [[TYR]]
 atoms = [
@@ -11848,7 +11562,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.544, angle = 10.366, torsion = 3.514, inversion = 0.632 }
 
 [[TYR]]
 atoms = [
@@ -11893,7 +11606,6 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
-energy = { bond = 1.544, angle = 10.366, torsion = 3.514, inversion = 0.632 }
 
 [[VAL]]
 atoms = [
@@ -11927,7 +11639,6 @@ bonds = [
   [11, 13],
   [11, 14]
 ]
-energy = { bond = 0.380, angle = 0.698, torsion = 0.061, inversion = 0.000 }
 
 [[VAL]]
 atoms = [
@@ -11961,7 +11672,6 @@ bonds = [
   [11, 13],
   [11, 14]
 ]
-energy = { bond = 0.452, angle = 0.424, torsion = 0.016, inversion = 0.000 }
 
 [[VAL]]
 atoms = [
@@ -11995,4 +11705,3 @@ bonds = [
   [11, 13],
   [11, 14]
 ]
-energy = { bond = 0.463, angle = 1.189, torsion = 0.119, inversion = 0.000 }

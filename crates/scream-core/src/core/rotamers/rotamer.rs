@@ -1,4 +1,3 @@
-use crate::core::forcefield::term::EnergyTerm;
 use crate::core::models::atom::Atom;
 use serde::Deserialize;
 
@@ -11,25 +10,14 @@ pub struct RotamerAtomData {
     pub force_field_type: String,
 }
 
-#[derive(Debug, Deserialize, Clone, Default)]
-pub struct EnergyData {
-    pub bond: f64,
-    pub angle: f64,
-    pub torsion: f64,
-    pub inversion: f64,
-}
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct RotamerData {
     pub atoms: Vec<RotamerAtomData>,
     pub bonds: Vec<[usize; 2]>,
-    #[serde(default)]
-    pub energy: EnergyData,
 }
 
 #[derive(Debug, Clone)]
 pub struct Rotamer {
     pub atoms: Vec<Atom>,
     pub bonds: Vec<(usize, usize)>,
-    pub energy: EnergyTerm,
 }

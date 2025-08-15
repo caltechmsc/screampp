@@ -360,7 +360,6 @@ mod tests {
         let empty_rotamer = Rotamer {
             atoms: vec![],
             bonds: vec![],
-            energy: Default::default(),
         };
         rotamer_library
             .rotamers
