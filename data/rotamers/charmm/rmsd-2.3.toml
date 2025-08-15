@@ -19,6 +19,12 @@ bonds = [
   [5, 8]
 ]
 
+[ALA.energy]
+bond = 0.000
+angle = 0.000
+torsion = 0.000
+inversion = 0.000
+
 [[ARG]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -67,6 +73,12 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
+
+[ARG.energy]
+bond = 0.278
+angle = 1.212
+torsion = 0.137
+inversion = 0.002
 
 [[ARG]]
 atoms = [
@@ -117,6 +129,12 @@ bonds = [
   [20, 22]
 ]
 
+[ARG.energy]
+bond = 0.417
+angle = 1.705
+torsion = 0.179
+inversion = 0.004
+
 [[ARG]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -165,6 +183,12 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
+
+[ARG.energy]
+bond = 0.352
+angle = 0.810
+torsion = 1.037
+inversion = 0.005
 
 [[ARG]]
 atoms = [
@@ -215,6 +239,12 @@ bonds = [
   [20, 22]
 ]
 
+[ARG.energy]
+bond = 0.297
+angle = 1.410
+torsion = 0.481
+inversion = 0.036
+
 [[ARG]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -263,6 +293,12 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
+
+[ARG.energy]
+bond = 0.449
+angle = 1.757
+torsion = 0.134
+inversion = 0.001
 
 [[ARG]]
 atoms = [
@@ -313,6 +349,12 @@ bonds = [
   [20, 22]
 ]
 
+[ARG.energy]
+bond = 0.481
+angle = 1.299
+torsion = 0.171
+inversion = 0.003
+
 [[ARG]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -361,6 +403,12 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
+
+[ARG.energy]
+bond = 0.384
+angle = 1.325
+torsion = 1.303
+inversion = 0.017
 
 [[ARG]]
 atoms = [
@@ -411,6 +459,12 @@ bonds = [
   [20, 22]
 ]
 
+[ARG.energy]
+bond = 0.411
+angle = 1.411
+torsion = 1.081
+inversion = 0.015
+
 [[ARG]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -459,6 +513,12 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
+
+[ARG.energy]
+bond = 0.423
+angle = 1.696
+torsion = 0.342
+inversion = 0.007
 
 [[ARG]]
 atoms = [
@@ -509,6 +569,12 @@ bonds = [
   [20, 22]
 ]
 
+[ARG.energy]
+bond = 0.380
+angle = 1.791
+torsion = 0.961
+inversion = 0.003
+
 [[ARG]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -557,6 +623,12 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
+
+[ARG.energy]
+bond = 0.359
+angle = 1.491
+torsion = 0.995
+inversion = 0.008
 
 [[ARG]]
 atoms = [
@@ -607,6 +679,12 @@ bonds = [
   [20, 22]
 ]
 
+[ARG.energy]
+bond = 0.442
+angle = 1.316
+torsion = 1.162
+inversion = 0.018
+
 [[ARG]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -655,6 +733,12 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
+
+[ARG.energy]
+bond = 0.340
+angle = 1.750
+torsion = 1.674
+inversion = 0.005
 
 [[ARG]]
 atoms = [
@@ -705,6 +789,12 @@ bonds = [
   [20, 22]
 ]
 
+[ARG.energy]
+bond = 0.453
+angle = 1.445
+torsion = 1.861
+inversion = 0.025
+
 [[ARG]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -753,6 +843,12 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
+
+[ARG.energy]
+bond = 0.602
+angle = 1.771
+torsion = 2.309
+inversion = 0.020
 
 [[ARG]]
 atoms = [
@@ -803,6 +899,12 @@ bonds = [
   [20, 22]
 ]
 
+[ARG.energy]
+bond = 0.598
+angle = 3.273
+torsion = 1.259
+inversion = 0.013
+
 [[ARG]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -851,6 +953,12 @@ bonds = [
   [20, 21],
   [20, 22]
 ]
+
+[ARG.energy]
+bond = 0.510
+angle = 1.655
+torsion = 3.993
+inversion = 0.004
 
 [[ARG]]
 atoms = [
@@ -901,6 +1009,12 @@ bonds = [
   [20, 22]
 ]
 
+[ARG.energy]
+bond = 6.071
+angle = 88.782
+torsion = 10.213
+inversion = 0.638
+
 [[ASN]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -929,6 +1043,12 @@ bonds = [
   [10, 11],
   [10, 12]
 ]
+
+[ASN.energy]
+bond = 0.122
+angle = 0.266
+torsion = 0.018
+inversion = 0.001
 
 [[ASN]]
 atoms = [
@@ -959,6 +1079,12 @@ bonds = [
   [10, 12]
 ]
 
+[ASN.energy]
+bond = 0.183
+angle = 0.353
+torsion = 0.023
+inversion = 0.003
+
 [[ASN]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -988,6 +1114,12 @@ bonds = [
   [10, 12]
 ]
 
+[ASN.energy]
+bond = 0.167
+angle = 0.596
+torsion = 0.031
+inversion = 0.000
+
 [[ASP]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -1012,6 +1144,12 @@ bonds = [
   [8, 9],
   [8, 10]
 ]
+
+[ASP.energy]
+bond = 0.147
+angle = 0.248
+torsion = 0.043
+inversion = 0.001
 
 [[ASP]]
 atoms = [
@@ -1038,6 +1176,12 @@ bonds = [
   [8, 10]
 ]
 
+[ASP.energy]
+bond = 0.172
+angle = 0.299
+torsion = 0.051
+inversion = 0.001
+
 [[ASP]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -1063,6 +1207,12 @@ bonds = [
   [8, 10]
 ]
 
+[ASP.energy]
+bond = 0.177
+angle = 0.745
+torsion = 0.057
+inversion = 0.006
+
 [[CYS]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -1085,6 +1235,12 @@ bonds = [
   [5, 8],
   [8, 9]
 ]
+
+[CYS.energy]
+bond = 0.050
+angle = 0.253
+torsion = 0.044
+inversion = 0.000
 
 [[GLN]]
 atoms = [
@@ -1121,6 +1277,12 @@ bonds = [
   [13, 15]
 ]
 
+[GLN.energy]
+bond = 0.173
+angle = 0.281
+torsion = 0.041
+inversion = 0.002
+
 [[GLN]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -1155,6 +1317,12 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
+
+[GLN.energy]
+bond = 0.255
+angle = 0.476
+torsion = 0.217
+inversion = 0.011
 
 [[GLN]]
 atoms = [
@@ -1191,6 +1359,12 @@ bonds = [
   [13, 15]
 ]
 
+[GLN.energy]
+bond = 0.190
+angle = 0.654
+torsion = 0.036
+inversion = 0.000
+
 [[GLN]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -1225,6 +1399,12 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
+
+[GLN.energy]
+bond = 0.282
+angle = 0.832
+torsion = 0.045
+inversion = 0.000
 
 [[GLN]]
 atoms = [
@@ -1261,6 +1441,12 @@ bonds = [
   [13, 15]
 ]
 
+[GLN.energy]
+bond = 0.241
+angle = 0.547
+torsion = 0.118
+inversion = 0.005
+
 [[GLN]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -1295,6 +1481,12 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
+
+[GLN.energy]
+bond = 0.301
+angle = 0.853
+torsion = 0.126
+inversion = 0.002
 
 [[GLN]]
 atoms = [
@@ -1331,6 +1523,12 @@ bonds = [
   [13, 15]
 ]
 
+[GLN.energy]
+bond = 0.417
+angle = 1.196
+torsion = 0.295
+inversion = 0.003
+
 [[GLN]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -1366,6 +1564,12 @@ bonds = [
   [13, 15]
 ]
 
+[GLN.energy]
+bond = 0.257
+angle = 1.261
+torsion = 0.711
+inversion = 0.001
+
 [[GLU]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -1396,6 +1600,12 @@ bonds = [
   [11, 12],
   [11, 13]
 ]
+
+[GLU.energy]
+bond = 0.202
+angle = 0.324
+torsion = 0.026
+inversion = 0.005
 
 [[GLU]]
 atoms = [
@@ -1428,6 +1638,12 @@ bonds = [
   [11, 13]
 ]
 
+[GLU.energy]
+bond = 0.265
+angle = 0.560
+torsion = 0.126
+inversion = 0.000
+
 [[GLU]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -1458,6 +1674,12 @@ bonds = [
   [11, 12],
   [11, 13]
 ]
+
+[GLU.energy]
+bond = 0.316
+angle = 0.669
+torsion = 0.084
+inversion = 0.012
 
 [[GLU]]
 atoms = [
@@ -1490,6 +1712,12 @@ bonds = [
   [11, 13]
 ]
 
+[GLU.energy]
+bond = 0.263
+angle = 0.565
+torsion = 0.021
+inversion = 0.001
+
 [[GLU]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89524], force_field_type = "N_R" },
@@ -1520,6 +1748,12 @@ bonds = [
   [11, 12],
   [11, 13]
 ]
+
+[GLU.energy]
+bond = 0.292
+angle = 1.039
+torsion = 0.209
+inversion = 0.000
 
 [[GLU]]
 atoms = [
@@ -1552,6 +1786,12 @@ bonds = [
   [11, 13]
 ]
 
+[GLU.energy]
+bond = 0.283
+angle = 1.560
+torsion = 0.238
+inversion = 0.000
+
 [[GLU]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -1582,6 +1822,12 @@ bonds = [
   [11, 12],
   [11, 13]
 ]
+
+[GLU.energy]
+bond = 0.348
+angle = 1.855
+torsion = 0.440
+inversion = 0.000
 
 [[GLU]]
 atoms = [
@@ -1614,6 +1860,12 @@ bonds = [
   [11, 13]
 ]
 
+[GLU.energy]
+bond = 0.389
+angle = 1.662
+torsion = 1.132
+inversion = 0.006
+
 [[GLY]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-1.019, 0.54552, -0.85324], force_field_type = "N_R" },
@@ -1628,6 +1880,12 @@ bonds = [
   [2, 4],
   [2, 5]
 ]
+
+[GLY.energy]
+bond = 0.000
+angle = 0.000
+torsion = 0.000
+inversion = 0.000
 
 [[HIS]]
 atoms = [
@@ -1665,6 +1923,12 @@ bonds = [
   [13, 15]
 ]
 
+[HIS.energy]
+bond = 0.204
+angle = 15.576
+torsion = 0.065
+inversion = 0.000
+
 [[HIS]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -1700,6 +1964,12 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
+
+[HIS.energy]
+bond = 0.223
+angle = 15.584
+torsion = 0.269
+inversion = 0.002
 
 [[HIS]]
 atoms = [
@@ -1737,6 +2007,12 @@ bonds = [
   [13, 15]
 ]
 
+[HIS.energy]
+bond = 0.196
+angle = 16.115
+torsion = 0.104
+inversion = 0.009
+
 [[HIS]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -1772,6 +2048,12 @@ bonds = [
   [13, 14],
   [13, 15]
 ]
+
+[HIS.energy]
+bond = 0.387
+angle = 18.923
+torsion = 2.637
+inversion = 0.062
 
 [[HSE]]
 atoms = [
@@ -1809,6 +2091,12 @@ bonds = [
   [14, 15]
 ]
 
+[HSE.energy]
+bond = 0.204
+angle = 15.576
+torsion = 0.065
+inversion = 0.000
+
 [[HSE]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -1844,6 +2132,12 @@ bonds = [
   [12, 14],
   [14, 15]
 ]
+
+[HSE.energy]
+bond = 0.223
+angle = 15.584
+torsion = 0.269
+inversion = 0.002
 
 [[HSE]]
 atoms = [
@@ -1881,6 +2175,12 @@ bonds = [
   [14, 15]
 ]
 
+[HSE.energy]
+bond = 0.196
+angle = 16.115
+torsion = 0.104
+inversion = 0.009
+
 [[HSE]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -1916,6 +2216,12 @@ bonds = [
   [12, 14],
   [14, 15]
 ]
+
+[HSE.energy]
+bond = 0.387
+angle = 18.923
+torsion = 2.637
+inversion = 0.062
 
 [[HSP]]
 atoms = [
@@ -1955,6 +2261,12 @@ bonds = [
   [15, 16]
 ]
 
+[HSP.energy]
+bond = 0.204
+angle = 15.576
+torsion = 0.065
+inversion = 0.000
+
 [[HSP]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -1992,6 +2304,12 @@ bonds = [
   [13, 15],
   [15, 16]
 ]
+
+[HSP.energy]
+bond = 0.223
+angle = 15.584
+torsion = 0.269
+inversion = 0.002
 
 [[HSP]]
 atoms = [
@@ -2031,6 +2349,12 @@ bonds = [
   [15, 16]
 ]
 
+[HSP.energy]
+bond = 0.196
+angle = 16.115
+torsion = 0.104
+inversion = 0.009
+
 [[HSP]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -2068,6 +2392,12 @@ bonds = [
   [13, 15],
   [15, 16]
 ]
+
+[HSP.energy]
+bond = 0.387
+angle = 18.923
+torsion = 2.637
+inversion = 0.062
 
 [[ILE]]
 atoms = [
@@ -2108,6 +2438,12 @@ bonds = [
   [14, 17]
 ]
 
+[ILE.energy]
+bond = 0.730
+angle = 1.035
+torsion = 0.315
+inversion = 0.000
+
 [[ILE]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -2146,6 +2482,12 @@ bonds = [
   [14, 16],
   [14, 17]
 ]
+
+[ILE.energy]
+bond = 0.640
+angle = 1.217
+torsion = 0.146
+inversion = 0.000
 
 [[ILE]]
 atoms = [
@@ -2186,6 +2528,12 @@ bonds = [
   [14, 17]
 ]
 
+[ILE.energy]
+bond = 0.791
+angle = 1.742
+torsion = 0.125
+inversion = 0.000
+
 [[LEU]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -2224,6 +2572,12 @@ bonds = [
   [14, 16],
   [14, 17]
 ]
+
+[LEU.energy]
+bond = 0.428
+angle = 0.974
+torsion = 0.059
+inversion = 0.000
 
 [[LEU]]
 atoms = [
@@ -2264,6 +2618,12 @@ bonds = [
   [14, 17]
 ]
 
+[LEU.energy]
+bond = 0.496
+angle = 1.162
+torsion = 0.059
+inversion = 0.000
+
 [[LEU]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -2302,6 +2662,12 @@ bonds = [
   [14, 16],
   [14, 17]
 ]
+
+[LEU.energy]
+bond = 0.493
+angle = 1.437
+torsion = 0.317
+inversion = 0.000
 
 [[LYS]]
 atoms = [
@@ -2348,6 +2714,12 @@ bonds = [
   [17, 20]
 ]
 
+[LYS.energy]
+bond = 0.335
+angle = 1.233
+torsion = 0.052
+inversion = 0.000
+
 [[LYS]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -2392,6 +2764,12 @@ bonds = [
   [17, 19],
   [17, 20]
 ]
+
+[LYS.energy]
+bond = 0.266
+angle = 1.168
+torsion = 0.068
+inversion = 0.000
 
 [[LYS]]
 atoms = [
@@ -2438,6 +2816,12 @@ bonds = [
   [17, 20]
 ]
 
+[LYS.energy]
+bond = 0.331
+angle = 1.699
+torsion = 0.111
+inversion = 0.000
+
 [[LYS]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -2482,6 +2866,12 @@ bonds = [
   [17, 19],
   [17, 20]
 ]
+
+[LYS.energy]
+bond = 0.312
+angle = 1.598
+torsion = 0.133
+inversion = 0.000
 
 [[LYS]]
 atoms = [
@@ -2528,6 +2918,12 @@ bonds = [
   [17, 20]
 ]
 
+[LYS.energy]
+bond = 0.323
+angle = 1.416
+torsion = 0.258
+inversion = 0.000
+
 [[LYS]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -2572,6 +2968,12 @@ bonds = [
   [17, 19],
   [17, 20]
 ]
+
+[LYS.energy]
+bond = 0.305
+angle = 2.165
+torsion = 0.626
+inversion = 0.000
 
 [[LYS]]
 atoms = [
@@ -2618,6 +3020,12 @@ bonds = [
   [17, 20]
 ]
 
+[LYS.energy]
+bond = 0.462
+angle = 1.895
+torsion = 1.274
+inversion = 0.000
+
 [[LYS]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -2662,6 +3070,12 @@ bonds = [
   [17, 19],
   [17, 20]
 ]
+
+[LYS.energy]
+bond = 0.500
+angle = 2.447
+torsion = 2.265
+inversion = 0.000
 
 [[LYS]]
 atoms = [
@@ -2708,6 +3122,12 @@ bonds = [
   [17, 20]
 ]
 
+[LYS.energy]
+bond = 1.570
+angle = 9.070
+torsion = 3.160
+inversion = 0.000
+
 [[MET]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -2742,6 +3162,12 @@ bonds = [
   [12, 14],
   [12, 15]
 ]
+
+[MET.energy]
+bond = 0.173
+angle = 0.686
+torsion = 0.117
+inversion = 0.000
 
 [[MET]]
 atoms = [
@@ -2778,6 +3204,12 @@ bonds = [
   [12, 15]
 ]
 
+[MET.energy]
+bond = 0.142
+angle = 0.982
+torsion = 0.092
+inversion = 0.000
+
 [[MET]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -2812,6 +3244,12 @@ bonds = [
   [12, 14],
   [12, 15]
 ]
+
+[MET.energy]
+bond = 0.167
+angle = 0.927
+torsion = 0.008
+inversion = 0.000
 
 [[MET]]
 atoms = [
@@ -2848,6 +3286,12 @@ bonds = [
   [12, 15]
 ]
 
+[MET.energy]
+bond = 0.259
+angle = 1.727
+torsion = 0.237
+inversion = 0.000
+
 [[MET]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -2883,6 +3327,12 @@ bonds = [
   [12, 15]
 ]
 
+[MET.energy]
+bond = 0.305
+angle = 2.073
+torsion = 0.411
+inversion = 0.000
+
 [[MET]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -2917,6 +3367,12 @@ bonds = [
   [12, 14],
   [12, 15]
 ]
+
+[MET.energy]
+bond = 0.311
+angle = 1.653
+torsion = 1.975
+inversion = 0.000
 
 [[PHE]]
 atoms = [
@@ -2960,6 +3416,12 @@ bonds = [
   [17, 18]
 ]
 
+[PHE.energy]
+bond = 0.733
+angle = 0.478
+torsion = 0.133
+inversion = 0.009
+
 [[PHE]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -3001,6 +3463,12 @@ bonds = [
   [15, 17],
   [17, 18]
 ]
+
+[PHE.energy]
+bond = 0.763
+angle = 0.425
+torsion = 0.178
+inversion = 0.001
 
 [[PHE]]
 atoms = [
@@ -3044,6 +3512,12 @@ bonds = [
   [17, 18]
 ]
 
+[PHE.energy]
+bond = 0.835
+angle = 0.759
+torsion = 0.443
+inversion = 0.005
+
 [[PHE]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -3085,6 +3559,12 @@ bonds = [
   [15, 17],
   [17, 18]
 ]
+
+[PHE.energy]
+bond = 0.908
+angle = 0.511
+torsion = 2.105
+inversion = 0.033
 
 [[PHE]]
 atoms = [
@@ -3128,6 +3608,12 @@ bonds = [
   [17, 18]
 ]
 
+[PHE.energy]
+bond = 0.964
+angle = 1.457
+torsion = 2.696
+inversion = 0.014
+
 [[PHE]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -3170,6 +3656,12 @@ bonds = [
   [17, 18]
 ]
 
+[PHE.energy]
+bond = 1.738
+angle = 1.244
+torsion = 2.637
+inversion = 0.080
+
 [[PRO]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.2900, position = [0.59, -1.251, -0.113], force_field_type = "N_R" },
@@ -3201,6 +3693,12 @@ bonds = [
   [11, 12],
   [11, 13]
 ]
+
+[PRO.energy]
+bond = 0.084
+angle = 3.642
+torsion = 5.420
+inversion = 0.000
 
 [[PRO]]
 atoms = [
@@ -3234,6 +3732,12 @@ bonds = [
   [11, 13]
 ]
 
+[PRO.energy]
+bond = 0.115
+angle = 3.199
+torsion = 6.212
+inversion = 0.000
+
 [[SER]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -3256,6 +3760,12 @@ bonds = [
   [5, 8],
   [8, 9]
 ]
+
+[SER.energy]
+bond = 0.044
+angle = 0.112
+torsion = 0.010
+inversion = 0.000
 
 [[SER]]
 atoms = [
@@ -3280,6 +3790,12 @@ bonds = [
   [8, 9]
 ]
 
+[SER.energy]
+bond = 0.044
+angle = 0.112
+torsion = 0.010
+inversion = 0.000
+
 [[SER]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -3302,6 +3818,12 @@ bonds = [
   [5, 8],
   [8, 9]
 ]
+
+[SER.energy]
+bond = 0.044
+angle = 0.112
+torsion = 0.010
+inversion = 0.000
 
 [[THR]]
 atoms = [
@@ -3332,6 +3854,12 @@ bonds = [
   [9, 12]
 ]
 
+[THR.energy]
+bond = 0.170
+angle = 0.447
+torsion = 0.022
+inversion = 0.000
+
 [[THR]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -3361,6 +3889,12 @@ bonds = [
   [9, 12]
 ]
 
+[THR.energy]
+bond = 0.170
+angle = 0.447
+torsion = 0.022
+inversion = 0.000
+
 [[THR]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -3389,6 +3923,12 @@ bonds = [
   [9, 11],
   [9, 12]
 ]
+
+[THR.energy]
+bond = 0.170
+angle = 0.447
+torsion = 0.022
+inversion = 0.000
 
 [[TRP]]
 atoms = [
@@ -3441,6 +3981,12 @@ bonds = [
   [21, 22]
 ]
 
+[TRP.energy]
+bond = 0.666
+angle = 18.767
+torsion = 0.415
+inversion = 0.003
+
 [[TRP]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -3491,6 +4037,12 @@ bonds = [
   [19, 21],
   [21, 22]
 ]
+
+[TRP.energy]
+bond = 0.566
+angle = 18.634
+torsion = 0.314
+inversion = 0.003
 
 [[TRP]]
 atoms = [
@@ -3543,6 +4095,12 @@ bonds = [
   [21, 22]
 ]
 
+[TRP.energy]
+bond = 0.809
+angle = 18.940
+torsion = 0.078
+inversion = 0.007
+
 [[TRP]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97886, 0.54464, -0.89524], force_field_type = "N_R" },
@@ -3593,6 +4151,12 @@ bonds = [
   [19, 21],
   [21, 22]
 ]
+
+[TRP.energy]
+bond = 0.629
+angle = 18.872
+torsion = 0.183
+inversion = 0.012
 
 [[TRP]]
 atoms = [
@@ -3645,6 +4209,12 @@ bonds = [
   [21, 22]
 ]
 
+[TRP.energy]
+bond = 0.728
+angle = 19.255
+torsion = 0.740
+inversion = 0.005
+
 [[TRP]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97886, 0.54464, -0.89524], force_field_type = "N_R" },
@@ -3695,6 +4265,12 @@ bonds = [
   [19, 21],
   [21, 22]
 ]
+
+[TRP.energy]
+bond = 0.662
+angle = 18.963
+torsion = 0.924
+inversion = 0.006
 
 [[TRP]]
 atoms = [
@@ -3747,6 +4323,12 @@ bonds = [
   [21, 22]
 ]
 
+[TRP.energy]
+bond = 0.843
+angle = 19.220
+torsion = 0.128
+inversion = 0.000
+
 [[TRP]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97886, 0.54464, -0.89524], force_field_type = "N_R" },
@@ -3797,6 +4379,12 @@ bonds = [
   [19, 21],
   [21, 22]
 ]
+
+[TRP.energy]
+bond = 0.588
+angle = 18.465
+torsion = 1.478
+inversion = 0.009
 
 [[TRP]]
 atoms = [
@@ -3849,6 +4437,12 @@ bonds = [
   [21, 22]
 ]
 
+[TRP.energy]
+bond = 0.912
+angle = 19.501
+torsion = 1.403
+inversion = 0.075
+
 [[TRP]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89524], force_field_type = "N_R" },
@@ -3899,6 +4493,12 @@ bonds = [
   [19, 21],
   [21, 22]
 ]
+
+[TRP.energy]
+bond = 1.073
+angle = 19.595
+torsion = 0.484
+inversion = 0.002
 
 [[TRP]]
 atoms = [
@@ -3951,6 +4551,12 @@ bonds = [
   [21, 22]
 ]
 
+[TRP.energy]
+bond = 1.156
+angle = 20.111
+torsion = 0.090
+inversion = 0.003
+
 [[TRP]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97886, 0.54464, -0.89524], force_field_type = "N_R" },
@@ -4001,6 +4607,12 @@ bonds = [
   [19, 21],
   [21, 22]
 ]
+
+[TRP.energy]
+bond = 0.883
+angle = 19.768
+torsion = 1.796
+inversion = 0.004
 
 [[TRP]]
 atoms = [
@@ -4053,6 +4665,12 @@ bonds = [
   [21, 22]
 ]
 
+[TRP.energy]
+bond = 0.597
+angle = 22.078
+torsion = 1.893
+inversion = 0.028
+
 [[TYR]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -4096,6 +4714,12 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
+
+[TYR.energy]
+bond = 1.008
+angle = 0.677
+torsion = 0.379
+inversion = 0.018
 
 [[TYR]]
 atoms = [
@@ -4141,6 +4765,12 @@ bonds = [
   [18, 19]
 ]
 
+[TYR.energy]
+bond = 1.008
+angle = 0.677
+torsion = 0.379
+inversion = 0.018
+
 [[TYR]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -4184,6 +4814,12 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
+
+[TYR.energy]
+bond = 1.008
+angle = 0.677
+torsion = 0.379
+inversion = 0.018
 
 [[TYR]]
 atoms = [
@@ -4229,6 +4865,12 @@ bonds = [
   [18, 19]
 ]
 
+[TYR.energy]
+bond = 1.008
+angle = 0.677
+torsion = 0.379
+inversion = 0.018
+
 [[TYR]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -4272,6 +4914,12 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
+
+[TYR.energy]
+bond = 0.890
+angle = 0.236
+torsion = 1.012
+inversion = 0.015
 
 [[TYR]]
 atoms = [
@@ -4317,6 +4965,12 @@ bonds = [
   [18, 19]
 ]
 
+[TYR.energy]
+bond = 0.890
+angle = 0.236
+torsion = 1.012
+inversion = 0.015
+
 [[TYR]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -4360,6 +5014,12 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
+
+[TYR.energy]
+bond = 0.890
+angle = 0.236
+torsion = 1.012
+inversion = 0.015
 
 [[TYR]]
 atoms = [
@@ -4405,6 +5065,12 @@ bonds = [
   [18, 19]
 ]
 
+[TYR.energy]
+bond = 0.890
+angle = 0.236
+torsion = 1.012
+inversion = 0.015
+
 [[TYR]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -4448,6 +5114,12 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
+
+[TYR.energy]
+bond = 1.193
+angle = 1.367
+torsion = 0.947
+inversion = 0.038
 
 [[TYR]]
 atoms = [
@@ -4493,6 +5165,12 @@ bonds = [
   [18, 19]
 ]
 
+[TYR.energy]
+bond = 1.193
+angle = 1.367
+torsion = 0.947
+inversion = 0.038
+
 [[TYR]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -4536,6 +5214,12 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
+
+[TYR.energy]
+bond = 1.193
+angle = 1.367
+torsion = 0.947
+inversion = 0.038
 
 [[TYR]]
 atoms = [
@@ -4581,6 +5265,12 @@ bonds = [
   [18, 19]
 ]
 
+[TYR.energy]
+bond = 1.193
+angle = 1.367
+torsion = 0.947
+inversion = 0.038
+
 [[TYR]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -4624,6 +5314,12 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
+
+[TYR.energy]
+bond = 1.237
+angle = 1.001
+torsion = 2.369
+inversion = 0.039
 
 [[TYR]]
 atoms = [
@@ -4669,6 +5365,12 @@ bonds = [
   [18, 19]
 ]
 
+[TYR.energy]
+bond = 1.237
+angle = 1.001
+torsion = 2.369
+inversion = 0.039
+
 [[TYR]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -4712,6 +5414,12 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
+
+[TYR.energy]
+bond = 1.237
+angle = 1.001
+torsion = 2.369
+inversion = 0.039
 
 [[TYR]]
 atoms = [
@@ -4757,6 +5465,12 @@ bonds = [
   [18, 19]
 ]
 
+[TYR.energy]
+bond = 1.237
+angle = 1.001
+torsion = 2.369
+inversion = 0.039
+
 [[TYR]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -4800,6 +5514,12 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
+
+[TYR.energy]
+bond = 1.438
+angle = 1.555
+torsion = 3.182
+inversion = 0.123
 
 [[TYR]]
 atoms = [
@@ -4845,6 +5565,12 @@ bonds = [
   [18, 19]
 ]
 
+[TYR.energy]
+bond = 1.438
+angle = 1.555
+torsion = 3.182
+inversion = 0.123
+
 [[TYR]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -4888,6 +5614,12 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
+
+[TYR.energy]
+bond = 1.438
+angle = 1.555
+torsion = 3.182
+inversion = 0.123
 
 [[TYR]]
 atoms = [
@@ -4933,6 +5665,12 @@ bonds = [
   [18, 19]
 ]
 
+[TYR.energy]
+bond = 1.438
+angle = 1.555
+torsion = 3.182
+inversion = 0.123
+
 [[TYR]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -4976,6 +5714,12 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
+
+[TYR.energy]
+bond = 0.941
+angle = 1.975
+torsion = 5.326
+inversion = 0.218
 
 [[TYR]]
 atoms = [
@@ -5021,6 +5765,12 @@ bonds = [
   [18, 19]
 ]
 
+[TYR.energy]
+bond = 0.941
+angle = 1.975
+torsion = 5.326
+inversion = 0.218
+
 [[TYR]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -5064,6 +5814,12 @@ bonds = [
   [17, 18],
   [18, 19]
 ]
+
+[TYR.energy]
+bond = 0.941
+angle = 1.975
+torsion = 5.326
+inversion = 0.218
 
 [[TYR]]
 atoms = [
@@ -5109,6 +5865,12 @@ bonds = [
   [18, 19]
 ]
 
+[TYR.energy]
+bond = 0.941
+angle = 1.975
+torsion = 5.326
+inversion = 0.218
+
 [[VAL]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -5142,6 +5904,12 @@ bonds = [
   [11, 14]
 ]
 
+[VAL.energy]
+bond = 0.380
+angle = 0.698
+torsion = 0.061
+inversion = 0.000
+
 [[VAL]]
 atoms = [
   { serial = 1, atom_name = "N", partial_charge = -0.4700, position = [-0.97885, 0.54464, -0.89525], force_field_type = "N_R" },
@@ -5174,3 +5942,9 @@ bonds = [
   [11, 13],
   [11, 14]
 ]
+
+[VAL.energy]
+bond = 0.701
+angle = 1.454
+torsion = 1.513
+inversion = 0.000
