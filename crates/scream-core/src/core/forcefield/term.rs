@@ -90,7 +90,7 @@ mod tests {
 
     #[test]
     fn new_creates_energy_term_with_specified_values() {
-        let term = EnergyTerm::new(1.0, 2.0, 3.0);
+        let term = EnergyTerm::from_nonbonded(1.0, 2.0, 3.0);
         assert_eq!(term.vdw, 1.0);
         assert_eq!(term.coulomb, 2.0);
         assert_eq!(term.hbond, 3.0);
@@ -98,24 +98,24 @@ mod tests {
 
     #[test]
     fn total_returns_sum_of_all_terms() {
-        let term = EnergyTerm::new(1.5, -2.0, 0.5);
+        let term = EnergyTerm::from_nonbonded(1.5, -2.0, 0.5);
         assert_eq!(term.total(), 0.0);
     }
 
     #[test]
     fn add_sums_each_field_correctly() {
-        let a = EnergyTerm::new(1.0, 2.0, 3.0);
-        let b = EnergyTerm::new(4.0, 5.0, 6.0);
+        let a = EnergyTerm::from_nonbonded(1.0, 2.0, 3.0);
+        let b = EnergyTerm::from_nonbonded(4.0, 5.0, 6.0);
         let result = a + b;
-        assert_eq!(result, EnergyTerm::new(5.0, 7.0, 9.0));
+        assert_eq!(result, EnergyTerm::from_nonbonded(5.0, 7.0, 9.0));
     }
 
     #[test]
     fn add_assign_accumulates_each_field_correctly() {
-        let mut a = EnergyTerm::new(1.0, 2.0, 3.0);
-        let b = EnergyTerm::new(4.0, 5.0, 6.0);
+        let mut a = EnergyTerm::from_nonbonded(1.0, 2.0, 3.0);
+        let b = EnergyTerm::from_nonbonded(4.0, 5.0, 6.0);
         a += b;
-        assert_eq!(a, EnergyTerm::new(5.0, 7.0, 9.0));
+        assert_eq!(a, EnergyTerm::from_nonbonded(5.0, 7.0, 9.0));
     }
 
     #[test]
@@ -128,17 +128,17 @@ mod tests {
 
     #[test]
     fn add_with_negative_values() {
-        let a = EnergyTerm::new(-1.0, 2.0, -3.0);
-        let b = EnergyTerm::new(4.0, -5.0, 6.0);
+        let a = EnergyTerm::from_nonbonded(-1.0, 2.0, -3.0);
+        let b = EnergyTerm::from_nonbonded(4.0, -5.0, 6.0);
         let result = a + b;
-        assert_eq!(result, EnergyTerm::new(3.0, -3.0, 3.0));
+        assert_eq!(result, EnergyTerm::from_nonbonded(3.0, -3.0, 3.0));
     }
 
     #[test]
     fn add_assign_with_zero_does_not_change_values() {
-        let mut a = EnergyTerm::new(1.0, 2.0, 3.0);
+        let mut a = EnergyTerm::from_nonbonded(1.0, 2.0, 3.0);
         let b = EnergyTerm::default();
         a += b;
-        assert_eq!(a, EnergyTerm::new(1.0, 2.0, 3.0));
+        assert_eq!(a, EnergyTerm::from_nonbonded(1.0, 2.0, 3.0));
     }
 }
