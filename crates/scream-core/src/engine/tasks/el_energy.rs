@@ -69,8 +69,8 @@ where
     }
 
     info!(
-        cached_combinations = cache.len(),
-        "EL pre-computation finished."
+        "EL pre-computation finished. Cached {} residue-type combinations.",
+        cache.len()
     );
     context.reporter.report(Progress::PhaseFinish);
     Ok(cache)
