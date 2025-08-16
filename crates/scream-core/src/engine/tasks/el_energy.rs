@@ -642,22 +642,16 @@ mod tests {
 
         let scorer = Scorer::new(&temp_system, &setup.forcefield);
 
-        let expected_energy = scorer
+        let interaction_energy = scorer
             .score_interaction(&query_atom_ids, &env_atom_ids)
             .unwrap();
+        let internal_energy = scorer.score_group_internal(&query_atom_ids).unwrap();
+        let expected_energy = interaction_energy + internal_energy;
 
-        assert!(
-            (calculated_energy.vdw - expected_energy.vdw).abs() < 1e-9,
-            "VDW energy for EL cache is incorrect. Got {}, expected {}",
-            calculated_energy.vdw,
-            expected_energy.vdw
-        );
-        assert!(
-            (calculated_energy.coulomb - expected_energy.coulomb).abs() < 1e-9,
-            "Coulomb energy for EL cache is incorrect. Got {}, expected {}",
-            calculated_energy.coulomb,
-            expected_energy.coulomb
-        );
+        assert!((calculated_energy.vdw - expected_energy.vdw).abs() < 1e-9);
+        assert!((calculated_energy.coulomb - expected_energy.coulomb).abs() < 1e-9);
+        assert!((calculated_energy.hbond - expected_energy.hbond).abs() < 1e-9);
+        assert!((calculated_energy.total() - expected_energy.total()).abs() < 1e-9);
     }
 
     #[test]
@@ -757,9 +751,11 @@ mod tests {
             .map(|(id, _)| id)
             .filter(|id| !ala_sc_atoms.contains(id))
             .collect::<Vec<_>>();
-        let expected_energy = scorer
+        let interaction = scorer
             .score_interaction(&ala_sc_atoms, &all_other_atoms)
             .unwrap();
+        let internal = scorer.score_group_internal(&ala_sc_atoms).unwrap();
+        let expected_energy = interaction + internal;
 
         let calculated_energy = calculate_current(&context).unwrap();
 
@@ -797,11 +793,26 @@ mod tests {
         );
 
         let scorer = Scorer::new(&setup.system, &setup.forcefield);
-        let active_sc_atoms = collect_active_sidechain_atoms(&context).unwrap();
         let env_atoms = precompute_environment_atoms(&context).unwrap();
-        let expected_energy = scorer
-            .score_interaction(&active_sc_atoms, &env_atoms)
-            .unwrap();
+        let mut expected_energy = EnergyTerm::default();
+        let active_residue_ids = context.resolve_all_active_residues().unwrap();
+        for res_id in active_residue_ids {
+            let sc_atoms: Vec<AtomId> = setup
+                .system
+                .residue(res_id)
+                .unwrap()
+                .atoms()
+                .iter()
+                .filter(|id| setup.system.atom(**id).unwrap().role == AtomRole::Sidechain)
+                .copied()
+                .collect();
+            if sc_atoms.is_empty() {
+                continue;
+            }
+            let interaction = scorer.score_interaction(&sc_atoms, &env_atoms).unwrap();
+            let internal = scorer.score_group_internal(&sc_atoms).unwrap();
+            expected_energy = expected_energy + interaction + internal;
+        }
 
         let calculated_energy = calculate_current(&context).unwrap();
 
