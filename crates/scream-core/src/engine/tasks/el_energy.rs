@@ -83,23 +83,53 @@ where
 {
     info!("Calculating current total EL energy for all active sidechains.");
 
-    let active_sidechain_atoms = collect_active_sidechain_atoms(context)?;
-    if active_sidechain_atoms.is_empty() {
-        info!("No active sidechain atoms found. Current EL energy is zero.");
+    let active_residues = context.resolve_all_active_residues()?;
+    if active_residues.is_empty() {
+        info!("No active sidechains found. Current EL energy is zero.");
         return Ok(EnergyTerm::default());
     }
 
+    let scorer = Scorer::new(context.system, context.forcefield);
     let environment_atom_ids = precompute_environment_atoms(context)?;
 
-    let scorer = Scorer::new(context.system, context.forcefield);
-    let total_el_energy =
-        scorer.score_interaction(&active_sidechain_atoms, &environment_atom_ids)?;
+    let mut total_el_energy = EnergyTerm::default();
 
-    // TODO: Add pre-calculated internal energy from rotamer library to `total_el_energy`.
+    for residue_id in active_residues {
+        let sidechain_atoms: Vec<AtomId> = context
+            .system
+            .residue(residue_id)
+            .unwrap()
+            .atoms()
+            .iter()
+            .filter_map(|&atom_id| {
+                context.system.atom(atom_id).and_then(|atom| {
+                    if atom.role == AtomRole::Sidechain {
+                        Some(atom_id)
+                    } else {
+                        None
+                    }
+                })
+            })
+            .collect();
+
+        if sidechain_atoms.is_empty() {
+            continue;
+        }
+
+        // 1. Interaction with fixed environment for THIS sidechain
+        let interaction_energy =
+            scorer.score_interaction(&sidechain_atoms, &environment_atom_ids)?;
+
+        // 2. Internal non-bonded energy for THIS sidechain
+        let internal_energy = scorer.score_group_internal(&sidechain_atoms)?;
+
+        // 3. Add this residue's complete EL energy to the total
+        total_el_energy += interaction_energy + internal_energy;
+    }
 
     info!(
         energy = total_el_energy.total(),
-        "Current total EL energy calculation complete."
+        "Sum of individual EL energies for the current conformation calculated."
     );
     Ok(total_el_energy)
 }
