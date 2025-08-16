@@ -284,9 +284,13 @@ where
         }
 
         let scorer = Scorer::new(&temp_system, context.forcefield);
-        let interaction_energy = scorer.score_interaction(&query_atoms, environment_atom_ids)?;
 
-        energy_map.insert(rotamer_idx, interaction_energy);
+        let interaction_energy = scorer.score_interaction(&query_atoms, environment_atom_ids)?;
+        let internal_energy = scorer.score_group_internal(&query_atoms)?;
+
+        let total_el_energy = interaction_energy + internal_energy;
+
+        energy_map.insert(rotamer_idx, total_el_energy);
     }
 
     context
