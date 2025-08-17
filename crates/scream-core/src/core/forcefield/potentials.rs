@@ -168,7 +168,7 @@ mod tests {
     }
 
     #[test]
-    fn apply_flat_bottom_vdw_is_flat_within_delta_of_ideal_distance() {
+    fn apply_flat_bottom_vdw_is_flat_in_well_region() {
         let potential = apply_flat_bottom_vdw(7.5, 8.0, 1.0, |d| d * d);
         assert!(f64_approx_equal(potential, 64.0));
     }
