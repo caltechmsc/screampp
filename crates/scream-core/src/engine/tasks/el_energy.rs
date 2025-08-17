@@ -128,7 +128,7 @@ where
 
     info!(
         energy = total_el_energy.total(),
-        "Sum of individual EL energies for the current conformation calculated."
+        "Sum of individual EL energies for the current conformation has been calculated."
     );
     Ok(total_el_energy)
 }
