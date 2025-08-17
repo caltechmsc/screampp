@@ -63,14 +63,13 @@ where
     for result in results {
         let ((residue_id, residue_type), energy_map) = result?;
         for (rotamer_idx, energy_term) in energy_map {
-            // TODO: Add pre-calculated internal energy from rotamer library to `energy_term`.
             cache.insert(residue_id, residue_type, rotamer_idx, energy_term);
         }
     }
 
     info!(
-        cached_combinations = cache.len(),
-        "EL pre-computation finished."
+        "EL pre-computation finished. Cached {} residue-type combinations.",
+        cache.len()
     );
     context.reporter.report(Progress::PhaseFinish);
     Ok(cache)
@@ -83,23 +82,53 @@ where
 {
     info!("Calculating current total EL energy for all active sidechains.");
 
-    let active_sidechain_atoms = collect_active_sidechain_atoms(context)?;
-    if active_sidechain_atoms.is_empty() {
-        info!("No active sidechain atoms found. Current EL energy is zero.");
+    let active_residues = context.resolve_all_active_residues()?;
+    if active_residues.is_empty() {
+        info!("No active sidechains found. Current EL energy is zero.");
         return Ok(EnergyTerm::default());
     }
 
+    let scorer = Scorer::new(context.system, context.forcefield);
     let environment_atom_ids = precompute_environment_atoms(context)?;
 
-    let scorer = Scorer::new(context.system, context.forcefield);
-    let total_el_energy =
-        scorer.score_interaction(&active_sidechain_atoms, &environment_atom_ids)?;
+    let mut total_el_energy = EnergyTerm::default();
 
-    // TODO: Add pre-calculated internal energy from rotamer library to `total_el_energy`.
+    for residue_id in active_residues {
+        let sidechain_atoms: Vec<AtomId> = context
+            .system
+            .residue(residue_id)
+            .unwrap()
+            .atoms()
+            .iter()
+            .filter_map(|&atom_id| {
+                context.system.atom(atom_id).and_then(|atom| {
+                    if atom.role == AtomRole::Sidechain {
+                        Some(atom_id)
+                    } else {
+                        None
+                    }
+                })
+            })
+            .collect();
+
+        if sidechain_atoms.is_empty() {
+            continue;
+        }
+
+        // 1. Interaction with fixed environment for THIS sidechain
+        let interaction_energy =
+            scorer.score_interaction(&sidechain_atoms, &environment_atom_ids)?;
+
+        // 2. Internal non-bonded energy for THIS sidechain
+        let internal_energy = scorer.score_group_internal(&sidechain_atoms)?;
+
+        // 3. Add this residue's complete EL energy to the total
+        total_el_energy += interaction_energy + internal_energy;
+    }
 
     info!(
         energy = total_el_energy.total(),
-        "Current total EL energy calculation complete."
+        "Sum of individual EL energies for the current conformation has been calculated."
     );
     Ok(total_el_energy)
 }
@@ -254,9 +283,13 @@ where
         }
 
         let scorer = Scorer::new(&temp_system, context.forcefield);
-        let interaction_energy = scorer.score_interaction(&query_atoms, environment_atom_ids)?;
 
-        energy_map.insert(rotamer_idx, interaction_energy);
+        let interaction_energy = scorer.score_interaction(&query_atoms, environment_atom_ids)?;
+        let internal_energy = scorer.score_group_internal(&query_atoms)?;
+
+        let total_el_energy = interaction_energy + internal_energy;
+
+        energy_map.insert(rotamer_idx, total_el_energy);
     }
 
     context
@@ -608,22 +641,16 @@ mod tests {
 
         let scorer = Scorer::new(&temp_system, &setup.forcefield);
 
-        let expected_energy = scorer
+        let interaction_energy = scorer
             .score_interaction(&query_atom_ids, &env_atom_ids)
             .unwrap();
+        let internal_energy = scorer.score_group_internal(&query_atom_ids).unwrap();
+        let expected_energy = interaction_energy + internal_energy;
 
-        assert!(
-            (calculated_energy.vdw - expected_energy.vdw).abs() < 1e-9,
-            "VDW energy for EL cache is incorrect. Got {}, expected {}",
-            calculated_energy.vdw,
-            expected_energy.vdw
-        );
-        assert!(
-            (calculated_energy.coulomb - expected_energy.coulomb).abs() < 1e-9,
-            "Coulomb energy for EL cache is incorrect. Got {}, expected {}",
-            calculated_energy.coulomb,
-            expected_energy.coulomb
-        );
+        assert!((calculated_energy.vdw - expected_energy.vdw).abs() < 1e-9);
+        assert!((calculated_energy.coulomb - expected_energy.coulomb).abs() < 1e-9);
+        assert!((calculated_energy.hbond - expected_energy.hbond).abs() < 1e-9);
+        assert!((calculated_energy.total() - expected_energy.total()).abs() < 1e-9);
     }
 
     #[test]
@@ -723,9 +750,11 @@ mod tests {
             .map(|(id, _)| id)
             .filter(|id| !ala_sc_atoms.contains(id))
             .collect::<Vec<_>>();
-        let expected_energy = scorer
+        let interaction = scorer
             .score_interaction(&ala_sc_atoms, &all_other_atoms)
             .unwrap();
+        let internal = scorer.score_group_internal(&ala_sc_atoms).unwrap();
+        let expected_energy = interaction + internal;
 
         let calculated_energy = calculate_current(&context).unwrap();
 
@@ -763,11 +792,26 @@ mod tests {
         );
 
         let scorer = Scorer::new(&setup.system, &setup.forcefield);
-        let active_sc_atoms = collect_active_sidechain_atoms(&context).unwrap();
         let env_atoms = precompute_environment_atoms(&context).unwrap();
-        let expected_energy = scorer
-            .score_interaction(&active_sc_atoms, &env_atoms)
-            .unwrap();
+        let mut expected_energy = EnergyTerm::default();
+        let active_residue_ids = context.resolve_all_active_residues().unwrap();
+        for res_id in active_residue_ids {
+            let sc_atoms: Vec<AtomId> = setup
+                .system
+                .residue(res_id)
+                .unwrap()
+                .atoms()
+                .iter()
+                .filter(|id| setup.system.atom(**id).unwrap().role == AtomRole::Sidechain)
+                .copied()
+                .collect();
+            if sc_atoms.is_empty() {
+                continue;
+            }
+            let interaction = scorer.score_interaction(&sc_atoms, &env_atoms).unwrap();
+            let internal = scorer.score_group_internal(&sc_atoms).unwrap();
+            expected_energy = expected_energy + interaction + internal;
+        }
 
         let calculated_energy = calculate_current(&context).unwrap();
 
