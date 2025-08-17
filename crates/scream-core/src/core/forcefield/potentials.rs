@@ -75,6 +75,13 @@ pub fn apply_flat_bottom_hbond<F>(dist: f64, ideal_dist: f64, delta: f64, potent
 where
     F: Fn(f64) -> f64,
 {
+    const REPULSIVE_CORE_SCALE_FACTOR: f64 = 0.75;
+    let repulsive_core_boundary = REPULSIVE_CORE_SCALE_FACTOR * ideal_dist;
+
+    if dist < repulsive_core_boundary {
+        return potential_fn(dist);
+    }
+
     if delta <= 1e-9 {
         return potential_fn(dist);
     }
