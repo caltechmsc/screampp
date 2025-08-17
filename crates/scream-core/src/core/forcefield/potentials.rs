@@ -13,13 +13,19 @@ pub fn lennard_jones_12_6(dist: f64, r_min: f64, well_depth: f64) -> f64 {
 
 #[inline]
 pub fn buckingham_exp_6(dist: f64, r_min: f64, well_depth: f64, gamma: f64) -> f64 {
+    const POTENTIAL_SWITCHING_FACTOR: f64 = 0.6;
+    let switching_distance = POTENTIAL_SWITCHING_FACTOR * r_min;
+
+    if dist < switching_distance {
+        let rho = r_min / dist;
+        return well_depth * rho.powi(12);
+    }
+
     if dist < 1e-6 {
         return 1e10;
     }
+
     let rho = dist / r_min;
-    if rho < 0.1 {
-        return 1e10;
-    }
 
     let factor = gamma / (gamma - 6.0);
     well_depth * (6.0 / (gamma - 6.0) * (gamma * (1.0 - rho)).exp() - factor * rho.powi(-6))
