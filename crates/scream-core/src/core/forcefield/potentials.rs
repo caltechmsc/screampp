@@ -195,7 +195,15 @@ mod tests {
     #[test]
     fn apply_flat_bottom_hbond_uses_shifted_distance_above_flat_region() {
         let potential = apply_flat_bottom_hbond(10.0, 8.0, 1.0, |d| d * d);
-        assert!(f64_approx_equal(potential, 81.0));
+        assert!(f64_approx_equal(potential, 9.0 * 9.0));
+    }
+
+    #[test]
+    fn apply_flat_bottom_hbond_is_flat_around_ideal_distance() {
+        let potential1 = apply_flat_bottom_hbond(7.5, 8.0, 1.0, |d| d * d);
+        let potential2 = apply_flat_bottom_hbond(8.5, 8.0, 1.0, |d| d * d);
+        assert!(f64_approx_equal(potential1, 64.0));
+        assert!(f64_approx_equal(potential2, 64.0));
     }
 
     #[test]
