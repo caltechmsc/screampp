@@ -193,7 +193,7 @@ mod tests {
     }
 
     #[test]
-    fn apply_flat_bottom_hbond_uses_shifted_distance_above_flat_region() {
+    fn apply_flat_bottom_hbond_is_unchanged_in_attractive_tail() {
         let potential = apply_flat_bottom_hbond(10.0, 8.0, 1.0, |d| d * d);
         assert!(f64_approx_equal(potential, 9.0 * 9.0));
     }
@@ -207,9 +207,9 @@ mod tests {
     }
 
     #[test]
-    fn apply_flat_bottom_hbond_uses_shifted_distance_below_flat_region() {
-        let potential = apply_flat_bottom_hbond(6.0, 8.0, 1.0, |d| d * d);
-        assert!(f64_approx_equal(potential, 49.0));
+    fn apply_flat_bottom_hbond_uses_shifted_distance_in_soft_repulsion_zone() {
+        let potential = apply_flat_bottom_hbond(6.8, 8.0, 1.0, |d| d * d);
+        assert!(f64_approx_equal(potential, 7.8 * 7.8));
     }
 
     #[test]
