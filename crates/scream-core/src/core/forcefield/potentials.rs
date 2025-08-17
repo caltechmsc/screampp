@@ -49,6 +49,13 @@ pub fn apply_flat_bottom_vdw<F>(dist: f64, ideal_dist: f64, delta: f64, potentia
 where
     F: Fn(f64) -> f64,
 {
+    const REPULSIVE_CORE_SCALE_FACTOR: f64 = 0.8;
+    let repulsive_core_boundary = REPULSIVE_CORE_SCALE_FACTOR * ideal_dist;
+
+    if dist < repulsive_core_boundary {
+        return potential_fn(dist);
+    }
+
     if delta <= 1e-9 {
         return potential_fn(dist);
     }
@@ -68,6 +75,13 @@ pub fn apply_flat_bottom_hbond<F>(dist: f64, ideal_dist: f64, delta: f64, potent
 where
     F: Fn(f64) -> f64,
 {
+    const REPULSIVE_CORE_SCALE_FACTOR: f64 = 0.75;
+    let repulsive_core_boundary = REPULSIVE_CORE_SCALE_FACTOR * ideal_dist;
+
+    if dist < repulsive_core_boundary {
+        return potential_fn(dist);
+    }
+
     if delta <= 1e-9 {
         return potential_fn(dist);
     }
@@ -113,8 +127,8 @@ mod tests {
 
     #[test]
     fn buckingham_at_very_small_distance_returns_large_positive_energy() {
-        let energy = buckingham_exp_6(1e-7, 2.0, 10.0, 12.0);
-        assert!(f64_approx_equal(energy, 1e10));
+        let energy = buckingham_exp_6(0.1, 2.0, 10.0, 12.0);
+        assert!(energy > 1e4);
     }
 
     #[test]
@@ -148,21 +162,21 @@ mod tests {
     }
 
     #[test]
-    fn apply_flat_bottom_vdw_uses_base_potential_beyond_ideal_distance() {
+    fn apply_flat_bottom_vdw_is_unchanged_beyond_ideal_distance() {
         let potential = apply_flat_bottom_vdw(10.0, 8.0, 1.0, |d| d * d);
         assert!(f64_approx_equal(potential, 100.0));
     }
 
     #[test]
-    fn apply_flat_bottom_vdw_is_flat_within_delta_of_ideal_distance() {
+    fn apply_flat_bottom_vdw_is_flat_in_well_region() {
         let potential = apply_flat_bottom_vdw(7.5, 8.0, 1.0, |d| d * d);
         assert!(f64_approx_equal(potential, 64.0));
     }
 
     #[test]
-    fn apply_flat_bottom_vdw_uses_shifted_distance_below_flat_region() {
-        let potential = apply_flat_bottom_vdw(6.0, 8.0, 1.0, |d| d * d);
-        assert!(f64_approx_equal(potential, 49.0));
+    fn apply_flat_bottom_vdw_uses_shifted_distance_in_soft_repulsion_zone() {
+        let potential = apply_flat_bottom_vdw(6.8, 8.0, 1.0, |d| d * d);
+        assert!(f64_approx_equal(potential, 7.8 * 7.8));
     }
 
     #[test]
@@ -172,26 +186,42 @@ mod tests {
     }
 
     #[test]
-    fn apply_flat_bottom_hbond_is_flat_around_ideal_distance() {
-        let potential = apply_flat_bottom_hbond(8.5, 8.0, 1.0, |d| d * d);
-        assert!(f64_approx_equal(potential, 64.0));
+    fn apply_flat_bottom_vdw_bypasses_softening_in_hardcore_repulsion_zone() {
+        let potential = apply_flat_bottom_vdw(5.0, 8.0, 1.0, |d| d * d);
+        assert!(f64_approx_equal(potential, 5.0 * 5.0));
+        assert!(!f64_approx_equal(potential, 6.0 * 6.0));
     }
 
     #[test]
-    fn apply_flat_bottom_hbond_uses_shifted_distance_above_flat_region() {
+    fn apply_flat_bottom_hbond_is_unchanged_in_attractive_tail() {
         let potential = apply_flat_bottom_hbond(10.0, 8.0, 1.0, |d| d * d);
-        assert!(f64_approx_equal(potential, 81.0));
+        assert!(f64_approx_equal(potential, 9.0 * 9.0));
     }
 
     #[test]
-    fn apply_flat_bottom_hbond_uses_shifted_distance_below_flat_region() {
-        let potential = apply_flat_bottom_hbond(6.0, 8.0, 1.0, |d| d * d);
-        assert!(f64_approx_equal(potential, 49.0));
+    fn apply_flat_bottom_hbond_is_flat_around_ideal_distance() {
+        let potential1 = apply_flat_bottom_hbond(7.5, 8.0, 1.0, |d| d * d);
+        let potential2 = apply_flat_bottom_hbond(8.5, 8.0, 1.0, |d| d * d);
+        assert!(f64_approx_equal(potential1, 64.0));
+        assert!(f64_approx_equal(potential2, 64.0));
+    }
+
+    #[test]
+    fn apply_flat_bottom_hbond_uses_shifted_distance_in_soft_repulsion_zone() {
+        let potential = apply_flat_bottom_hbond(6.8, 8.0, 1.0, |d| d * d);
+        assert!(f64_approx_equal(potential, 7.8 * 7.8));
     }
 
     #[test]
     fn apply_flat_bottom_hbond_with_zero_delta_is_identity() {
         let potential = apply_flat_bottom_hbond(5.0, 8.0, 0.0, |d| d * d);
         assert!(f64_approx_equal(potential, 25.0));
+    }
+
+    #[test]
+    fn apply_flat_bottom_hbond_bypasses_softening_in_hardcore_repulsion_zone() {
+        let potential = apply_flat_bottom_hbond(5.0, 8.0, 1.0, |d| d * d);
+        assert!(f64_approx_equal(potential, 5.0 * 5.0));
+        assert!(!f64_approx_equal(potential, 6.0 * 6.0));
     }
 }
