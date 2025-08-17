@@ -209,4 +209,11 @@ mod tests {
         let potential = apply_flat_bottom_hbond(5.0, 8.0, 0.0, |d| d * d);
         assert!(f64_approx_equal(potential, 25.0));
     }
+
+    #[test]
+    fn apply_flat_bottom_hbond_bypasses_softening_in_hardcore_repulsion_zone() {
+        let potential = apply_flat_bottom_hbond(5.0, 8.0, 1.0, |d| d * d);
+        assert!(f64_approx_equal(potential, 5.0 * 5.0));
+        assert!(!f64_approx_equal(potential, 6.0 * 6.0));
+    }
 }
