@@ -186,9 +186,10 @@ mod tests {
     }
 
     #[test]
-    fn apply_flat_bottom_hbond_is_flat_around_ideal_distance() {
-        let potential = apply_flat_bottom_hbond(8.5, 8.0, 1.0, |d| d * d);
-        assert!(f64_approx_equal(potential, 64.0));
+    fn apply_flat_bottom_vdw_bypasses_softening_in_hardcore_repulsion_zone() {
+        let potential = apply_flat_bottom_vdw(5.0, 8.0, 1.0, |d| d * d);
+        assert!(f64_approx_equal(potential, 5.0 * 5.0));
+        assert!(!f64_approx_equal(potential, 6.0 * 6.0));
     }
 
     #[test]
