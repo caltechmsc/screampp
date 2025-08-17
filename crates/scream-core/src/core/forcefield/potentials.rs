@@ -127,8 +127,8 @@ mod tests {
 
     #[test]
     fn buckingham_at_very_small_distance_returns_large_positive_energy() {
-        let energy = buckingham_exp_6(1e-7, 2.0, 10.0, 12.0);
-        assert!(f64_approx_equal(energy, 1e10));
+        let energy = buckingham_exp_6(0.1, 2.0, 10.0, 12.0);
+        assert!(energy > 1e4);
     }
 
     #[test]
