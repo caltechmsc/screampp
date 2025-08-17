@@ -162,7 +162,7 @@ mod tests {
     }
 
     #[test]
-    fn apply_flat_bottom_vdw_uses_base_potential_beyond_ideal_distance() {
+    fn apply_flat_bottom_vdw_is_unchanged_beyond_ideal_distance() {
         let potential = apply_flat_bottom_vdw(10.0, 8.0, 1.0, |d| d * d);
         assert!(f64_approx_equal(potential, 100.0));
     }
