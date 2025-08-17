@@ -63,7 +63,6 @@ where
     for result in results {
         let ((residue_id, residue_type), energy_map) = result?;
         for (rotamer_idx, energy_term) in energy_map {
-            // TODO: Add pre-calculated internal energy from rotamer library to `energy_term`.
             cache.insert(residue_id, residue_type, rotamer_idx, energy_term);
         }
     }
