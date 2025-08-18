@@ -13,13 +13,19 @@ pub fn lennard_jones_12_6(dist: f64, r_min: f64, well_depth: f64) -> f64 {
 
 #[inline]
 pub fn buckingham_exp_6(dist: f64, r_min: f64, well_depth: f64, gamma: f64) -> f64 {
+    const POTENTIAL_SWITCHING_FACTOR: f64 = 0.6;
+    let switching_distance = POTENTIAL_SWITCHING_FACTOR * r_min;
+
+    if dist < switching_distance {
+        let rho = r_min / dist;
+        return well_depth * rho.powi(12);
+    }
+
     if dist < 1e-6 {
         return 1e10;
     }
+
     let rho = dist / r_min;
-    if rho < 0.1 {
-        return 1e10;
-    }
 
     let factor = gamma / (gamma - 6.0);
     well_depth * (6.0 / (gamma - 6.0) * (gamma * (1.0 - rho)).exp() - factor * rho.powi(-6))
@@ -120,18 +126,6 @@ mod tests {
     }
 
     #[test]
-    fn buckingham_at_minimum_distance_returns_negative_well_depth() {
-        let energy = buckingham_exp_6(2.0, 2.0, 10.0, 12.0);
-        assert!(f64_approx_equal(energy, -10.0));
-    }
-
-    #[test]
-    fn buckingham_at_very_small_distance_returns_large_positive_energy() {
-        let energy = buckingham_exp_6(0.1, 2.0, 10.0, 12.0);
-        assert!(energy > 1e4);
-    }
-
-    #[test]
     fn coulomb_calculates_repulsive_force_correctly() {
         let energy = coulomb(1.0, 1.0, 1.0, 1.0);
         assert!(f64_approx_equal(energy, COULOMB_CONSTANT));
@@ -159,6 +153,44 @@ mod tests {
     fn dreiding_hbond_12_10_at_very_small_distance_returns_large_positive_energy() {
         let energy = dreiding_hbond_12_10(1e-7, 2.7, 5.0);
         assert!(f64_approx_equal(energy, 1e10));
+    }
+
+    #[test]
+    fn buckingham_at_minimum_distance_returns_negative_well_depth() {
+        let energy = buckingham_exp_6(2.0, 2.0, 10.0, 12.0);
+        assert!(f64_approx_equal(energy, -10.0));
+    }
+
+    #[test]
+    fn buckingham_is_repulsive_in_the_safe_zone_but_below_minimum() {
+        let energy = buckingham_exp_6(1.3, 2.0, 10.0, 12.0);
+        assert!(energy > 0.0);
+
+        let lj_repulsion_energy = 10.0 * (2.0_f64 / 1.3).powi(12);
+        assert!(
+            (energy - lj_repulsion_energy).abs() > 1e-3,
+            "Should not be using LJ repulsion here"
+        );
+    }
+
+    #[test]
+    fn buckingham_switches_to_lj_repulsion_to_prevent_catastrophe() {
+        let r_min = 2.0;
+        let well_depth = 10.0;
+        let dist = 0.1;
+
+        let energy = buckingham_exp_6(dist, r_min, well_depth, 12.0);
+
+        let expected_lj_repulsion = well_depth * (r_min / dist).powi(12);
+
+        assert!(
+            energy > 1e10,
+            "Energy at very short distance should be a huge positive number"
+        );
+        assert!(
+            f64_approx_equal(energy, expected_lj_repulsion),
+            "Must switch to LJ r^-12 potential to prevent collapse"
+        );
     }
 
     #[test]
