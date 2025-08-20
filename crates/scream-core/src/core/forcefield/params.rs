@@ -67,23 +67,23 @@ impl Default for EnergyComponentWeights {
     }
 }
 
-#[derive(Debug, Clone, Default)]
-pub struct EnergyWeights {
-    pub weight_map: HashMap<(AtomRole, AtomRole), EnergyComponentWeights>,
+#[derive(Debug, Clone, PartialEq)]
+pub struct WeightRule {
+    pub groups: [AtomRole; 2],
+    pub weights: EnergyComponentWeights,
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct ForcefieldWeightRule {
-    pub group1: AtomRole,
-    pub group2: AtomRole,
-    pub weights: EnergyComponentWeights,
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct EnergyWeights {
+    pub rules: Vec<WeightRule>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Forcefield {
     pub non_bonded: NonBondedParams,
     pub deltas: HashMap<(String, String), DeltaParam>,
-    pub energy_weights: Option<EnergyWeights>,
+    pub energy_weights: EnergyWeights,
+    weight_map: HashMap<(AtomRole, AtomRole), EnergyComponentWeights>,
 }
 
 #[derive(Debug, Error)]
@@ -103,33 +103,54 @@ pub enum ParamLoadError {
 }
 
 impl Forcefield {
+    #[cfg(test)]
+    pub fn from_parts(
+        non_bonded: NonBondedParams,
+        deltas: HashMap<(String, String), DeltaParam>,
+        energy_weights: EnergyWeights,
+    ) -> Self {
+        let mut weight_map: HashMap<(AtomRole, AtomRole), EnergyComponentWeights> = HashMap::new();
+        for rule in &energy_weights.rules {
+            let a = rule.groups[0];
+            let b = rule.groups[1];
+            let key = if a <= b { (a, b) } else { (b, a) };
+            weight_map.insert(key, rule.weights);
+        }
+        Self {
+            non_bonded,
+            deltas,
+            energy_weights,
+            weight_map,
+        }
+    }
+
     pub fn load(
         non_bonded_path: &Path,
         delta_path: &Path,
-        weight_rules: &[ForcefieldWeightRule],
+        energy_weights_config: &EnergyWeights,
     ) -> Result<Self, ParamLoadError> {
         let non_bonded = Self::load_non_bonded(non_bonded_path)?;
         let deltas = Self::load_delta_csv(delta_path)?;
 
-        let energy_weights = if weight_rules.is_empty() {
-            None
-        } else {
-            let mut weight_map: HashMap<(AtomRole, AtomRole), EnergyComponentWeights> =
-                HashMap::new();
-            for rule in weight_rules {
-                let a = rule.group1;
-                let b = rule.group2;
-                let key = if a <= b { (a, b) } else { (b, a) };
-                weight_map.insert(key, rule.weights);
-            }
-            Some(EnergyWeights { weight_map })
-        };
+        let mut weight_map: HashMap<(AtomRole, AtomRole), EnergyComponentWeights> = HashMap::new();
+        for rule in &energy_weights_config.rules {
+            let a = rule.groups[0];
+            let b = rule.groups[1];
+            let key = if a <= b { (a, b) } else { (b, a) };
+            weight_map.insert(key, rule.weights);
+        }
 
         Ok(Self {
             non_bonded,
             deltas,
-            energy_weights,
+            energy_weights: energy_weights_config.clone(),
+            weight_map,
         })
+    }
+
+    pub fn weights_for_roles(&self, r1: AtomRole, r2: AtomRole) -> EnergyComponentWeights {
+        let key = if r1 <= r2 { (r1, r2) } else { (r2, r1) };
+        self.weight_map.get(&key).copied().unwrap_or_default()
     }
 
     fn load_non_bonded(path: &Path) -> Result<NonBondedParams, ParamLoadError> {
