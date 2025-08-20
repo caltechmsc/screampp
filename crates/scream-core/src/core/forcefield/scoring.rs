@@ -86,13 +86,21 @@ impl<'a> Scorer<'a> {
                     .system
                     .atom(id2)
                     .ok_or(ScoringError::AtomNotFound(id2))?;
+                let (r1, r2) = (atom1.role, atom2.role);
+                let key = if r1 <= r2 { (r1, r2) } else { (r2, r1) };
+                let weights = self
+                    .forcefield
+                    .weight_map
+                    .get(&key)
+                    .copied()
+                    .unwrap_or_default();
 
-                energy.vdw += EnergyCalculator::calculate_vdw(atom1, atom2)?;
+                energy.vdw += EnergyCalculator::calculate_vdw(atom1, atom2)? * weights.vdw;
                 energy.coulomb += EnergyCalculator::calculate_coulomb(
                     atom1,
                     atom2,
                     self.forcefield.non_bonded.globals.dielectric_constant,
-                );
+                ) * weights.coulomb;
             }
         }
         Ok(energy)
