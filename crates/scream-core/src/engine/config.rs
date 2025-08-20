@@ -1,4 +1,4 @@
-use crate::core::models::atom::AtomRole;
+use crate::core::forcefield::params::EnergyWeights;
 use crate::core::models::residue::ResidueType;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -41,34 +41,6 @@ pub struct SimulatedAnnealingConfig {
     pub final_temperature: f64,
     pub cooling_rate: f64,
     pub steps_per_temperature: usize,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct EnergyComponentWeights {
-    pub vdw: f64,
-    pub coulomb: f64,
-    pub hbond: f64,
-}
-
-impl Default for EnergyComponentWeights {
-    fn default() -> Self {
-        Self {
-            vdw: 1.0,
-            coulomb: 1.0,
-            hbond: 1.0,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct WeightRule {
-    pub groups: [AtomRole; 2],
-    pub weights: EnergyComponentWeights,
-}
-
-#[derive(Debug, Clone, PartialEq, Default)]
-pub struct EnergyWeights {
-    pub rules: Vec<WeightRule>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
