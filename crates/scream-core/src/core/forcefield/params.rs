@@ -317,7 +317,7 @@ mod tests {
         )
         .unwrap();
 
-        let ff = Forcefield::load(&non_bonded_path, &delta_path).unwrap();
+        let ff = Forcefield::load(&non_bonded_path, &delta_path, &[]).unwrap();
 
         assert!(!ff.non_bonded.vdw.is_empty());
         assert!(!ff.deltas.is_empty());
@@ -333,6 +333,7 @@ mod tests {
         let result = Forcefield::load(
             &non_bonded_path,
             &delta_path, // delta.csv does not exist
+            &[],
         );
         assert!(matches!(result, Err(ParamLoadError::Toml { .. })));
     }
