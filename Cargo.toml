@@ -8,7 +8,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.3.0-alpha.2"
+version = "0.4.0-alpha.1"
 authors = [
     "Tony Kan <tonykan@caltech.edu>",
     "Ted Yu <tedhyu@yahoo.com>",
