@@ -1,7 +1,8 @@
 use super::ids::ResidueId;
 use nalgebra::Point3;
+use std::str::FromStr;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
 pub enum AtomRole {
     Backbone,  // Backbone atom (e.g., C, N, O)
     Sidechain, // Sidechain atom (e.g., CH3, OH)
@@ -57,6 +58,21 @@ impl Atom {
             delta: 0.0,
             vdw_param: CachedVdwParam::None,
             hbond_type_id: -1,
+        }
+    }
+}
+
+impl FromStr for AtomRole {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_ascii_lowercase().as_str() {
+            "backbone" => Ok(AtomRole::Backbone),
+            "sidechain" | "side-chain" | "side_chain" => Ok(AtomRole::Sidechain),
+            "ligand" => Ok(AtomRole::Ligand),
+            "water" => Ok(AtomRole::Water),
+            "other" | "unknown" => Ok(AtomRole::Other),
+            _ => Err(()),
         }
     }
 }
