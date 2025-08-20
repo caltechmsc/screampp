@@ -765,4 +765,218 @@ mod tests {
             assert!(matches!(result, Err(ScoringError::DonorNotFound(_))));
         }
     }
+
+    mod weight_tests {
+        use super::*;
+        use crate::core::forcefield::params::EnergyComponentWeights;
+
+        fn insert_weights_for_pair(
+            ff: &mut Forcefield,
+            a: AtomRole,
+            b: AtomRole,
+            w: EnergyComponentWeights,
+        ) {
+            ff.weight_map.insert((a, b), w);
+            ff.weight_map.insert((b, a), w);
+        }
+
+        #[test]
+        fn vdw_coulomb_weights_scale_pair_energy() {
+            let mut setup = TestSetup::new();
+
+            let ala_c_id = setup
+                .system
+                .residue(setup.res_ala_id)
+                .unwrap()
+                .get_first_atom_id_by_name("C")
+                .unwrap();
+            let leu_cd1_id = setup
+                .system
+                .residue(setup.res_leu_id)
+                .unwrap()
+                .get_first_atom_id_by_name("CD1")
+                .unwrap();
+
+            setup.system.atom_mut(leu_cd1_id).unwrap().partial_charge = -0.5;
+
+            let scorer = Scorer::new(&setup.system, &setup.forcefield);
+            let base = scorer
+                .score_interaction(&[ala_c_id], &[leu_cd1_id])
+                .unwrap();
+
+            insert_weights_for_pair(
+                &mut setup.forcefield,
+                AtomRole::Backbone,
+                AtomRole::Sidechain,
+                EnergyComponentWeights {
+                    vdw: 0.5,
+                    coulomb: 0.5,
+                    hbond: 1.0,
+                },
+            );
+
+            let scorer = Scorer::new(&setup.system, &setup.forcefield);
+            let scaled = scorer
+                .score_interaction(&[ala_c_id], &[leu_cd1_id])
+                .unwrap();
+
+            assert!((scaled.vdw - 0.5 * base.vdw).abs() < 1e-9);
+            assert!((scaled.coulomb - 0.5 * base.coulomb).abs() < 1e-9);
+            assert!((scaled.hbond - base.hbond).abs() < 1e-12);
+        }
+
+        #[test]
+        fn vdw_coulomb_zero_weight_nulls_pair_energy() {
+            let mut setup = TestSetup::new();
+
+            let ala_c_id = setup
+                .system
+                .residue(setup.res_ala_id)
+                .unwrap()
+                .get_first_atom_id_by_name("C")
+                .unwrap();
+            let leu_cd1_id = setup
+                .system
+                .residue(setup.res_leu_id)
+                .unwrap()
+                .get_first_atom_id_by_name("CD1")
+                .unwrap();
+
+            insert_weights_for_pair(
+                &mut setup.forcefield,
+                AtomRole::Backbone,
+                AtomRole::Sidechain,
+                EnergyComponentWeights {
+                    vdw: 0.0,
+                    coulomb: 0.0,
+                    hbond: 1.0,
+                },
+            );
+
+            let scorer = Scorer::new(&setup.system, &setup.forcefield);
+            let e = scorer
+                .score_interaction(&[ala_c_id], &[leu_cd1_id])
+                .unwrap();
+
+            assert!(e.vdw.abs() < 1e-12);
+            assert!(e.coulomb.abs() < 1e-12);
+        }
+
+        #[test]
+        fn hbond_weight_scales_correctly() {
+            let mut setup = TestSetup::new();
+
+            let ala_o_id = setup
+                .system
+                .residue(setup.res_ala_id)
+                .unwrap()
+                .get_first_atom_id_by_name("O")
+                .unwrap();
+            let ser_og_id = setup
+                .system
+                .residue(setup.res_ser_id)
+                .unwrap()
+                .get_first_atom_id_by_name("OG")
+                .unwrap();
+            let ser_hg_id = setup
+                .system
+                .residue(setup.res_ser_id)
+                .unwrap()
+                .get_first_atom_id_by_name("HG")
+                .unwrap();
+
+            let donor_pos = setup.system.atom(ser_og_id).unwrap().position;
+            let hydrogen_pos = setup.system.atom(ser_hg_id).unwrap().position;
+            let dh = hydrogen_pos - donor_pos;
+            let ideal = setup
+                .forcefield
+                .non_bonded
+                .hbond
+                .get("O_H-O_2")
+                .unwrap()
+                .equilibrium_distance;
+            let acceptor_pos = donor_pos + dh.normalize() * ideal;
+            setup.system.atom_mut(ala_o_id).unwrap().position = acceptor_pos;
+
+            let scorer = Scorer::new(&setup.system, &setup.forcefield);
+            let base = scorer
+                .score_interaction(
+                    setup.system.residue(setup.res_ala_id).unwrap().atoms(),
+                    setup.system.residue(setup.res_ser_id).unwrap().atoms(),
+                )
+                .unwrap();
+
+            insert_weights_for_pair(
+                &mut setup.forcefield,
+                AtomRole::Backbone,
+                AtomRole::Sidechain,
+                EnergyComponentWeights {
+                    vdw: 1.0,
+                    coulomb: 1.0,
+                    hbond: 0.2,
+                },
+            );
+
+            let scorer = Scorer::new(&setup.system, &setup.forcefield);
+            let scaled = scorer
+                .score_interaction(
+                    setup.system.residue(setup.res_ala_id).unwrap().atoms(),
+                    setup.system.residue(setup.res_ser_id).unwrap().atoms(),
+                )
+                .unwrap();
+
+            assert!((scaled.hbond - 0.2 * base.hbond).abs() < 1e-6);
+        }
+
+        #[test]
+        fn hbond_zero_weight_nulls_hbond_component() {
+            let mut setup = TestSetup::new();
+
+            let ala_o_id = setup
+                .system
+                .residue(setup.res_ala_id)
+                .unwrap()
+                .get_first_atom_id_by_name("O")
+                .unwrap();
+            let ser_og_id = setup
+                .system
+                .residue(setup.res_ser_id)
+                .unwrap()
+                .get_first_atom_id_by_name("OG")
+                .unwrap();
+            let ser_hg_id = setup
+                .system
+                .residue(setup.res_ser_id)
+                .unwrap()
+                .get_first_atom_id_by_name("HG")
+                .unwrap();
+
+            let donor_pos = setup.system.atom(ser_og_id).unwrap().position;
+            let hydrogen_pos = setup.system.atom(ser_hg_id).unwrap().position;
+            let dh = hydrogen_pos - donor_pos;
+            let ideal = 2.8;
+            setup.system.atom_mut(ala_o_id).unwrap().position = donor_pos + dh.normalize() * ideal;
+
+            insert_weights_for_pair(
+                &mut setup.forcefield,
+                AtomRole::Backbone,
+                AtomRole::Sidechain,
+                EnergyComponentWeights {
+                    vdw: 1.0,
+                    coulomb: 1.0,
+                    hbond: 0.0,
+                },
+            );
+
+            let scorer = Scorer::new(&setup.system, &setup.forcefield);
+            let e = scorer
+                .score_interaction(
+                    setup.system.residue(setup.res_ala_id).unwrap().atoms(),
+                    setup.system.residue(setup.res_ser_id).unwrap().atoms(),
+                )
+                .unwrap();
+
+            assert!(e.hbond.abs() < 1e-9);
+        }
+    }
 }
