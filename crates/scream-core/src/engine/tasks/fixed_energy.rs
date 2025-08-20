@@ -194,7 +194,7 @@ mod tests {
     fn setup() -> TestSetup {
         let tmp = tempfile::tempdir().unwrap();
         let (ff_path, delta_path, topo_path) = write_test_files(&tmp);
-        let forcefield = Forcefield::load(&ff_path, &delta_path).unwrap();
+        let forcefield = Forcefield::load(&ff_path, &delta_path, &[]).unwrap();
         let topology_registry = TopologyRegistry::load(&topo_path).unwrap();
 
         let mut system = MolecularSystem::new();
