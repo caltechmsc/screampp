@@ -174,8 +174,16 @@ impl<'a> Scorer<'a> {
                                 hbond_param.equilibrium_distance,
                                 hbond_param.well_depth,
                             );
+                            let (r1, r2) = (donor.role, acceptor.role);
+                            let key = if r1 <= r2 { (r1, r2) } else { (r2, r1) };
+                            let weights = self
+                                .forcefield
+                                .weight_map
+                                .get(&key)
+                                .copied()
+                                .unwrap_or_default();
 
-                            hbond_energy += energy_contribution;
+                            hbond_energy += energy_contribution * weights.hbond;
                         }
                     }
                 }
