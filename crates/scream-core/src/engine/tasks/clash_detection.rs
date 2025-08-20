@@ -129,6 +129,7 @@ mod tests {
         Forcefield {
             non_bonded,
             deltas: HashMap::new(),
+            weight_map: HashMap::new(),
         }
     }
 
