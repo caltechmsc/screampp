@@ -41,6 +41,7 @@ pub fn run(
     let forcefield = Forcefield::load(
         &config.forcefield.forcefield_path,
         &config.forcefield.delta_params_path,
+        &config.forcefield.energy_weights,
     )?;
     let topology_registry = TopologyRegistry::load(&config.topology_registry_path)?;
     let mut rotamer_library = RotamerLibrary::load(
@@ -408,7 +409,7 @@ fn run_simulated_annealing(
 
     if total_steps > 0 {
         if performed_steps < total_steps {
-            let remaining = (total_steps - performed_steps) as u64;
+            let remaining = total_steps - performed_steps;
             if remaining > 0 {
                 context
                     .reporter
