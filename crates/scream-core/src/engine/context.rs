@@ -620,6 +620,7 @@ mod tests {
                     hbond_acceptors: HashSet::new(),
                 },
                 deltas: HashMap::new(),
+                weight_map: HashMap::new(),
             };
 
             let context = OptimizationContext::new(
