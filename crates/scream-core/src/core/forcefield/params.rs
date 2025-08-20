@@ -1,3 +1,4 @@
+use crate::core::models::atom::AtomRole;
 use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
@@ -49,10 +50,40 @@ pub struct DeltaParam {
     pub sigma: f64,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct EnergyComponentWeights {
+    pub vdw: f64,
+    pub coulomb: f64,
+    pub hbond: f64,
+}
+
+impl Default for EnergyComponentWeights {
+    fn default() -> Self {
+        Self {
+            vdw: 1.0,
+            coulomb: 1.0,
+            hbond: 1.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct EnergyWeights {
+    pub weight_map: HashMap<(AtomRole, AtomRole), EnergyComponentWeights>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ForcefieldWeightRule {
+    pub group1: AtomRole,
+    pub group2: AtomRole,
+    pub weights: EnergyComponentWeights,
+}
+
 #[derive(Debug, Clone)]
 pub struct Forcefield {
     pub non_bonded: NonBondedParams,
     pub deltas: HashMap<(String, String), DeltaParam>,
+    pub energy_weights: Option<EnergyWeights>,
 }
 
 #[derive(Debug, Error)]
@@ -72,11 +103,33 @@ pub enum ParamLoadError {
 }
 
 impl Forcefield {
-    pub fn load(non_bonded_path: &Path, delta_path: &Path) -> Result<Self, ParamLoadError> {
+    pub fn load(
+        non_bonded_path: &Path,
+        delta_path: &Path,
+        weight_rules: &[ForcefieldWeightRule],
+    ) -> Result<Self, ParamLoadError> {
         let non_bonded = Self::load_non_bonded(non_bonded_path)?;
         let deltas = Self::load_delta_csv(delta_path)?;
 
-        Ok(Self { non_bonded, deltas })
+        let energy_weights = if weight_rules.is_empty() {
+            None
+        } else {
+            let mut weight_map: HashMap<(AtomRole, AtomRole), EnergyComponentWeights> =
+                HashMap::new();
+            for rule in weight_rules {
+                let a = rule.group1;
+                let b = rule.group2;
+                let key = if a <= b { (a, b) } else { (b, a) };
+                weight_map.insert(key, rule.weights);
+            }
+            Some(EnergyWeights { weight_map })
+        };
+
+        Ok(Self {
+            non_bonded,
+            deltas,
+            energy_weights,
+        })
     }
 
     fn load_non_bonded(path: &Path) -> Result<NonBondedParams, ParamLoadError> {
