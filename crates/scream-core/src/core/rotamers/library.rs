@@ -308,7 +308,9 @@ impl RotamerLibrary {
 mod tests {
     use super::*;
     use crate::core::forcefield::parameterization::Parameterizer;
-    use crate::core::forcefield::params::{DeltaParam, GlobalParams, NonBondedParams, VdwParam};
+    use crate::core::forcefield::params::{
+        DeltaParam, EnergyWeights, GlobalParams, NonBondedParams, VdwParam,
+    };
     use crate::core::{
         models::{
             atom::{Atom, AtomRole},
@@ -355,19 +357,17 @@ mod tests {
                 well_depth: 0.12,
             },
         );
-        let forcefield = Forcefield {
-            deltas,
-            non_bonded: NonBondedParams {
-                globals: GlobalParams {
-                    dielectric_constant: 1.0,
-                    potential_function: "".to_string(),
-                },
-                vdw,
-                hbond: HashMap::new(),
-                hbond_donors: HashSet::new(),
-                hbond_acceptors: HashSet::new(),
+        let non_bonded = NonBondedParams {
+            globals: GlobalParams {
+                dielectric_constant: 1.0,
+                potential_function: "".to_string(),
             },
+            vdw,
+            hbond: HashMap::new(),
+            hbond_donors: HashSet::new(),
+            hbond_acceptors: HashSet::new(),
         };
+        let forcefield = Forcefield::from_parts(non_bonded, deltas, EnergyWeights::default());
 
         let topology_toml_path = temp_dir.path().join("topology.toml");
         let mut topology_file = File::create(&topology_toml_path).unwrap();
