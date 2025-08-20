@@ -375,6 +375,7 @@ mod tests {
         rotamers::rotamer::Rotamer,
         topology::registry::TopologyRegistry,
     };
+    use crate::engine::config::EnergyWeights;
     use nalgebra::Point3;
     use std::{fs::File, io::Write};
     use tempfile::{TempDir, tempdir};
@@ -423,7 +424,8 @@ mod tests {
         )
         .unwrap();
 
-        let forcefield = Forcefield::load(&ff_path, &delta_path, &[]).unwrap();
+        let forcefield =
+            Forcefield::load(&ff_path, &delta_path, &EnergyWeights::default()).unwrap();
 
         let topo_path = dir.join("topo.toml");
         let mut topo_file = File::create(&topo_path).unwrap();
