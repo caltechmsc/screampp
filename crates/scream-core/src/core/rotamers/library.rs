@@ -367,6 +367,7 @@ mod tests {
                 hbond_donors: HashSet::new(),
                 hbond_acceptors: HashSet::new(),
             },
+            weight_map: HashMap::new(),
         };
 
         let topology_toml_path = temp_dir.path().join("topology.toml");

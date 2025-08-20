@@ -1,3 +1,4 @@
+use crate::core::models::atom::AtomRole;
 use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
@@ -49,10 +50,39 @@ pub struct DeltaParam {
     pub sigma: f64,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct EnergyComponentWeights {
+    pub vdw: f64,
+    pub coulomb: f64,
+    pub hbond: f64,
+}
+
+impl Default for EnergyComponentWeights {
+    fn default() -> Self {
+        Self {
+            vdw: 1.0,
+            coulomb: 1.0,
+            hbond: 1.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct WeightRule {
+    pub groups: [AtomRole; 2],
+    pub weights: EnergyComponentWeights,
+}
+
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct EnergyWeights {
+    pub rules: Vec<WeightRule>,
+}
+
 #[derive(Debug, Clone)]
 pub struct Forcefield {
     pub non_bonded: NonBondedParams,
     pub deltas: HashMap<(String, String), DeltaParam>,
+    pub weight_map: HashMap<(AtomRole, AtomRole), EnergyComponentWeights>,
 }
 
 #[derive(Debug, Error)]
@@ -72,11 +102,27 @@ pub enum ParamLoadError {
 }
 
 impl Forcefield {
-    pub fn load(non_bonded_path: &Path, delta_path: &Path) -> Result<Self, ParamLoadError> {
+    pub fn load(
+        non_bonded_path: &Path,
+        delta_path: &Path,
+        energy_weights_config: &EnergyWeights,
+    ) -> Result<Self, ParamLoadError> {
         let non_bonded = Self::load_non_bonded(non_bonded_path)?;
         let deltas = Self::load_delta_csv(delta_path)?;
 
-        Ok(Self { non_bonded, deltas })
+        let mut weight_map: HashMap<(AtomRole, AtomRole), EnergyComponentWeights> = HashMap::new();
+        for rule in &energy_weights_config.rules {
+            let a = rule.groups[0];
+            let b = rule.groups[1];
+            let key = if a <= b { (a, b) } else { (b, a) };
+            weight_map.insert(key, rule.weights);
+        }
+
+        Ok(Self {
+            non_bonded,
+            deltas,
+            weight_map,
+        })
     }
 
     fn load_non_bonded(path: &Path) -> Result<NonBondedParams, ParamLoadError> {
@@ -134,6 +180,7 @@ impl Forcefield {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::models::atom::AtomRole;
     use std::fs::{self, File};
     use std::io::Write;
     use tempfile::tempdir;
@@ -264,10 +311,12 @@ mod tests {
         )
         .unwrap();
 
-        let ff = Forcefield::load(&non_bonded_path, &delta_path).unwrap();
+        let ff =
+            Forcefield::load(&non_bonded_path, &delta_path, &EnergyWeights::default()).unwrap();
 
         assert!(!ff.non_bonded.vdw.is_empty());
         assert!(!ff.deltas.is_empty());
+        assert!(ff.weight_map.is_empty());
     }
 
     #[test]
@@ -280,6 +329,7 @@ mod tests {
         let result = Forcefield::load(
             &non_bonded_path,
             &delta_path, // delta.csv does not exist
+            &EnergyWeights::default(),
         );
         assert!(matches!(result, Err(ParamLoadError::Toml { .. })));
     }
@@ -348,5 +398,93 @@ mod tests {
         assert!(params.hbond.contains_key("N_H"));
         assert!(params.hbond_donors.is_empty());
         assert!(params.hbond_acceptors.is_empty());
+    }
+
+    #[test]
+    fn load_forcefield_builds_weight_map_from_rules() {
+        let dir = tempdir().unwrap();
+
+        let nb = dir.path().join("nb.toml");
+        fs::write(
+            &nb,
+            r#"[globals]
+            dielectric_constant = 1.0
+            potential_function = "lennard-jones-12-6"
+            [vdw.C]
+            radius = 1.0
+            well_depth = 1.0
+            [hbond.N]
+            equilibrium_distance = 1.0
+            well_depth = 1.0
+        "#,
+        )
+        .unwrap();
+        let delta = dir.path().join("delta.csv");
+        fs::write(&delta, "residue_type,atom_name,mu,sigma\nALA,CA,0.0,0.0").unwrap();
+
+        let rules = vec![
+            WeightRule {
+                groups: [AtomRole::Backbone, AtomRole::Sidechain],
+                weights: EnergyComponentWeights {
+                    vdw: 0.5,
+                    coulomb: 0.2,
+                    hbond: 0.1,
+                },
+            },
+            WeightRule {
+                groups: [AtomRole::Ligand, AtomRole::Backbone],
+                weights: EnergyComponentWeights {
+                    vdw: 1.5,
+                    coulomb: 0.8,
+                    hbond: 0.0,
+                },
+            },
+        ];
+        let ff = Forcefield::load(&nb, &delta, &EnergyWeights { rules }).unwrap();
+
+        assert_eq!(ff.weight_map.len(), 2);
+
+        let key_bs = if AtomRole::Backbone <= AtomRole::Sidechain {
+            (AtomRole::Backbone, AtomRole::Sidechain)
+        } else {
+            (AtomRole::Sidechain, AtomRole::Backbone)
+        };
+        let w_bs = ff.weight_map.get(&key_bs).copied().unwrap();
+        assert!((w_bs.vdw - 0.5).abs() < 1e-12);
+        assert!((w_bs.coulomb - 0.2).abs() < 1e-12);
+        assert!((w_bs.hbond - 0.1).abs() < 1e-12);
+
+        let key_bl = if AtomRole::Backbone <= AtomRole::Ligand {
+            (AtomRole::Backbone, AtomRole::Ligand)
+        } else {
+            (AtomRole::Ligand, AtomRole::Backbone)
+        };
+        let w_bl = ff.weight_map.get(&key_bl).copied().unwrap();
+        assert!((w_bl.vdw - 1.5).abs() < 1e-12);
+        assert!((w_bl.coulomb - 0.8).abs() < 1e-12);
+        assert!((w_bl.hbond - 0.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn load_forcefield_with_empty_rules_has_empty_weight_map() {
+        let dir = tempdir().unwrap();
+        let nb = dir.path().join("nb2.toml");
+        fs::write(
+            &nb,
+            r#"[globals]
+            dielectric_constant = 1.0
+            potential_function = "lennard-jones-12-6"
+            [vdw.C]
+            radius = 1.0
+            well_depth = 1.0
+            [hbond]
+        "#,
+        )
+        .unwrap();
+        let delta = dir.path().join("delta2.csv");
+        fs::write(&delta, "residue_type,atom_name,mu,sigma\nALA,CA,0.0,0.0").unwrap();
+
+        let ff = Forcefield::load(&nb, &delta, &EnergyWeights::default()).unwrap();
+        assert!(ff.weight_map.is_empty());
     }
 }

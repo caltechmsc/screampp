@@ -41,6 +41,7 @@ pub fn run(
     let forcefield = Forcefield::load(
         &config.forcefield.forcefield_path,
         &config.forcefield.delta_params_path,
+        &config.forcefield.energy_weights,
     )?;
     let topology_registry = TopologyRegistry::load(&config.topology_registry_path)?;
     let mut rotamer_library = RotamerLibrary::load(
@@ -408,7 +409,7 @@ fn run_simulated_annealing(
 
     if total_steps > 0 {
         if performed_steps < total_steps {
-            let remaining = (total_steps - performed_steps) as u64;
+            let remaining = total_steps - performed_steps;
             if remaining > 0 {
                 context
                     .reporter
@@ -617,7 +618,8 @@ fn calculate_optimization_score(
 mod tests {
     use super::*;
     use crate::core::forcefield::parameterization::Parameterizer;
-    use crate::core::forcefield::params::Forcefield;
+    use crate::core::forcefield::params::{EnergyWeights, Forcefield};
+    use crate::core::forcefield::scoring::Scorer;
     use crate::core::models::atom::Atom;
     use crate::core::models::chain::ChainType;
     use crate::core::models::ids::{AtomId, ChainId};
@@ -980,7 +982,7 @@ mod tests {
         }
 
         pub struct TestEnvironment {
-            pub temp_dir: TempDir,
+            pub _temp_dir: TempDir,
             pub forcefield_path: PathBuf,
             pub delta_path: PathBuf,
             pub rotamer_lib_path: PathBuf,
@@ -996,7 +998,9 @@ mod tests {
                 let rotamer_lib_path = create_dummy_rotamer_lib_file(temp_dir.path());
                 let topology_registry_path = create_dummy_topology_registry_file(temp_dir.path());
 
-                let forcefield = Forcefield::load(&forcefield_path, &delta_path).unwrap();
+                let forcefield =
+                    Forcefield::load(&forcefield_path, &delta_path, &EnergyWeights::default())
+                        .unwrap();
                 let topology_registry = TopologyRegistry::load(&topology_registry_path).unwrap();
 
                 let mut system = TestSystemBuilder::new()
@@ -1009,7 +1013,7 @@ mod tests {
                 parameterizer.parameterize_system(&mut system).unwrap();
 
                 Self {
-                    temp_dir,
+                    _temp_dir: temp_dir,
                     forcefield_path,
                     delta_path,
                     rotamer_lib_path,
@@ -1327,8 +1331,13 @@ mod tests {
             .build()
             .unwrap();
         let reporter = ProgressReporter::new();
-        let forcefield = Forcefield::load(&env.forcefield_path, &env.delta_path).unwrap();
-        let scorer = crate::core::forcefield::scoring::Scorer::new(&clashing_system, &forcefield);
+        let forcefield = Forcefield::load(
+            &env.forcefield_path,
+            &env.delta_path,
+            &EnergyWeights::default(),
+        )
+        .unwrap();
+        let scorer = Scorer::new(&clashing_system, &forcefield);
 
         let initial_interaction = scorer
             .score_interaction(

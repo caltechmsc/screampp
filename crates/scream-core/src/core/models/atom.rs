@@ -1,7 +1,8 @@
 use super::ids::ResidueId;
 use nalgebra::Point3;
+use std::str::FromStr;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
 pub enum AtomRole {
     Backbone,  // Backbone atom (e.g., C, N, O)
     Sidechain, // Sidechain atom (e.g., CH3, OH)
@@ -61,6 +62,21 @@ impl Atom {
     }
 }
 
+impl FromStr for AtomRole {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_ascii_lowercase().as_str() {
+            "backbone" => Ok(AtomRole::Backbone),
+            "sidechain" | "side-chain" | "side_chain" => Ok(AtomRole::Sidechain),
+            "ligand" => Ok(AtomRole::Ligand),
+            "water" => Ok(AtomRole::Water),
+            "other" | "unknown" => Ok(AtomRole::Other),
+            _ => Err(()),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -105,5 +121,34 @@ mod tests {
         let role_clone = role.clone();
         assert_eq!(role, role_clone);
         assert_eq!(format!("{:?}", role), "Sidechain");
+    }
+
+    #[test]
+    fn from_str_parses_valid_roles() {
+        assert_eq!(AtomRole::from_str("backbone"), Ok(AtomRole::Backbone));
+        assert_eq!(AtomRole::from_str("sidechain"), Ok(AtomRole::Sidechain));
+        assert_eq!(AtomRole::from_str("side-chain"), Ok(AtomRole::Sidechain));
+        assert_eq!(AtomRole::from_str("side_chain"), Ok(AtomRole::Sidechain));
+        assert_eq!(AtomRole::from_str("ligand"), Ok(AtomRole::Ligand));
+        assert_eq!(AtomRole::from_str("water"), Ok(AtomRole::Water));
+        assert_eq!(AtomRole::from_str("other"), Ok(AtomRole::Other));
+        assert_eq!(AtomRole::from_str("unknown"), Ok(AtomRole::Other));
+    }
+
+    #[test]
+    fn from_str_is_case_insensitive() {
+        assert_eq!(AtomRole::from_str("BACKBONE"), Ok(AtomRole::Backbone));
+        assert_eq!(AtomRole::from_str("SideChain"), Ok(AtomRole::Sidechain));
+        assert_eq!(AtomRole::from_str("LiGaNd"), Ok(AtomRole::Ligand));
+        assert_eq!(AtomRole::from_str("wAtEr"), Ok(AtomRole::Water));
+        assert_eq!(AtomRole::from_str("OtHeR"), Ok(AtomRole::Other));
+    }
+
+    #[test]
+    fn from_str_returns_err_for_invalid_role() {
+        assert_eq!(AtomRole::from_str("foo"), Err(()));
+        assert_eq!(AtomRole::from_str("").unwrap_err(), ());
+        assert_eq!(AtomRole::from_str("123"), Err(()));
+        assert_eq!(AtomRole::from_str("side chainz"), Err(()));
     }
 }

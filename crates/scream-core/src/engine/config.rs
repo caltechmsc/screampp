@@ -1,3 +1,4 @@
+use crate::core::forcefield::params::EnergyWeights;
 use crate::core::models::residue::ResidueType;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -47,6 +48,7 @@ pub struct ForcefieldConfig {
     pub forcefield_path: PathBuf,
     pub delta_params_path: PathBuf,
     pub s_factor: f64,
+    pub energy_weights: EnergyWeights,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -128,6 +130,7 @@ pub struct PlacementConfigBuilder {
     forcefield_path: Option<PathBuf>,
     delta_params_path: Option<PathBuf>,
     s_factor: Option<f64>,
+    energy_weights: Option<EnergyWeights>,
     rotamer_library_path: Option<PathBuf>,
     topology_registry_path: Option<PathBuf>,
     max_iterations: Option<usize>,
@@ -154,6 +157,10 @@ impl PlacementConfigBuilder {
     }
     pub fn s_factor(mut self, factor: f64) -> Self {
         self.s_factor = Some(factor);
+        self
+    }
+    pub fn energy_weights(mut self, weights: EnergyWeights) -> Self {
+        self.energy_weights = Some(weights);
         self
     }
     pub fn rotamer_library_path(mut self, path: impl Into<PathBuf>) -> Self {
@@ -204,6 +211,7 @@ impl PlacementConfigBuilder {
             s_factor: self
                 .s_factor
                 .ok_or(ConfigError::MissingParameter("s_factor"))?,
+            energy_weights: self.energy_weights.unwrap_or_default(),
         };
         let sampling = SamplingConfig {
             rotamer_library_path: self
@@ -246,6 +254,7 @@ pub struct DesignConfigBuilder {
     forcefield_path: Option<PathBuf>,
     delta_params_path: Option<PathBuf>,
     s_factor: Option<f64>,
+    energy_weights: Option<EnergyWeights>,
     rotamer_library_path: Option<PathBuf>,
     topology_registry_path: Option<PathBuf>,
     max_iterations: Option<usize>,
@@ -273,6 +282,10 @@ impl DesignConfigBuilder {
     }
     pub fn s_factor(mut self, factor: f64) -> Self {
         self.s_factor = Some(factor);
+        self
+    }
+    pub fn energy_weights(mut self, weights: EnergyWeights) -> Self {
+        self.energy_weights = Some(weights);
         self
     }
 
@@ -330,6 +343,7 @@ impl DesignConfigBuilder {
             s_factor: self
                 .s_factor
                 .ok_or(ConfigError::MissingParameter("s_factor"))?,
+            energy_weights: self.energy_weights.unwrap_or_default(),
         };
         let sampling = SamplingConfig {
             rotamer_library_path: self
@@ -377,6 +391,7 @@ pub struct AnalyzeConfigBuilder {
     forcefield_path: Option<PathBuf>,
     delta_params_path: Option<PathBuf>,
     s_factor: Option<f64>,
+    energy_weights: Option<EnergyWeights>,
     topology_registry_path: Option<PathBuf>,
     analysis_type: Option<AnalysisType>,
 }
@@ -396,6 +411,10 @@ impl AnalyzeConfigBuilder {
     }
     pub fn s_factor(mut self, factor: f64) -> Self {
         self.s_factor = Some(factor);
+        self
+    }
+    pub fn energy_weights(mut self, weights: EnergyWeights) -> Self {
+        self.energy_weights = Some(weights);
         self
     }
     pub fn topology_registry_path(mut self, path: impl Into<PathBuf>) -> Self {
@@ -418,6 +437,7 @@ impl AnalyzeConfigBuilder {
             s_factor: self
                 .s_factor
                 .ok_or(ConfigError::MissingParameter("s_factor"))?,
+            energy_weights: self.energy_weights.unwrap_or_default(),
         };
 
         Ok(AnalyzeConfig {

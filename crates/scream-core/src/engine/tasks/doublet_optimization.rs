@@ -316,6 +316,7 @@ sidechain_atoms = ["CB"]
                 hbond_acceptors: HashSet::new(),
             },
             deltas: HashMap::new(),
+            weight_map: HashMap::new(),
         };
 
         let topology_registry = TopologyRegistry::load(&topology_path).unwrap();
@@ -457,6 +458,7 @@ sidechain_atoms = ["CB"]
                 hbond_acceptors: HashSet::new(),
             },
             deltas: HashMap::new(),
+            weight_map: HashMap::new(),
         };
 
         let topology_registry = TopologyRegistry::load(&topology_path).unwrap();

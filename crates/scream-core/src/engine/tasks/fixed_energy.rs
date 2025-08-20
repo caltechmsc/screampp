@@ -62,7 +62,7 @@ where
 mod tests {
     use super::*;
     use crate::core::forcefield::parameterization::Parameterizer;
-    use crate::core::forcefield::params::Forcefield;
+    use crate::core::forcefield::params::{EnergyWeights, Forcefield};
     use crate::core::forcefield::scoring::Scorer;
     use crate::core::models::atom::Atom;
     use crate::core::models::chain::ChainType;
@@ -194,7 +194,8 @@ mod tests {
     fn setup() -> TestSetup {
         let tmp = tempfile::tempdir().unwrap();
         let (ff_path, delta_path, topo_path) = write_test_files(&tmp);
-        let forcefield = Forcefield::load(&ff_path, &delta_path).unwrap();
+        let forcefield =
+            Forcefield::load(&ff_path, &delta_path, &EnergyWeights::default()).unwrap();
         let topology_registry = TopologyRegistry::load(&topo_path).unwrap();
 
         let mut system = MolecularSystem::new();
