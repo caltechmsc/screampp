@@ -250,7 +250,7 @@ mod tests {
         let delta_path = temp_dir.path().join("test.delta.csv");
         File::create(&delta_path).unwrap();
 
-        Forcefield::load(&ff_path, &delta_path).unwrap()
+        Forcefield::load(&ff_path, &delta_path, &[]).unwrap()
     }
 
     fn create_test_topology_registry(temp_dir: &TempDir) -> TopologyRegistry {
