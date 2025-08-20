@@ -371,11 +371,11 @@ impl From<super::params::VdwParam> for CachedVdwParam {
 mod tests {
     use super::*;
     use crate::core::{
+        forcefield::params::EnergyWeights,
         models::{chain::ChainType, residue::ResidueType, system::MolecularSystem},
         rotamers::rotamer::Rotamer,
         topology::registry::TopologyRegistry,
     };
-    use crate::engine::config::EnergyWeights;
     use nalgebra::Point3;
     use std::{fs::File, io::Write};
     use tempfile::{TempDir, tempdir};
