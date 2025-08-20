@@ -283,7 +283,7 @@ where
 mod tests {
     use super::*;
     use crate::core::{
-        forcefield::params::Forcefield,
+        forcefield::params::{EnergyWeights, Forcefield},
         models::{atom::Atom, chain::ChainType, residue::ResidueType, system::MolecularSystem},
         rotamers::{library::RotamerLibrary, rotamer::Rotamer},
         topology::registry::TopologyRegistry,
@@ -385,7 +385,7 @@ mod tests {
             .unwrap();
             let delta_path = dir.path().join("delta.csv");
             std::fs::write(&delta_path, "residue_type,atom_name,mu,sigma\n").unwrap();
-            Forcefield::load(&ff_path, &delta_path, &[]).unwrap()
+            Forcefield::load(&ff_path, &delta_path, &EnergyWeights::default()).unwrap()
         }
 
         fn create_topology_registry(dir: &tempfile::TempDir) -> TopologyRegistry {
