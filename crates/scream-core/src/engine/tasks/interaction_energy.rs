@@ -128,7 +128,7 @@ fn collect_active_sidechain_atoms(
 mod tests {
     use super::*;
     use crate::core::{
-        forcefield::parameterization::Parameterizer,
+        forcefield::{parameterization::Parameterizer, params::EnergyWeights},
         models::{
             atom::{Atom, AtomRole},
             chain::ChainType,
@@ -250,7 +250,7 @@ mod tests {
         let delta_path = temp_dir.path().join("test.delta.csv");
         File::create(&delta_path).unwrap();
 
-        Forcefield::load(&ff_path, &delta_path, &[]).unwrap()
+        Forcefield::load(&ff_path, &delta_path, &EnergyWeights::default()).unwrap()
     }
 
     fn create_test_topology_registry(temp_dir: &TempDir) -> TopologyRegistry {
