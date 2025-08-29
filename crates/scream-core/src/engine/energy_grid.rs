@@ -1,12 +1,12 @@
+use super::cache::ELCache;
+use super::error::EngineError;
+use super::transaction::SystemView;
 use crate::core::forcefield::params::Forcefield;
 use crate::core::forcefield::scoring::Scorer;
 use crate::core::forcefield::term::EnergyTerm;
 use crate::core::models::atom::AtomRole;
 use crate::core::models::ids::ResidueId;
 use crate::core::models::system::MolecularSystem;
-use crate::engine::cache::ELCache;
-use crate::engine::error::EngineError;
-use crate::engine::transaction::SystemView;
 use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 use tracing::{info, trace};
@@ -52,11 +52,11 @@ impl EnergyGrid {
             let res_a_id = *pair[0];
             let res_b_id = *pair[1];
 
-            let atoms_a = crate::engine::tasks::interaction_energy::collect_active_sidechain_atoms(
+            let atoms_a = super::tasks::interaction_energy::collect_active_sidechain_atoms(
                 system,
                 &HashSet::from([res_a_id]),
             );
-            let atoms_b = crate::engine::tasks::interaction_energy::collect_active_sidechain_atoms(
+            let atoms_b = super::tasks::interaction_energy::collect_active_sidechain_atoms(
                 system,
                 &HashSet::from([res_b_id]),
             );
@@ -136,7 +136,7 @@ impl EnergyGrid {
         active_residues: &HashSet<ResidueId>,
     ) -> Result<MoveDelta, EngineError>
     where
-        C: crate::engine::context::ProvidesResidueSelections + Sync,
+        C: super::context::ProvidesResidueSelections + Sync,
     {
         let (new_total_interaction, new_pair_interactions) =
             system_view.transaction(res_id, |view| {
