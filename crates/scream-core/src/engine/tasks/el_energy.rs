@@ -3,6 +3,7 @@ use crate::core::forcefield::term::EnergyTerm;
 use crate::core::models::atom::AtomRole;
 use crate::core::models::ids::{AtomId, ResidueId};
 use crate::core::models::residue::ResidueType;
+use crate::core::models::system::MolecularSystem;
 use crate::engine::cache::ELCache;
 use crate::engine::config::DesignSpecExt;
 use crate::engine::context::{OptimizationContext, ProvidesResidueSelections};
@@ -54,7 +55,19 @@ where
     let iterator = work_list.par_iter();
 
     let results: Vec<WorkResult> = iterator
-        .map(|unit| compute_energies_for_unit(unit, &environment_atom_ids, context))
+        .map(|unit| {
+            #[cfg(feature = "parallel")]
+            {
+                let mut local_system = context.system.clone();
+                compute_energies_for_unit(unit, &environment_atom_ids, context, &mut local_system)
+            }
+
+            #[cfg(not(feature = "parallel"))]
+            {
+                let mut temp_system = context.system.clone();
+                compute_energies_for_unit(unit, &environment_atom_ids, context, &mut temp_system)
+            }
+        })
         .collect();
 
     context.reporter.report(Progress::TaskFinish);
@@ -215,6 +228,7 @@ fn compute_energies_for_unit<C>(
     unit: &WorkUnit,
     environment_atom_ids: &[AtomId],
     context: &OptimizationContext<C>,
+    system: &mut MolecularSystem,
 ) -> WorkResult
 where
     C: ProvidesResidueSelections + Sync,
@@ -237,17 +251,15 @@ where
     let mut energy_map = HashMap::with_capacity(rotamers.len());
 
     for (rotamer_idx, rotamer) in rotamers.iter().enumerate() {
-        let mut temp_system = context.system.clone();
+        place_rotamer_on_system(system, unit.residue_id, rotamer, topology)?;
 
-        place_rotamer_on_system(&mut temp_system, unit.residue_id, rotamer, topology)?;
-
-        let query_atoms: Vec<AtomId> = temp_system
+        let query_atoms: Vec<AtomId> = system
             .residue(unit.residue_id)
             .unwrap()
             .atoms()
             .iter()
             .filter_map(|&atom_id| {
-                temp_system.atom(atom_id).and_then(|atom| {
+                system.atom(atom_id).and_then(|atom| {
                     if atom.role == AtomRole::Sidechain {
                         Some(atom_id)
                     } else {
@@ -262,7 +274,7 @@ where
             continue;
         }
 
-        let scorer = Scorer::new(&temp_system, context.forcefield);
+        let scorer = Scorer::new(system, context.forcefield);
 
         let interaction_energy = scorer.score_interaction(&query_atoms, environment_atom_ids)?;
         let internal_energy = scorer.score_group_internal(&query_atoms)?;
