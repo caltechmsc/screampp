@@ -136,3 +136,533 @@ where
         Ok(result)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::{
+        forcefield::{parameterization::Parameterizer, params::Forcefield},
+        models::{atom::Atom, chain::ChainType, residue::ResidueType, system::MolecularSystem},
+        rotamers::{library::RotamerLibrary, rotamer::Rotamer},
+        topology::registry::TopologyRegistry,
+    };
+    use crate::engine::{
+        config::{ConvergenceConfig, PlacementConfig, PlacementConfigBuilder, ResidueSelection},
+        context::OptimizationContext,
+        progress::ProgressReporter,
+    };
+    use nalgebra::Point3;
+    use std::{
+        collections::{HashMap, HashSet},
+        fs,
+        path::Path,
+    };
+    use tempfile::TempDir;
+
+    struct TestSetup {
+        system: MolecularSystem,
+        forcefield: Forcefield,
+        rotamer_library: RotamerLibrary,
+        topology_registry: TopologyRegistry,
+        active_residues: HashSet<ResidueId>,
+        initial_rotamers: HashMap<ResidueId, usize>,
+        _temp_dir: TempDir,
+    }
+
+    fn write_file(path: &Path, content: &str) {
+        fs::write(path, content).expect("Failed to write temporary file for test");
+    }
+
+    fn setup() -> TestSetup {
+        let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
+
+        let ff_path = temp_dir.path().join("ff.toml");
+        write_file(
+            &ff_path,
+            r#"
+            [globals]
+            dielectric_constant = 4.0
+            potential_function = "lennard-jones-12-6"
+            [vdw]
+            N_BB = { radius = 2.8, well_depth = 0.15 }
+            C_BB = { radius = 3.0, well_depth = 0.1 }
+            C_SC = { radius = 4.0, well_depth = 0.2 }
+            O_SC = { radius = 3.2, well_depth = 0.3 }
+            [hbond]
+            "#,
+        );
+
+        let delta_path = temp_dir.path().join("delta.csv");
+        write_file(&delta_path, "residue_type,atom_name,mu,sigma\n");
+
+        let topo_path = temp_dir.path().join("registry.toml");
+        write_file(
+            &topo_path,
+            r#"
+            [ALA]
+            anchor_atoms = ["N", "CA", "C"]
+            sidechain_atoms = ["CB"]
+
+            [SER]
+            anchor_atoms = ["N", "CA", "C"]
+            sidechain_atoms = ["CB", "OG"]
+            "#,
+        );
+
+        let forcefield = Forcefield::load(&ff_path, &delta_path, &Default::default()).unwrap();
+        let topology_registry = TopologyRegistry::load(&topo_path).unwrap();
+
+        let mut system = MolecularSystem::new();
+        let chain_a = system.add_chain('A', ChainType::Protein);
+
+        let ala_id = system
+            .add_residue(chain_a, 1, "ALA", Some(ResidueType::Alanine))
+            .unwrap();
+        add_atom(&mut system, ala_id, "N", [0.0, 1.4, 0.0], "N_BB");
+        add_atom(&mut system, ala_id, "CA", [0.0, 0.0, 0.0], "C_BB");
+        add_atom(&mut system, ala_id, "C", [1.4, 0.0, 0.0], "C_BB");
+        add_atom(&mut system, ala_id, "CB", [0.0, -1.5, 0.0], "C_SC");
+
+        let ser_id = system
+            .add_residue(chain_a, 2, "SER", Some(ResidueType::Serine))
+            .unwrap();
+        add_atom(&mut system, ser_id, "N", [10.0, 0.0, 0.0], "N_BB");
+        add_atom(&mut system, ser_id, "CA", [11.0, 0.0, 0.0], "C_BB");
+        add_atom(&mut system, ser_id, "C", [12.0, 0.0, 0.0], "C_BB");
+        add_atom(&mut system, ser_id, "CB", [11.0, 1.5, 0.0], "C_SC");
+        add_atom(&mut system, ser_id, "OG", [11.0, 2.7, 0.0], "O_SC");
+
+        let parameterizer = Parameterizer::new(&forcefield, &topology_registry, 0.0);
+        parameterizer.parameterize_system(&mut system).unwrap();
+
+        let mut rotamer_library = RotamerLibrary::default();
+        let ala_rotamers = vec![
+            create_rotamer(
+                &parameterizer,
+                &topology_registry,
+                "ALA",
+                &[("CB", [0.0, -1.5, 0.0])],
+            ),
+            create_rotamer(
+                &parameterizer,
+                &topology_registry,
+                "ALA",
+                &[("CB", [0.0, -1.2, 1.2])],
+            ),
+        ];
+        rotamer_library
+            .rotamers
+            .insert(ResidueType::Alanine, ala_rotamers);
+
+        let ser_rotamers = vec![
+            create_rotamer(
+                &parameterizer,
+                &topology_registry,
+                "SER",
+                &[("CB", [11.0, 1.5, 0.0]), ("OG", [11.0, 2.7, 0.0])],
+            ),
+            create_rotamer(
+                &parameterizer,
+                &topology_registry,
+                "SER",
+                &[("CB", [11.0, 1.2, 1.2]), ("OG", [11.0, 2.4, 1.2])],
+            ),
+        ];
+        rotamer_library
+            .rotamers
+            .insert(ResidueType::Serine, ser_rotamers);
+
+        let active_residues = HashSet::from([ala_id, ser_id]);
+        let mut initial_rotamers = HashMap::new();
+        initial_rotamers.insert(ala_id, 0);
+        initial_rotamers.insert(ser_id, 0);
+
+        TestSetup {
+            system,
+            forcefield,
+            rotamer_library,
+            topology_registry,
+            active_residues,
+            initial_rotamers,
+            _temp_dir: temp_dir,
+        }
+    }
+
+    fn add_atom(
+        system: &mut MolecularSystem,
+        res_id: ResidueId,
+        name: &str,
+        pos: [f64; 3],
+        ff_type: &str,
+    ) {
+        let mut atom = Atom::new(name, res_id, Point3::from(pos));
+        atom.force_field_type = ff_type.to_string();
+        system.add_atom_to_residue(res_id, atom).unwrap();
+    }
+
+    fn create_rotamer(
+        parameterizer: &Parameterizer,
+        topology_registry: &TopologyRegistry,
+        res_name: &str,
+        sidechain_atoms: &[(&str, [f64; 3])],
+    ) -> Rotamer {
+        let mut atoms = vec![
+            Atom::new("N", ResidueId::default(), Point3::new(0.0, 1.4, 0.0)),
+            Atom::new("CA", ResidueId::default(), Point3::new(0.0, 0.0, 0.0)),
+            Atom::new("C", ResidueId::default(), Point3::new(1.4, 0.0, 0.0)),
+        ];
+
+        for (name, pos) in sidechain_atoms {
+            atoms.push(Atom::new(*name, ResidueId::default(), Point3::from(*pos)));
+        }
+
+        atoms.iter_mut().for_each(|a| {
+            a.force_field_type = match a.name.as_str() {
+                "N" => "N_BB".to_string(),
+                "CA" | "C" => "C_BB".to_string(),
+                "CB" => "C_SC".to_string(),
+                "OG" => "O_SC".to_string(),
+                _ => "UNKNOWN".to_string(),
+            };
+        });
+
+        let bonds = match res_name {
+            "ALA" => vec![(0, 1), (1, 2), (1, 3)],
+            "SER" => vec![(0, 1), (1, 2), (1, 3), (3, 4)],
+            _ => vec![],
+        };
+
+        let topology = topology_registry.get(res_name).unwrap();
+        let mut rotamer = Rotamer { atoms, bonds };
+        parameterizer
+            .parameterize_rotamer(&mut rotamer, res_name, topology)
+            .unwrap();
+        rotamer
+    }
+
+    fn create_config(selection: ResidueSelection) -> PlacementConfig {
+        PlacementConfigBuilder::new()
+            .forcefield_path("dummy.ff")
+            .delta_params_path("dummy.delta")
+            .s_factor(0.0)
+            .rotamer_library_path("dummy.rotlib")
+            .topology_registry_path("dummy.topo")
+            .max_iterations(10)
+            .num_solutions(1)
+            .convergence_config(ConvergenceConfig {
+                energy_threshold: 0.01,
+                patience_iterations: 3,
+            })
+            .final_refinement_iterations(2)
+            .include_input_conformation(false)
+            .residues_to_optimize(selection)
+            .build()
+            .unwrap()
+    }
+
+    #[test]
+    fn system_view_new_creates_view_correctly() {
+        let setup = setup();
+        let config = create_config(ResidueSelection::All);
+        let reporter = ProgressReporter::new();
+        let context = OptimizationContext::new(
+            &setup.system,
+            &setup.forcefield,
+            &reporter,
+            &config,
+            &setup.rotamer_library,
+            &setup.topology_registry,
+        );
+        let mut system = setup.system.clone();
+        let mut current_rotamers = setup.initial_rotamers.clone();
+
+        let system_view = SystemView::new(&mut system, &context, &mut current_rotamers);
+
+        assert_eq!(
+            system_view.system.residues_iter().count(),
+            setup.system.residues_iter().count()
+        );
+        assert_eq!(
+            system_view.current_rotamers.len(),
+            setup.active_residues.len()
+        );
+    }
+
+    #[test]
+    fn apply_move_updates_system_and_tracking() {
+        let setup = setup();
+        let config = create_config(ResidueSelection::All);
+        let reporter = ProgressReporter::new();
+        let context = OptimizationContext::new(
+            &setup.system,
+            &setup.forcefield,
+            &reporter,
+            &config,
+            &setup.rotamer_library,
+            &setup.topology_registry,
+        );
+        let mut system = setup.system.clone();
+        let mut current_rotamers = setup.initial_rotamers.clone();
+        let mut system_view = SystemView::new(&mut system, &context, &mut current_rotamers);
+
+        let ala_id = *setup
+            .active_residues
+            .iter()
+            .find(|&&id| {
+                setup.system.residue(id).unwrap().residue_type == Some(ResidueType::Alanine)
+            })
+            .unwrap();
+
+        assert_eq!(*system_view.current_rotamers.get(&ala_id).unwrap(), 0);
+
+        system_view.apply_move(ala_id, 1).unwrap();
+
+        assert_eq!(*system_view.current_rotamers.get(&ala_id).unwrap(), 1);
+
+        let residue = system_view.system.residue(ala_id).unwrap();
+        let cb_atoms: Vec<_> = residue
+            .atoms()
+            .iter()
+            .filter_map(|&atom_id| {
+                system_view.system.atom(atom_id).and_then(|atom| {
+                    if atom.name == "CB" {
+                        Some(atom.position)
+                    } else {
+                        None
+                    }
+                })
+            })
+            .collect();
+
+        assert_eq!(cb_atoms.len(), 1);
+    }
+
+    #[test]
+    fn transaction_reverts_changes_on_scope_exit() {
+        let setup = setup();
+        let config = create_config(ResidueSelection::All);
+        let reporter = ProgressReporter::new();
+        let context = OptimizationContext::new(
+            &setup.system,
+            &setup.forcefield,
+            &reporter,
+            &config,
+            &setup.rotamer_library,
+            &setup.topology_registry,
+        );
+        let mut system = setup.system.clone();
+        let mut current_rotamers = setup.initial_rotamers.clone();
+        let mut system_view = SystemView::new(&mut system, &context, &mut current_rotamers);
+
+        let ala_id = *setup
+            .active_residues
+            .iter()
+            .find(|&&id| {
+                setup.system.residue(id).unwrap().residue_type == Some(ResidueType::Alanine)
+            })
+            .unwrap();
+
+        let original_rotamer = *system_view.current_rotamers.get(&ala_id).unwrap();
+
+        let result = system_view.transaction(ala_id, |view| {
+            view.apply_move(ala_id, 1)?;
+            assert_eq!(*view.current_rotamers.get(&ala_id).unwrap(), 1);
+            Ok("transaction_success")
+        });
+
+        assert_eq!(result.unwrap(), "transaction_success");
+
+        assert_eq!(
+            *system_view.current_rotamers.get(&ala_id).unwrap(),
+            original_rotamer
+        );
+    }
+
+    #[test]
+    fn transaction_preserves_changes_when_no_modification() {
+        let setup = setup();
+        let config = create_config(ResidueSelection::All);
+        let reporter = ProgressReporter::new();
+        let context = OptimizationContext::new(
+            &setup.system,
+            &setup.forcefield,
+            &reporter,
+            &config,
+            &setup.rotamer_library,
+            &setup.topology_registry,
+        );
+        let mut system = setup.system.clone();
+        let mut current_rotamers = setup.initial_rotamers.clone();
+        let mut system_view = SystemView::new(&mut system, &context, &mut current_rotamers);
+
+        let ala_id = *setup
+            .active_residues
+            .iter()
+            .find(|&&id| {
+                setup.system.residue(id).unwrap().residue_type == Some(ResidueType::Alanine)
+            })
+            .unwrap();
+
+        let original_rotamer = *system_view.current_rotamers.get(&ala_id).unwrap();
+
+        let result = system_view.transaction(ala_id, |_| Ok("no_change"));
+
+        assert_eq!(result.unwrap(), "no_change");
+        assert_eq!(
+            *system_view.current_rotamers.get(&ala_id).unwrap(),
+            original_rotamer
+        );
+    }
+
+    #[test]
+    fn transaction_doublet_reverts_both_residues() {
+        let setup = setup();
+        let config = create_config(ResidueSelection::All);
+        let reporter = ProgressReporter::new();
+        let context = OptimizationContext::new(
+            &setup.system,
+            &setup.forcefield,
+            &reporter,
+            &config,
+            &setup.rotamer_library,
+            &setup.topology_registry,
+        );
+        let mut system = setup.system.clone();
+        let mut current_rotamers = setup.initial_rotamers.clone();
+        let mut system_view = SystemView::new(&mut system, &context, &mut current_rotamers);
+
+        let ala_id = *setup
+            .active_residues
+            .iter()
+            .find(|&&id| {
+                setup.system.residue(id).unwrap().residue_type == Some(ResidueType::Alanine)
+            })
+            .unwrap();
+
+        let ser_id = *setup
+            .active_residues
+            .iter()
+            .find(|&&id| {
+                setup.system.residue(id).unwrap().residue_type == Some(ResidueType::Serine)
+            })
+            .unwrap();
+
+        let original_ala_rotamer = *system_view.current_rotamers.get(&ala_id).unwrap();
+        let original_ser_rotamer = *system_view.current_rotamers.get(&ser_id).unwrap();
+
+        let result = system_view.transaction_doublet(ala_id, ser_id, |view| {
+            view.apply_move(ala_id, 1)?;
+            view.apply_move(ser_id, 1)?;
+            assert_eq!(*view.current_rotamers.get(&ala_id).unwrap(), 1);
+            assert_eq!(*view.current_rotamers.get(&ser_id).unwrap(), 1);
+            Ok("doublet_success")
+        });
+
+        assert_eq!(result.unwrap(), "doublet_success");
+
+        assert_eq!(
+            *system_view.current_rotamers.get(&ala_id).unwrap(),
+            original_ala_rotamer
+        );
+        assert_eq!(
+            *system_view.current_rotamers.get(&ser_id).unwrap(),
+            original_ser_rotamer
+        );
+    }
+
+    #[test]
+    fn transaction_doublet_preserves_changes_when_no_modification() {
+        let setup = setup();
+        let config = create_config(ResidueSelection::All);
+        let reporter = ProgressReporter::new();
+        let context = OptimizationContext::new(
+            &setup.system,
+            &setup.forcefield,
+            &reporter,
+            &config,
+            &setup.rotamer_library,
+            &setup.topology_registry,
+        );
+        let mut system = setup.system.clone();
+        let mut current_rotamers = setup.initial_rotamers.clone();
+        let mut system_view = SystemView::new(&mut system, &context, &mut current_rotamers);
+
+        let ala_id = *setup
+            .active_residues
+            .iter()
+            .find(|&&id| {
+                setup.system.residue(id).unwrap().residue_type == Some(ResidueType::Alanine)
+            })
+            .unwrap();
+
+        let ser_id = *setup
+            .active_residues
+            .iter()
+            .find(|&&id| {
+                setup.system.residue(id).unwrap().residue_type == Some(ResidueType::Serine)
+            })
+            .unwrap();
+
+        let original_ala_rotamer = *system_view.current_rotamers.get(&ala_id).unwrap();
+        let original_ser_rotamer = *system_view.current_rotamers.get(&ser_id).unwrap();
+
+        let result = system_view.transaction_doublet(ala_id, ser_id, |_| Ok("no_doublet_change"));
+
+        assert_eq!(result.unwrap(), "no_doublet_change");
+        assert_eq!(
+            *system_view.current_rotamers.get(&ala_id).unwrap(),
+            original_ala_rotamer
+        );
+        assert_eq!(
+            *system_view.current_rotamers.get(&ser_id).unwrap(),
+            original_ser_rotamer
+        );
+    }
+
+    #[test]
+    fn transaction_fails_for_unknown_residue() {
+        let setup = setup();
+        let config = create_config(ResidueSelection::All);
+        let reporter = ProgressReporter::new();
+        let context = OptimizationContext::new(
+            &setup.system,
+            &setup.forcefield,
+            &reporter,
+            &config,
+            &setup.rotamer_library,
+            &setup.topology_registry,
+        );
+        let mut system = setup.system.clone();
+        let mut current_rotamers = HashMap::new();
+        let mut system_view = SystemView::new(&mut system, &context, &mut current_rotamers);
+
+        let unknown_residue_id = ResidueId::default();
+
+        let result = system_view.transaction(unknown_residue_id, |_| Ok(()));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn transaction_doublet_fails_for_unknown_residue() {
+        let setup = setup();
+        let config = create_config(ResidueSelection::All);
+        let reporter = ProgressReporter::new();
+        let context = OptimizationContext::new(
+            &setup.system,
+            &setup.forcefield,
+            &reporter,
+            &config,
+            &setup.rotamer_library,
+            &setup.topology_registry,
+        );
+        let mut system = setup.system.clone();
+        let mut current_rotamers = HashMap::new();
+        let mut system_view = SystemView::new(&mut system, &context, &mut current_rotamers);
+
+        let unknown_residue_id = ResidueId::default();
+
+        let result =
+            system_view.transaction_doublet(unknown_residue_id, unknown_residue_id, |_| Ok(()));
+        assert!(result.is_err());
+    }
+}
