@@ -1,8 +1,8 @@
-use crate::core::models::ids::ResidueId;
-use crate::core::models::system::MolecularSystem;
 use super::context::OptimizationContext;
 use super::error::EngineError;
 use super::placement;
+use crate::core::models::ids::ResidueId;
+use crate::core::models::system::MolecularSystem;
 use std::collections::HashMap;
 
 pub struct SystemView<'a, 'ctx, C>
