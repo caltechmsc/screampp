@@ -198,33 +198,6 @@ where
     Ok(work_list)
 }
 
-fn precompute_environment_atoms<C>(
-    context: &OptimizationContext<C>,
-) -> Result<Vec<AtomId>, EngineError>
-where
-    C: ProvidesResidueSelections + Sync,
-{
-    let active_residue_ids = context.resolve_all_active_residues()?;
-
-    let environment_atom_ids = context
-        .system
-        .atoms_iter()
-        .filter_map(|(atom_id, atom)| match atom.role {
-            AtomRole::Ligand | AtomRole::Water | AtomRole::Other => Some(atom_id),
-            AtomRole::Backbone => Some(atom_id),
-            AtomRole::Sidechain => {
-                if !active_residue_ids.contains(&atom.residue_id) {
-                    Some(atom_id)
-                } else {
-                    None
-                }
-            }
-        })
-        .collect();
-
-    Ok(environment_atom_ids)
-}
-
 #[instrument(skip_all, fields(residue_id = ?unit.residue_id, residue_type = %unit.residue_type))]
 fn compute_energies_for_unit<C>(
     unit: &WorkUnit,
