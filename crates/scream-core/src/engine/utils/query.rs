@@ -35,3 +35,21 @@ pub fn collect_active_sidechain_atoms(
     }
     map
 }
+
+pub fn precompute_environment_atoms(
+    system: &MolecularSystem,
+    active_residues: &HashSet<ResidueId>,
+) -> Vec<AtomId> {
+    system
+        .atoms_iter()
+        .filter_map(|(atom_id, atom)| {
+            if !active_residues.contains(&atom.residue_id)
+                || atom.role == crate::core::models::atom::AtomRole::Backbone
+            {
+                Some(atom_id)
+            } else {
+                None
+            }
+        })
+        .collect()
+}
