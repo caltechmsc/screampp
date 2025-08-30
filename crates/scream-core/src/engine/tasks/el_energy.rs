@@ -10,6 +10,7 @@ use crate::engine::context::{OptimizationContext, ProvidesResidueSelections};
 use crate::engine::error::EngineError;
 use crate::engine::placement::place_rotamer_on_system;
 use crate::engine::progress::Progress;
+use crate::engine::utils::query::precompute_environment_atoms;
 use std::collections::HashMap;
 use tracing::{info, instrument, warn};
 
@@ -42,7 +43,8 @@ where
         return Ok(ELCache::new());
     }
 
-    let environment_atom_ids = precompute_environment_atoms(context)?;
+    let active_residue_ids = context.resolve_all_active_residues()?;
+    let environment_atom_ids = precompute_environment_atoms(context.system, &active_residue_ids);
 
     context.reporter.report(Progress::TaskStart {
         total: work_list.len() as u64,
@@ -102,7 +104,7 @@ where
     }
 
     let scorer = Scorer::new(context.system, context.forcefield);
-    let environment_atom_ids = precompute_environment_atoms(context)?;
+    let environment_atom_ids = precompute_environment_atoms(context.system, &active_residues);
 
     let mut total_el_energy = EnergyTerm::default();
 
