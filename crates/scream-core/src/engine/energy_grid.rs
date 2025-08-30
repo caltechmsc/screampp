@@ -1,6 +1,7 @@
 use super::cache::ELCache;
 use super::error::EngineError;
 use super::transaction::SystemView;
+use super::utils::query::collect_active_sidechain_atoms;
 use crate::core::forcefield::params::Forcefield;
 use crate::core::forcefield::scoring::Scorer;
 use crate::core::forcefield::term::EnergyTerm;
@@ -52,14 +53,8 @@ impl EnergyGrid {
             let res_a_id = *pair[0];
             let res_b_id = *pair[1];
 
-            let atoms_a = super::tasks::interaction_energy::collect_active_sidechain_atoms(
-                system,
-                &HashSet::from([res_a_id]),
-            );
-            let atoms_b = super::tasks::interaction_energy::collect_active_sidechain_atoms(
-                system,
-                &HashSet::from([res_b_id]),
-            );
+            let atoms_a = collect_active_sidechain_atoms(system, &HashSet::from([res_a_id]));
+            let atoms_b = collect_active_sidechain_atoms(system, &HashSet::from([res_b_id]));
 
             let atoms_a_slice = atoms_a
                 .get(&res_a_id)
