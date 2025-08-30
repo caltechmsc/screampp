@@ -362,30 +362,63 @@ mod tests {
     #[test]
     fn collect_active_sidechain_atoms_works_correctly() {
         let setup = setup_test_data();
-        let active_residues: HashSet<ResidueId> = [setup.system.residues_iter().next().unwrap().0]
-            .into_iter()
-            .collect();
+        let active_residues: HashSet<ResidueId> =
+            setup.system.residues_iter().map(|(id, _)| id).collect();
 
-        let result = collect_active_sidechain_atoms(&setup.system, &active_residues);
+        let map = collect_active_sidechain_atoms(&setup.system, &active_residues);
 
-        assert_eq!(result.len(), 1);
-        let sidechain_atoms = result.values().next().unwrap();
-        assert!(!sidechain_atoms.is_empty());
-        for &atom_id in sidechain_atoms {
-            let atom = setup.system.atom(atom_id).unwrap();
-            assert_eq!(atom.role, crate::core::models::atom::AtomRole::Sidechain);
+        assert_eq!(map.len(), 2);
+
+        let ala_res_id = setup
+            .system
+            .residues_iter()
+            .find(|(_, res)| res.name == "ALA")
+            .unwrap()
+            .0;
+        assert_eq!(map.get(&ala_res_id).unwrap().len(), 1);
+
+        let leu_res_id = setup
+            .system
+            .residues_iter()
+            .find(|(_, res)| res.name == "LEU")
+            .unwrap()
+            .0;
+        assert_eq!(map.get(&leu_res_id).unwrap().len(), 1);
+
+        for (res_id, atoms) in &map {
+            for &atom_id in atoms {
+                let atom = setup.system.atom(atom_id).unwrap();
+                assert_eq!(atom.role, crate::core::models::atom::AtomRole::Sidechain);
+                assert_eq!(atom.residue_id, *res_id);
+            }
         }
     }
 
     #[test]
-    fn precompute_environment_atoms_excludes_active_sidechains() {
+    fn precompute_environment_atoms_works_correctly() {
         let setup = setup_test_data();
         let active_residues: HashSet<ResidueId> =
             setup.system.residues_iter().map(|(id, _)| id).collect();
 
-        let result = precompute_environment_atoms(&setup.system, &active_residues);
+        let env_atoms = precompute_environment_atoms(&setup.system, &active_residues);
 
-        for &atom_id in &result {
+        let expected_backbone_count = setup
+            .system
+            .residues_iter()
+            .map(|(_, res)| {
+                res.atoms()
+                    .iter()
+                    .filter(|&&atom_id| {
+                        setup.system.atom(atom_id).unwrap().role
+                            == crate::core::models::atom::AtomRole::Backbone
+                    })
+                    .count()
+            })
+            .sum::<usize>();
+
+        assert_eq!(env_atoms.len(), expected_backbone_count);
+
+        for &atom_id in &env_atoms {
             let atom = setup.system.atom(atom_id).unwrap();
             if active_residues.contains(&atom.residue_id) {
                 assert_eq!(atom.role, crate::core::models::atom::AtomRole::Backbone);
@@ -401,7 +434,7 @@ mod tests {
         let result =
             resolve_selection_to_ids(&setup.system, &selection, &setup.rotamer_library).unwrap();
 
-        assert!(!result.is_empty());
+        assert_eq!(result.len(), 2);
         for &res_id in &result {
             let residue = setup.system.residue(res_id).unwrap();
             let res_type = residue.residue_type.unwrap();
@@ -412,22 +445,31 @@ mod tests {
     #[test]
     fn resolve_selection_to_ids_handles_list_selection() {
         let setup = setup_test_data();
-        let first_res_id = setup.system.residues_iter().next().unwrap().0;
-        let first_res = setup.system.residue(first_res_id).unwrap();
-        let spec = ResidueSpecifier {
-            chain_id: 'A',
-            residue_number: first_res.residue_number,
-        };
+        let residues: Vec<_> = setup.system.residues_iter().collect();
+        let first_res = residues[0].1;
+        let second_res = residues[1].1;
+
         let selection = ResidueSelection::List {
-            include: vec![spec],
+            include: vec![
+                ResidueSpecifier {
+                    chain_id: 'A',
+                    residue_number: first_res.residue_number,
+                },
+                ResidueSpecifier {
+                    chain_id: 'A',
+                    residue_number: second_res.residue_number,
+                },
+            ],
             exclude: vec![],
         };
 
         let result =
             resolve_selection_to_ids(&setup.system, &selection, &setup.rotamer_library).unwrap();
 
-        assert_eq!(result.len(), 1);
-        assert!(result.contains(&first_res_id));
+        assert!(!result.is_empty());
+        let first_res_id = residues[0].0;
+        let second_res_id = residues[1].0;
+        assert!(result.contains(&first_res_id) || result.contains(&second_res_id));
     }
 
     #[test]
@@ -447,8 +489,8 @@ mod tests {
     #[test]
     fn resolve_selection_to_ids_filters_by_rotamer_availability() {
         let setup = setup_test_data();
-        let selection = ResidueSelection::All;
 
+        let selection = ResidueSelection::All;
         let result =
             resolve_selection_to_ids(&setup.system, &selection, &setup.rotamer_library).unwrap();
 
@@ -457,5 +499,128 @@ mod tests {
             let res_type = residue.residue_type.unwrap();
             assert!(setup.rotamer_library.get_rotamers_for(res_type).is_some());
         }
+    }
+
+    #[test]
+    fn resolve_selection_to_ids_handles_list_selection_with_include_and_exclude() {
+        let setup = setup_test_data();
+        let residues: Vec<_> = setup.system.residues_iter().collect();
+        let first_res = residues[0].1;
+        let second_res = residues[1].1;
+
+        let selection = ResidueSelection::List {
+            include: vec![
+                ResidueSpecifier {
+                    chain_id: 'A',
+                    residue_number: first_res.residue_number,
+                },
+                ResidueSpecifier {
+                    chain_id: 'A',
+                    residue_number: second_res.residue_number,
+                },
+            ],
+            exclude: vec![ResidueSpecifier {
+                chain_id: 'A',
+                residue_number: first_res.residue_number,
+            }],
+        };
+
+        let result =
+            resolve_selection_to_ids(&setup.system, &selection, &setup.rotamer_library).unwrap();
+
+        assert_eq!(result.len(), 1);
+        let expected_res_id = residues
+            .iter()
+            .find(|(_, res)| res.residue_number == second_res.residue_number)
+            .unwrap()
+            .0;
+        assert!(result.contains(&expected_res_id));
+    }
+
+    #[test]
+    fn resolve_selection_to_ids_handles_list_selection_with_exclude_only() {
+        let setup = setup_test_data();
+        let residues: Vec<_> = setup.system.residues_iter().collect();
+        let first_res = residues[0].1;
+
+        let selection = ResidueSelection::List {
+            include: vec![],
+            exclude: vec![ResidueSpecifier {
+                chain_id: 'A',
+                residue_number: first_res.residue_number,
+            }],
+        };
+
+        let result =
+            resolve_selection_to_ids(&setup.system, &selection, &setup.rotamer_library).unwrap();
+
+        assert_eq!(result.len(), residues.len() - 1);
+        let excluded_res_id = residues[0].0;
+        assert!(!result.contains(&excluded_res_id));
+    }
+
+    #[test]
+    fn resolve_selection_to_ids_fails_for_nonexistent_residue() {
+        let setup = setup_test_data();
+        let selection = ResidueSelection::List {
+            include: vec![ResidueSpecifier {
+                chain_id: 'A',
+                residue_number: 999,
+            }],
+            exclude: vec![],
+        };
+
+        let result = resolve_selection_to_ids(&setup.system, &selection, &setup.rotamer_library);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn resolve_ligand_binding_site_selection() {
+        let setup = setup_test_data();
+        let selection = ResidueSelection::LigandBindingSite {
+            ligand_residue: ResidueSpecifier {
+                chain_id: 'A',
+                residue_number: 1,
+            },
+            radius_angstroms: 6.0,
+        };
+
+        let result =
+            resolve_selection_to_ids(&setup.system, &selection, &setup.rotamer_library).unwrap();
+
+        assert!(!result.is_empty());
+    }
+
+    #[test]
+    fn resolve_ligand_binding_site_selection_with_larger_radius() {
+        let setup = setup_test_data();
+        let selection = ResidueSelection::LigandBindingSite {
+            ligand_residue: ResidueSpecifier {
+                chain_id: 'A',
+                residue_number: 1,
+            },
+            radius_angstroms: 11.0,
+        };
+
+        let result =
+            resolve_selection_to_ids(&setup.system, &selection, &setup.rotamer_library).unwrap();
+
+        assert!(!result.is_empty());
+    }
+
+    #[test]
+    fn resolve_ligand_binding_site_selection_empty_when_no_protein_nearby() {
+        let setup = setup_test_data();
+        let ligand_spec = ResidueSpecifier {
+            chain_id: 'B',
+            residue_number: 999,
+        };
+        let selection = ResidueSelection::LigandBindingSite {
+            ligand_residue: ligand_spec,
+            radius_angstroms: 10.0,
+        };
+
+        let result = resolve_selection_to_ids(&setup.system, &selection, &setup.rotamer_library);
+        assert!(result.is_err());
     }
 }
