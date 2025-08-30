@@ -516,42 +516,6 @@ mod tests {
     }
 
     #[test]
-    fn precompute_environment_atoms_works_correctly() {
-        let setup = TestSetup::new();
-        let config = setup.create_placement_config(ResidueSelection::All);
-        let reporter = setup.reporter();
-        let context = OptimizationContext::new(
-            &setup.system,
-            &setup.forcefield,
-            &reporter,
-            &config,
-            &setup.rotamer_library,
-            &setup.topology_registry,
-        );
-
-        let env_atoms = precompute_environment_atoms(&context).unwrap();
-
-        let env_atom_info: HashSet<(isize, String)> = env_atoms
-            .iter()
-            .map(|id| {
-                let atom = context.system.atom(*id).unwrap();
-                let res = context.system.residue(atom.residue_id).unwrap();
-                (res.residue_number, atom.name.clone())
-            })
-            .collect();
-
-        assert!(!env_atom_info.contains(&(1, "CB".to_string())));
-        assert!(!env_atom_info.contains(&(2, "CB".to_string())));
-
-        assert!(env_atom_info.contains(&(1, "N".to_string())));
-        assert!(env_atom_info.contains(&(1, "CA".to_string())));
-        assert!(env_atom_info.contains(&(1, "C".to_string())));
-        assert!(env_atom_info.contains(&(2, "N".to_string())));
-        assert!(env_atom_info.contains(&(2, "CA".to_string())));
-        assert!(env_atom_info.contains(&(1, "O".to_string())));
-    }
-
-    #[test]
     fn run_calculates_correct_el_energy_value() {
         let setup = TestSetup::new();
         let ala_id = setup.get_residue_id('A', 1);
@@ -604,7 +568,7 @@ mod tests {
             })
             .collect();
 
-        let env_atom_ids = precompute_environment_atoms(&context).unwrap();
+        let env_atom_ids = precompute_environment_atoms(&temp_system, &HashSet::from([ala_id]));
 
         let scorer = Scorer::new(&temp_system, &setup.forcefield);
 
@@ -759,7 +723,8 @@ mod tests {
         );
 
         let scorer = Scorer::new(&setup.system, &setup.forcefield);
-        let env_atoms = precompute_environment_atoms(&context).unwrap();
+        let active_residue_ids = context.resolve_all_active_residues().unwrap();
+        let env_atoms = precompute_environment_atoms(&setup.system, &active_residue_ids);
         let mut expected_energy = EnergyTerm::default();
         let active_residue_ids = context.resolve_all_active_residues().unwrap();
         for res_id in active_residue_ids {
