@@ -196,3 +196,266 @@ fn is_heavy_atom(atom_name: &str) -> bool {
         .map(|c| c.to_ascii_uppercase());
     !matches!(first_char, Some('H') | Some('D'))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::{
+        forcefield::{
+            parameterization::Parameterizer,
+            params::{Forcefield, GlobalParams, NonBondedParams, VdwParam},
+        },
+        models::{atom::Atom, chain::ChainType, residue::ResidueType, system::MolecularSystem},
+        rotamers::{library::RotamerLibrary, rotamer::Rotamer},
+    };
+    use crate::engine::config::{ResidueSelection, ResidueSpecifier};
+    use nalgebra::Point3;
+    use std::{
+        collections::{HashMap, HashSet},
+        fs,
+        path::Path,
+    };
+    use tempfile::TempDir;
+
+    struct TestSetup {
+        system: MolecularSystem,
+        rotamer_library: RotamerLibrary,
+        _temp_dir: TempDir,
+    }
+
+    fn setup_test_data() -> TestSetup {
+        let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let dir_path = temp_dir.path();
+
+        let topology_path = dir_path.join("topology.toml");
+        write_file(
+            &topology_path,
+            r#"
+            [ALA]
+            anchor_atoms = ["N", "CA", "C"]
+            sidechain_atoms = ["CB"]
+
+            [LEU]
+            anchor_atoms = ["N", "CA", "C"]
+            sidechain_atoms = ["CB"]
+            "#,
+        );
+
+        let mut system = MolecularSystem::new();
+        let chain_id = system.add_chain('A', ChainType::Protein);
+        let res_a_id = system
+            .add_residue(chain_id, 1, "ALA", Some(ResidueType::Alanine))
+            .unwrap();
+        let res_b_id = system
+            .add_residue(chain_id, 2, "LEU", Some(ResidueType::Leucine))
+            .unwrap();
+
+        let add_residue_atoms = |system: &mut MolecularSystem, res_id: ResidueId, offset: f64| {
+            let backbone_atoms_data = vec![
+                ("N", Point3::new(offset, 1.0, 0.0)),
+                ("CA", Point3::new(offset, 0.0, 0.0)),
+                ("C", Point3::new(offset + 1.0, 0.0, 0.0)),
+            ];
+            for (name, pos) in backbone_atoms_data {
+                let mut atom = Atom::new(name, res_id, pos);
+                atom.force_field_type = "BB".to_string();
+                system.add_atom_to_residue(res_id, atom).unwrap();
+            }
+            let mut cb_atom = Atom::new("CB", res_id, Point3::new(offset, -0.5, 1.2));
+            cb_atom.force_field_type = "C_SC".to_string();
+            system.add_atom_to_residue(res_id, cb_atom).unwrap();
+        };
+
+        add_residue_atoms(&mut system, res_a_id, 0.0);
+        add_residue_atoms(&mut system, res_b_id, 2.0);
+
+        let mut vdw = HashMap::new();
+        vdw.insert(
+            "BB".to_string(),
+            VdwParam::LennardJones {
+                radius: 1.0,
+                well_depth: 0.0,
+            },
+        );
+        vdw.insert(
+            "C_SC".to_string(),
+            VdwParam::LennardJones {
+                radius: 3.8,
+                well_depth: 0.1,
+            },
+        );
+        let forcefield = Forcefield {
+            non_bonded: NonBondedParams {
+                globals: GlobalParams {
+                    dielectric_constant: 1.0,
+                    potential_function: "lennard-jones-12-6".to_string(),
+                },
+                vdw,
+                hbond: HashMap::new(),
+                hbond_donors: HashSet::new(),
+                hbond_acceptors: HashSet::new(),
+            },
+            deltas: HashMap::new(),
+            weight_map: HashMap::new(),
+        };
+
+        let topology_registry =
+            crate::core::topology::registry::TopologyRegistry::load(&topology_path).unwrap();
+        let parameterizer = Parameterizer::new(&forcefield, &topology_registry, 0.0);
+
+        let create_rotamer = |residue_id, cb_pos: Point3<f64>| -> Rotamer {
+            let placeholder_residue_id = ResidueId::default();
+            let atoms = vec![
+                Atom::new("N", placeholder_residue_id, Point3::new(0.0, 1.0, 0.0)),
+                Atom::new("CA", placeholder_residue_id, Point3::new(0.0, 0.0, 0.0)),
+                Atom::new("C", placeholder_residue_id, Point3::new(1.0, 0.0, 0.0)),
+                Atom::new("CB", placeholder_residue_id, cb_pos),
+            ];
+
+            let mut rotamer = Rotamer {
+                atoms,
+                bonds: vec![(0, 1), (1, 2), (1, 3)],
+            };
+
+            rotamer.atoms.iter_mut().for_each(|a| {
+                a.force_field_type = if a.name == "CB" {
+                    "C_SC".to_string()
+                } else {
+                    "BB".to_string()
+                };
+            });
+
+            let res_name = system.residue(residue_id).unwrap().name.as_str();
+            let topo = topology_registry.get(res_name).unwrap();
+
+            parameterizer
+                .parameterize_rotamer(&mut rotamer, res_name, topo)
+                .unwrap();
+
+            rotamer
+        };
+
+        let rotamer_a0 = create_rotamer(res_a_id, Point3::new(-0.5, -0.8, 0.0));
+        let rotamer_b0 = create_rotamer(res_b_id, Point3::new(0.5, 0.8, 0.0));
+
+        let mut rot_lib_map = HashMap::new();
+        rot_lib_map.insert(ResidueType::Alanine, vec![rotamer_a0]);
+        rot_lib_map.insert(ResidueType::Leucine, vec![rotamer_b0]);
+
+        let rotamer_library = RotamerLibrary {
+            rotamers: rot_lib_map,
+        };
+
+        parameterizer.parameterize_system(&mut system).unwrap();
+
+        TestSetup {
+            system,
+            rotamer_library,
+            _temp_dir: temp_dir,
+        }
+    }
+
+    fn write_file(path: &Path, content: &str) {
+        fs::write(path, content).expect("Failed to write temporary file for test");
+    }
+
+    #[test]
+    fn collect_active_sidechain_atoms_works_correctly() {
+        let setup = setup_test_data();
+        let active_residues: HashSet<ResidueId> = [setup.system.residues_iter().next().unwrap().0]
+            .into_iter()
+            .collect();
+
+        let result = collect_active_sidechain_atoms(&setup.system, &active_residues);
+
+        assert_eq!(result.len(), 1);
+        let sidechain_atoms = result.values().next().unwrap();
+        assert!(!sidechain_atoms.is_empty());
+        for &atom_id in sidechain_atoms {
+            let atom = setup.system.atom(atom_id).unwrap();
+            assert_eq!(atom.role, crate::core::models::atom::AtomRole::Sidechain);
+        }
+    }
+
+    #[test]
+    fn precompute_environment_atoms_excludes_active_sidechains() {
+        let setup = setup_test_data();
+        let active_residues: HashSet<ResidueId> =
+            setup.system.residues_iter().map(|(id, _)| id).collect();
+
+        let result = precompute_environment_atoms(&setup.system, &active_residues);
+
+        for &atom_id in &result {
+            let atom = setup.system.atom(atom_id).unwrap();
+            if active_residues.contains(&atom.residue_id) {
+                assert_eq!(atom.role, crate::core::models::atom::AtomRole::Backbone);
+            }
+        }
+    }
+
+    #[test]
+    fn resolve_selection_to_ids_handles_all_selection() {
+        let setup = setup_test_data();
+        let selection = ResidueSelection::All;
+
+        let result =
+            resolve_selection_to_ids(&setup.system, &selection, &setup.rotamer_library).unwrap();
+
+        assert!(!result.is_empty());
+        for &res_id in &result {
+            let residue = setup.system.residue(res_id).unwrap();
+            let res_type = residue.residue_type.unwrap();
+            assert!(setup.rotamer_library.get_rotamers_for(res_type).is_some());
+        }
+    }
+
+    #[test]
+    fn resolve_selection_to_ids_handles_list_selection() {
+        let setup = setup_test_data();
+        let first_res_id = setup.system.residues_iter().next().unwrap().0;
+        let first_res = setup.system.residue(first_res_id).unwrap();
+        let spec = ResidueSpecifier {
+            chain_id: 'A',
+            residue_number: first_res.residue_number,
+        };
+        let selection = ResidueSelection::List {
+            include: vec![spec],
+            exclude: vec![],
+        };
+
+        let result =
+            resolve_selection_to_ids(&setup.system, &selection, &setup.rotamer_library).unwrap();
+
+        assert_eq!(result.len(), 1);
+        assert!(result.contains(&first_res_id));
+    }
+
+    #[test]
+    fn is_heavy_atom_identifies_correctly() {
+        assert!(!is_heavy_atom("H"));
+        assert!(!is_heavy_atom("H1"));
+        assert!(!is_heavy_atom("D"));
+        assert!(!is_heavy_atom("D1"));
+        assert!(is_heavy_atom("C"));
+        assert!(is_heavy_atom("N"));
+        assert!(is_heavy_atom("O"));
+        assert!(is_heavy_atom("S"));
+        assert!(is_heavy_atom("CA"));
+        assert!(is_heavy_atom("CB"));
+    }
+
+    #[test]
+    fn resolve_selection_to_ids_filters_by_rotamer_availability() {
+        let setup = setup_test_data();
+        let selection = ResidueSelection::All;
+
+        let result =
+            resolve_selection_to_ids(&setup.system, &selection, &setup.rotamer_library).unwrap();
+
+        for &res_id in &result {
+            let residue = setup.system.residue(res_id).unwrap();
+            let res_type = residue.residue_type.unwrap();
+            assert!(setup.rotamer_library.get_rotamers_for(res_type).is_some());
+        }
+    }
+}
