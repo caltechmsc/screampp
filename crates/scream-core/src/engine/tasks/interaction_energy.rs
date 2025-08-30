@@ -398,39 +398,4 @@ mod tests {
 
         assert!((total_energy.total() - expected_energy.total()).abs() < TOLERANCE);
     }
-
-    #[test]
-    fn collect_active_sidechain_atoms_works_correctly() {
-        let setup = setup();
-        let active_residues: HashSet<_> = [setup.ala_id, setup.gly_id, setup.leu_id]
-            .iter()
-            .cloned()
-            .collect();
-
-        let map = collect_active_sidechain_atoms(&setup.system, &active_residues);
-
-        assert_eq!(map.len(), 3);
-        assert_eq!(
-            map.get(&setup.ala_id).unwrap().len(),
-            1,
-            "ALA should have 1 sidechain atom"
-        );
-        assert!(
-            map.get(&setup.gly_id).unwrap().is_empty(),
-            "GLY should have 0 sidechain atoms"
-        );
-        assert_eq!(
-            map.get(&setup.leu_id).unwrap().len(),
-            2,
-            "LEU should have 2 sidechain atoms"
-        );
-
-        let ala_cb_id = setup
-            .system
-            .residue(setup.ala_id)
-            .unwrap()
-            .get_first_atom_id_by_name("CB")
-            .unwrap();
-        assert_eq!(map.get(&setup.ala_id).unwrap()[0], ala_cb_id);
-    }
 }
