@@ -12,6 +12,9 @@ use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 use tracing::{info, trace};
 
+#[cfg(feature = "parallel")]
+use rayon::prelude::*;
+
 #[derive(Debug, Clone)]
 pub struct EnergyGrid {
     pair_interactions: HashMap<(ResidueId, ResidueId), EnergyTerm>,
@@ -156,14 +159,20 @@ impl EnergyGrid {
                     })
                     .collect::<Vec<_>>();
 
-                let mut interaction_sum = EnergyTerm::default();
-                let mut pair_interactions_map = HashMap::new();
+                let interaction_sum = EnergyTerm::default();
+                let pair_interactions_map = HashMap::new();
 
-                for &other_res_id in active_residues {
-                    if res_id == other_res_id {
-                        continue;
-                    }
+                if new_sc_atoms.is_empty() {
+                    return Ok((interaction_sum, pair_interactions_map));
+                }
 
+                let active_residues_vec: Vec<_> = active_residues
+                    .iter()
+                    .filter(|&&other_res_id| res_id != other_res_id)
+                    .cloned()
+                    .collect();
+
+                let compute_interaction = |&other_res_id| {
                     let other_sc_atoms = view
                         .system
                         .residue(other_res_id)
@@ -181,11 +190,36 @@ impl EnergyGrid {
                         })
                         .collect::<Vec<_>>();
 
-                    let pair_interaction =
-                        scorer.score_interaction(&new_sc_atoms, &other_sc_atoms)?;
-                    interaction_sum += pair_interaction;
-                    pair_interactions_map.insert(other_res_id, pair_interaction);
-                }
+                    if other_sc_atoms.is_empty() {
+                        return Ok(None);
+                    }
+
+                    scorer
+                        .score_interaction(&new_sc_atoms, &other_sc_atoms)
+                        .map(|term| Some((other_res_id, term)))
+                };
+
+                #[cfg(not(feature = "parallel"))]
+                let results: Result<Vec<_>, _> = active_residues_vec
+                    .iter()
+                    .map(compute_interaction)
+                    .collect();
+
+                #[cfg(feature = "parallel")]
+                let results: Result<Vec<_>, _> = active_residues_vec
+                    .par_iter()
+                    .map(compute_interaction)
+                    .collect();
+
+                let (interaction_sum, pair_interactions_map) = results?.into_iter().flatten().fold(
+                    (EnergyTerm::default(), HashMap::new()),
+                    |mut acc, (id, term)| {
+                        acc.0 += term;
+                        acc.1.insert(id, term);
+                        acc
+                    },
+                );
+
                 Ok((interaction_sum, pair_interactions_map))
             })?;
 
