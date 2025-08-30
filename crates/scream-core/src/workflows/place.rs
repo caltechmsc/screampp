@@ -7,12 +7,15 @@ use crate::core::rotamers::library::RotamerLibrary;
 use crate::core::topology::registry::TopologyRegistry;
 use crate::engine::cache::ELCache;
 use crate::engine::config::PlacementConfig;
-use crate::engine::context::{OptimizationContext, resolve_selection_to_ids};
+use crate::engine::context::OptimizationContext;
+use crate::engine::energy_grid::{EnergyGrid, MoveDelta};
 use crate::engine::error::EngineError;
 use crate::engine::placement::place_rotamer_on_system;
 use crate::engine::progress::{Progress, ProgressReporter};
 use crate::engine::state::{InitialState, OptimizationState, Solution, SolutionState};
 use crate::engine::tasks;
+use crate::engine::transaction::SystemView;
+use crate::engine::utils::query;
 use rand::prelude::IteratorRandom;
 use rand::{Rng, seq::SliceRandom, thread_rng};
 use std::collections::{HashMap, HashSet};
@@ -89,16 +92,54 @@ pub fn run(
     // === Phase 3: Initialize optimization state (place ground state) ===
     let mut state = initialize_optimization_state(&context, &active_residues, &el_cache)?;
 
+    // === Phase 3.5: Initialize EnergyGrid ===
+    let mut energy_grid = EnergyGrid::new(
+        &state.working_state.system,
+        context.forcefield,
+        &active_residues,
+        &el_cache,
+        &state.working_state.rotamers,
+    )?;
+    state.current_optimization_score = energy_grid.total_score();
+
+    let ground_state_system = state.working_state.system.clone();
+    let ground_state_context = OptimizationContext::new(
+        &ground_state_system,
+        &forcefield,
+        reporter,
+        config,
+        &rotamer_library,
+        &topology_registry,
+    );
+
     // === Phase 4: Clash resolution ===
-    resolve_clashes(&mut state, &active_residues, &context, &el_cache)?;
+    resolve_clashes(
+        &mut state,
+        &active_residues,
+        &ground_state_context,
+        &el_cache,
+        &mut energy_grid,
+    )?;
 
     // === Phase 5: Simulated annealing (optional) ===
     if config.optimization.simulated_annealing.is_some() {
-        run_simulated_annealing(&mut state, &active_residues, &context, &el_cache)?;
+        run_simulated_annealing(
+            &mut state,
+            &active_residues,
+            &ground_state_context,
+            &el_cache,
+            &mut energy_grid,
+        )?;
     }
 
     // === Phase 6: Final refinement ===
-    final_refinement(&mut state, &active_residues, &context, &el_cache)?;
+    final_refinement(
+        &mut state,
+        &active_residues,
+        &ground_state_context,
+        &el_cache,
+        &mut energy_grid,
+    )?;
 
     // === Phase 7: Organize and return results ===
     let result = finalize_results(
@@ -120,7 +161,7 @@ fn prepare_context(
     config: &PlacementConfig,
     rotamer_library: &mut RotamerLibrary,
 ) -> Result<HashSet<ResidueId>, EngineError> {
-    let active_residues = resolve_selection_to_ids(
+    let active_residues = query::resolve_selection_to_ids(
         initial_system,
         &config.residues_to_optimize,
         rotamer_library,
@@ -218,6 +259,7 @@ fn resolve_clashes(
     active_residues: &HashSet<ResidueId>,
     context: &OptimizationContext<PlacementConfig>,
     el_cache: &ELCache,
+    energy_grid: &mut EnergyGrid,
 ) -> Result<(), EngineError> {
     context.reporter.report(Progress::PhaseStart {
         name: "Clash Resolution",
@@ -232,12 +274,18 @@ fn resolve_clashes(
     let mut iterations_without_improvement = 0;
 
     for iter in 0..max_iter {
+        let mut system_view = SystemView::new(
+            &mut state.working_state.system,
+            context,
+            &mut state.working_state.rotamers,
+        );
+
         let clashes = tasks::clash_detection::run(
-            &state.working_state.system,
-            context.forcefield,
+            system_view.system,
+            system_view.context.forcefield,
             active_residues,
             CLASH_THRESHOLD_KCAL_MOL,
-            context.reporter,
+            system_view.context.reporter,
         )?;
 
         context.reporter.report(Progress::StatusUpdate {
@@ -262,16 +310,34 @@ fn resolve_clashes(
         let doublet_result = tasks::doublet_optimization::run(
             res_a_id,
             res_b_id,
-            &state.working_state.system,
+            system_view.system,
             el_cache,
-            context,
+            system_view.context,
             active_residues,
         )?;
 
-        update_rotamers_in_state(state, res_a_id, doublet_result.rotamer_idx_a, context)?;
-        update_rotamers_in_state(state, res_b_id, doublet_result.rotamer_idx_b, context)?;
+        let delta_a = energy_grid.calculate_delta_for_move(
+            res_a_id,
+            doublet_result.rotamer_idx_a,
+            &mut system_view,
+            el_cache,
+            active_residues,
+        )?;
+        system_view.apply_move(res_a_id, doublet_result.rotamer_idx_a)?;
+        energy_grid.apply_move(delta_a);
 
-        let new_score = calculate_optimization_score(state, active_residues, context, el_cache)?;
+        let delta_b = energy_grid.calculate_delta_for_move(
+            res_b_id,
+            doublet_result.rotamer_idx_b,
+            &mut system_view,
+            el_cache,
+            active_residues,
+        )?;
+        system_view.apply_move(res_b_id, doublet_result.rotamer_idx_b)?;
+        energy_grid.apply_move(delta_b);
+
+        let new_score = energy_grid.total_score();
+
         state.current_optimization_score = new_score;
         state.submit_current_solution();
 
@@ -310,6 +376,7 @@ fn run_simulated_annealing(
     active_residues: &HashSet<ResidueId>,
     context: &OptimizationContext<PlacementConfig>,
     el_cache: &ELCache,
+    energy_grid: &mut EnergyGrid,
 ) -> Result<(), EngineError> {
     let sa_config = match &context.config.optimization.simulated_annealing {
         Some(config) => config,
@@ -379,22 +446,35 @@ fn run_simulated_annealing(
                 .choose(&mut rng)
                 .unwrap();
 
-            let original_system = state.working_state.system.clone();
-            let original_rotamers = state.working_state.rotamers.clone();
-            let original_score = state.current_optimization_score;
+            let mut system_view = SystemView::new(
+                &mut state.working_state.system,
+                context,
+                &mut state.working_state.rotamers,
+            );
 
-            update_rotamers_in_state(state, res_id, new_rot_idx, context)?;
-            let new_score =
-                calculate_optimization_score(state, active_residues, context, el_cache)?;
+            let move_result = system_view.transaction(res_id, |view| {
+                view.apply_move(res_id, new_rot_idx)?;
 
-            let delta_e = new_score - original_score;
+                let move_delta = energy_grid.calculate_delta_for_move(
+                    res_id,
+                    new_rot_idx,
+                    view,
+                    el_cache,
+                    active_residues,
+                )?;
+
+                let new_score = energy_grid.total_score() + move_delta.delta_score;
+                let delta_e = new_score - state.current_optimization_score;
+
+                Ok((move_delta, new_score, delta_e))
+            })?;
+
+            let (move_delta, new_score, delta_e) = move_result;
+
             if delta_e < 0.0 || rng.r#gen::<f64>() < (-delta_e / current_temp).exp() {
+                energy_grid.apply_move(move_delta);
                 state.current_optimization_score = new_score;
                 state.submit_current_solution();
-            } else {
-                state.working_state.system = original_system;
-                state.working_state.rotamers = original_rotamers;
-                state.current_optimization_score = original_score;
             }
 
             if total_steps > 0 {
@@ -422,12 +502,12 @@ fn run_simulated_annealing(
     context.reporter.report(Progress::PhaseFinish);
     Ok(())
 }
-
 fn final_refinement(
     state: &mut OptimizationState,
     active_residues: &HashSet<ResidueId>,
     context: &OptimizationContext<PlacementConfig>,
     el_cache: &ELCache,
+    energy_grid: &mut EnergyGrid,
 ) -> Result<(), EngineError> {
     let iterations = context.config.optimization.final_refinement_iterations;
     if iterations == 0 {
@@ -463,34 +543,42 @@ fn final_refinement(
             let rotamers = context.rotamer_library.get_rotamers_for(res_type).unwrap();
 
             let current_rot_idx = state.working_state.rotamers[&res_id];
-            let mut best_idx = current_rot_idx;
-            let mut best_score = state.current_optimization_score;
+            let mut best_delta: Option<MoveDelta> = None;
+            let mut best_rot_idx = current_rot_idx;
+            let mut best_new_score = energy_grid.total_score();
 
-            let original_system = state.working_state.system.clone();
-            let original_rotamers = state.working_state.rotamers.clone();
+            let mut system_view = SystemView::new(
+                &mut state.working_state.system,
+                context,
+                &mut state.working_state.rotamers,
+            );
 
             for idx in 0..rotamers.len() {
                 if idx == current_rot_idx {
                     continue;
                 }
 
-                update_rotamers_in_state(state, res_id, idx, context)?;
-                let score =
-                    calculate_optimization_score(state, active_residues, context, el_cache)?;
+                let move_delta = energy_grid.calculate_delta_for_move(
+                    res_id,
+                    idx,
+                    &mut system_view,
+                    el_cache,
+                    active_residues,
+                )?;
 
-                if score < best_score {
-                    best_score = score;
-                    best_idx = idx;
+                let prospective_score = energy_grid.total_score() + move_delta.delta_score;
+                if prospective_score < best_new_score {
+                    best_new_score = prospective_score;
+                    best_rot_idx = idx;
+                    best_delta = Some(move_delta);
                 }
-
-                state.working_state.system = original_system.clone();
-                state.working_state.rotamers = original_rotamers.clone();
             }
 
-            if best_idx != current_rot_idx {
+            if let Some(delta) = best_delta {
                 changed_in_cycle = true;
-                update_rotamers_in_state(state, res_id, best_idx, context)?;
-                state.current_optimization_score = best_score;
+                update_rotamers_in_state(state, res_id, best_rot_idx, context)?;
+                energy_grid.apply_move(delta);
+                state.current_optimization_score = energy_grid.total_score();
                 state.submit_current_solution();
             }
 
@@ -583,35 +671,6 @@ fn update_rotamers_in_state(
     place_rotamer_on_system(&mut state.working_state.system, res_id, rotamer, topology)?;
     state.working_state.rotamers.insert(res_id, new_rot_idx);
     Ok(())
-}
-
-fn calculate_optimization_score(
-    state: &OptimizationState,
-    active_residues: &HashSet<ResidueId>,
-    context: &OptimizationContext<PlacementConfig>,
-    el_cache: &ELCache,
-) -> Result<f64, EngineError> {
-    let mut el_sum = EnergyTerm::default();
-    for (&res_id, &rot_idx) in &state.working_state.rotamers {
-        let res_type = state
-            .working_state
-            .system
-            .residue(res_id)
-            .unwrap()
-            .residue_type
-            .unwrap();
-        el_sum += *el_cache
-            .get(res_id, res_type, rot_idx)
-            .unwrap_or(&EnergyTerm::default());
-    }
-
-    let interaction = tasks::interaction_energy::run(
-        &state.working_state.system,
-        context.forcefield,
-        active_residues,
-    )?;
-
-    Ok((el_sum + interaction).total())
 }
 
 #[cfg(test)]
