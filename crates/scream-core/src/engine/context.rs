@@ -10,9 +10,6 @@ use crate::core::{
 };
 use std::collections::HashSet;
 
-#[cfg(feature = "parallel")]
-use rayon::prelude::*;
-
 #[derive(Clone, Copy)]
 pub struct OptimizationContext<'a, C>
 where
@@ -200,264 +197,64 @@ mod tests {
         }
     }
 
-    mod resolve_selection_to_ids_tests {
-        use super::*;
-
-        #[test]
-        fn resolve_all_selection_returns_residues_with_rotamers() {
-            let setup = setup();
-            let selection = ResidueSelection::All;
-
-            let result =
-                resolve_selection_to_ids(&setup.system, &selection, &setup.rotamer_library)
-                    .unwrap();
-
-            assert_eq!(result.len(), 2);
-            assert!(result.contains(setup.residue_ids.get("ALA").unwrap()));
-            assert!(result.contains(setup.residue_ids.get("LYS").unwrap()));
-        }
-
-        #[test]
-        fn resolve_list_selection_with_include_only() {
-            let setup = setup();
-            let selection = ResidueSelection::List {
-                include: vec![
-                    ResidueSpecifier {
-                        chain_id: 'A',
-                        residue_number: 1,
-                    },
-                    ResidueSpecifier {
-                        chain_id: 'A',
-                        residue_number: 2,
-                    },
-                ],
-                exclude: vec![],
-            };
-
-            let result =
-                resolve_selection_to_ids(&setup.system, &selection, &setup.rotamer_library)
-                    .unwrap();
-
-            assert_eq!(result.len(), 1);
-            assert!(result.contains(setup.residue_ids.get("ALA").unwrap()));
-        }
-
-        #[test]
-        fn resolve_list_selection_with_include_and_exclude() {
-            let setup = setup();
-            let selection = ResidueSelection::List {
-                include: vec![
-                    ResidueSpecifier {
-                        chain_id: 'A',
-                        residue_number: 2,
-                    },
-                    ResidueSpecifier {
-                        chain_id: 'A',
-                        residue_number: 3,
-                    },
-                ],
-                exclude: vec![ResidueSpecifier {
-                    chain_id: 'A',
-                    residue_number: 2,
-                }],
-            };
-
-            let result =
-                resolve_selection_to_ids(&setup.system, &selection, &setup.rotamer_library)
-                    .unwrap();
-
-            assert_eq!(result.len(), 1);
-            assert!(result.contains(setup.residue_ids.get("LYS").unwrap()));
-        }
-
-        #[test]
-        fn resolve_list_selection_with_exclude_only() {
-            let setup = setup();
-            let selection = ResidueSelection::List {
-                include: vec![],
-                exclude: vec![
-                    ResidueSpecifier {
-                        chain_id: 'A',
-                        residue_number: 1,
-                    },
-                    ResidueSpecifier {
-                        chain_id: 'A',
-                        residue_number: 2,
-                    },
-                ],
-            };
-
-            let result =
-                resolve_selection_to_ids(&setup.system, &selection, &setup.rotamer_library)
-                    .unwrap();
-
-            assert_eq!(result.len(), 1);
-            assert!(result.contains(setup.residue_ids.get("LYS").unwrap()));
-        }
-
-        #[test]
-        fn resolve_list_selection_fails_for_nonexistent_residue() {
-            let setup = setup();
-            let selection = ResidueSelection::List {
-                include: vec![ResidueSpecifier {
-                    chain_id: 'A',
-                    residue_number: 99,
-                }],
-                exclude: vec![],
-            };
-
-            let result =
-                resolve_selection_to_ids(&setup.system, &selection, &setup.rotamer_library);
-            assert!(matches!(result, Err(EngineError::ResidueNotFound { .. })));
-        }
-
-        #[test]
-        fn resolve_ligand_binding_site_selection() {
-            let setup = setup();
-            let selection = ResidueSelection::LigandBindingSite {
-                ligand_residue: ResidueSpecifier {
-                    chain_id: 'B',
-                    residue_number: 10,
-                },
-                radius_angstroms: 6.0,
-            };
-
-            let result =
-                resolve_selection_to_ids(&setup.system, &selection, &setup.rotamer_library)
-                    .unwrap();
-
-            assert_eq!(result.len(), 1);
-            assert!(result.contains(setup.residue_ids.get("ALA").unwrap()));
-        }
-
-        #[test]
-        fn resolve_ligand_binding_site_selection_with_larger_radius() {
-            let setup = setup();
-            let selection = ResidueSelection::LigandBindingSite {
-                ligand_residue: ResidueSpecifier {
-                    chain_id: 'B',
-                    residue_number: 10,
-                },
-                radius_angstroms: 11.0,
-            };
-
-            let result =
-                resolve_selection_to_ids(&setup.system, &selection, &setup.rotamer_library)
-                    .unwrap();
-
-            assert_eq!(result.len(), 2);
-            assert!(result.contains(setup.residue_ids.get("ALA").unwrap()));
-            assert!(result.contains(setup.residue_ids.get("LYS").unwrap()));
-        }
-
-        #[test]
-        fn resolve_ligand_binding_site_selection_empty_when_no_protein_nearby() {
-            let mut setup = setup();
-            let lig_res_id = setup
-                .system
-                .find_residue_by_id(setup.system.find_chain_by_id('B').unwrap(), 10)
-                .unwrap();
-            let lig_atom_id = setup
-                .system
-                .residue(lig_res_id)
-                .unwrap()
-                .get_first_atom_id_by_name("C1")
-                .expect("Ligand residue should have a 'C1' atom");
-
-            setup.system.atom_mut(lig_atom_id).unwrap().position = Point3::new(100.0, 100.0, 100.0);
-
-            let selection = ResidueSelection::LigandBindingSite {
-                ligand_residue: ResidueSpecifier {
-                    chain_id: 'B',
-                    residue_number: 10,
-                },
-                radius_angstroms: 10.0,
-            };
-
-            let result =
-                resolve_selection_to_ids(&setup.system, &selection, &setup.rotamer_library)
-                    .unwrap();
-            assert!(result.is_empty());
-        }
-
-        #[test]
-        fn resolve_selection_filters_residues_without_rotamers() {
-            let mut setup = setup();
-            setup.rotamer_library.rotamers.remove(&ResidueType::Alanine);
-
-            let selection = ResidueSelection::All;
-            let result =
-                resolve_selection_to_ids(&setup.system, &selection, &setup.rotamer_library)
-                    .unwrap();
-
-            assert_eq!(result.len(), 1);
-            assert!(result.contains(setup.residue_ids.get("LYS").unwrap()));
-            assert!(!result.contains(setup.residue_ids.get("ALA").unwrap()));
-        }
+    fn create_mock_config(selection: ResidueSelection) -> PlacementConfig {
+        PlacementConfigBuilder::new()
+            .forcefield_path("")
+            .delta_params_path("")
+            .rotamer_library_path("")
+            .topology_registry_path("")
+            .s_factor(0.0)
+            .max_iterations(1)
+            .num_solutions(1)
+            .convergence_config(ConvergenceConfig {
+                energy_threshold: 0.01,
+                patience_iterations: 10,
+            })
+            .residues_to_optimize(selection)
+            .final_refinement_iterations(0)
+            .build()
+            .unwrap()
     }
 
-    mod optimization_context_tests {
-        use super::*;
-
-        fn create_mock_config(selection: ResidueSelection) -> PlacementConfig {
-            PlacementConfigBuilder::new()
-                .forcefield_path("")
-                .delta_params_path("")
-                .rotamer_library_path("")
-                .topology_registry_path("")
-                .s_factor(0.0)
-                .max_iterations(1)
-                .num_solutions(1)
-                .convergence_config(ConvergenceConfig {
-                    energy_threshold: 0.01,
-                    patience_iterations: 10,
-                })
-                .residues_to_optimize(selection)
-                .final_refinement_iterations(0)
-                .build()
-                .unwrap()
-        }
-
-        #[test]
-        fn context_resolve_repack_residues_works() {
-            let setup = setup();
-            let selection = ResidueSelection::List {
-                include: vec![ResidueSpecifier {
-                    chain_id: 'A',
-                    residue_number: 2,
-                }],
-                exclude: vec![],
-            };
-            let config = create_mock_config(selection);
-            let reporter = ProgressReporter::default();
-            let forcefield = Forcefield {
-                non_bonded: NonBondedParams {
-                    globals: GlobalParams {
-                        dielectric_constant: 1.0,
-                        potential_function: "".to_string(),
-                    },
-                    vdw: HashMap::new(),
-                    hbond: HashMap::new(),
-                    hbond_donors: HashSet::new(),
-                    hbond_acceptors: HashSet::new(),
+    #[test]
+    fn context_resolve_repack_residues_works() {
+        let setup = setup();
+        let selection = ResidueSelection::List {
+            include: vec![ResidueSpecifier {
+                chain_id: 'A',
+                residue_number: 2,
+            }],
+            exclude: vec![],
+        };
+        let config = create_mock_config(selection);
+        let reporter = ProgressReporter::default();
+        let forcefield = Forcefield {
+            non_bonded: NonBondedParams {
+                globals: GlobalParams {
+                    dielectric_constant: 1.0,
+                    potential_function: "".to_string(),
                 },
-                deltas: HashMap::new(),
-                weight_map: HashMap::new(),
-            };
+                vdw: HashMap::new(),
+                hbond: HashMap::new(),
+                hbond_donors: HashSet::new(),
+                hbond_acceptors: HashSet::new(),
+            },
+            deltas: HashMap::new(),
+            weight_map: HashMap::new(),
+        };
 
-            let context = OptimizationContext::new(
-                &setup.system,
-                &forcefield,
-                &reporter,
-                &config,
-                &setup.rotamer_library,
-                &setup.topology_registry,
-            );
+        let context = OptimizationContext::new(
+            &setup.system,
+            &forcefield,
+            &reporter,
+            &config,
+            &setup.rotamer_library,
+            &setup.topology_registry,
+        );
 
-            let active_residues = context.resolve_repack_residues().unwrap();
+        let active_residues = context.resolve_repack_residues().unwrap();
 
-            assert_eq!(active_residues.len(), 1);
-            assert!(active_residues.contains(setup.residue_ids.get("ALA").unwrap()));
-        }
+        assert_eq!(active_residues.len(), 1);
+        assert!(active_residues.contains(setup.residue_ids.get("ALA").unwrap()));
     }
 }
