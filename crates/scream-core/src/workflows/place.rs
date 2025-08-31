@@ -502,6 +502,7 @@ fn run_simulated_annealing(
     context.reporter.report(Progress::PhaseFinish);
     Ok(())
 }
+
 fn final_refinement(
     state: &mut OptimizationState,
     active_residues: &HashSet<ResidueId>,
