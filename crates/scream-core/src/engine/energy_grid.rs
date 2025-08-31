@@ -125,6 +125,10 @@ impl EnergyGrid {
         self.current_optimization_score
     }
 
+    pub fn get_el_energy(&self, res_id: ResidueId) -> Option<&EnergyTerm> {
+        self.current_el_energies.get(&res_id)
+    }
+
     pub fn calculate_delta_for_move<'a, 'ctx, C>(
         &self,
         res_id: ResidueId,
