@@ -653,6 +653,40 @@ mod tests {
     }
 
     #[test]
+    fn get_el_energy_returns_correct_value() {
+        let mut setup = setup();
+        let energy_grid = EnergyGrid::new(
+            &setup.system,
+            &setup.forcefield,
+            &setup.active_residues,
+            &setup.el_cache,
+            &setup.initial_rotamers,
+        )
+        .unwrap();
+
+        for &res_id in &setup.active_residues {
+            let el_energy = energy_grid.get_el_energy(res_id);
+            assert!(el_energy.is_some());
+            let expected_el = setup
+                .el_cache
+                .get(
+                    res_id,
+                    setup.system.residue(res_id).unwrap().residue_type.unwrap(),
+                    0,
+                ).unwrap();
+            assert_eq!(el_energy.unwrap(), expected_el);
+        }
+
+        let chain_b = setup.system.add_chain('B', ChainType::Protein);
+        let non_active_res_id = setup
+            .system
+            .add_residue(chain_b, 1, "GLY", Some(ResidueType::Glycine))
+            .unwrap();
+        let el_energy = energy_grid.get_el_energy(non_active_res_id);
+        assert!(el_energy.is_none());
+    }
+
+    #[test]
     fn calculate_delta_for_move_computes_correct_delta() {
         let setup = setup();
         let energy_grid = EnergyGrid::new(
