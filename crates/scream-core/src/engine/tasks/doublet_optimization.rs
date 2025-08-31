@@ -109,18 +109,29 @@ where
         };
 
         iterator.fold(
-            || -> Result<(Option<DoubletResult>, MolecularSystem, HashMap<ResidueId, usize>, &OptimizationContext<C>), EngineError> {
+            || -> Result<(Option<DoubletResult>, MolecularSystem, HashMap<ResidueId, usize>, &OptimizationContext<C>, f64), EngineError> {
                 let thread_local_system = system.clone();
                 let mut thread_local_rotamers = HashMap::new();
                 thread_local_rotamers.insert(res_a_id, 0);
                 thread_local_rotamers.insert(res_b_id, 0);
                 let thread_local_context = context;
-                Ok((None, thread_local_system, thread_local_rotamers, thread_local_context))
+                let thread_best_energy = f64::MAX;
+                Ok((None, thread_local_system, thread_local_rotamers, thread_local_context, thread_best_energy))
             },
 
             |mut acc, &(idx_a, idx_b)| {
                 if acc.is_err() { return acc; }
-                let (thread_best_result, thread_system, thread_rotamers, thread_context) = acc.as_mut().unwrap();
+                let (thread_best_result, thread_system, thread_rotamers, thread_context, thread_best_energy) = acc.as_mut().unwrap();
+
+                const MAX_FAVORABLE_INTERACTION: f64 = -20.0;
+
+                let el_a = el_cache.get(res_a_id, res_type_a, idx_a).copied().unwrap_or_default();
+                let el_b = el_cache.get(res_b_id, res_type_b, idx_b).copied().unwrap_or_default();
+                let el_sum = el_a.total() + el_b.total();
+
+                if (el_sum + MAX_FAVORABLE_INTERACTION) > *thread_best_energy {
+                    return acc;
+                }
 
                 let mut system_view = SystemView::new(thread_system, thread_context, thread_rotamers);
 
@@ -128,11 +139,7 @@ where
                     view.apply_move(res_a_id, idx_a)?;
                     view.apply_move(res_b_id, idx_b)?;
 
-                    let el_a = el_cache.get(res_a_id, res_type_a, idx_a).copied().unwrap_or_default();
-                    let el_b = el_cache.get(res_b_id, res_type_b, idx_b).copied().unwrap_or_default();
-
                     let scorer = Scorer::new(view.system, thread_context.forcefield);
-
                     let get_sc_atoms = |sys: &MolecularSystem, res_id: ResidueId| -> Vec<AtomId> {
                         sys.residue(res_id)
                             .unwrap()
@@ -163,10 +170,11 @@ where
 
                     let total_interaction_energy = inter_ab + inter_a_others + inter_b_others;
 
-                    Ok(el_a.total() + el_b.total() + total_interaction_energy.total())
+                    Ok(el_sum + total_interaction_energy.total())
                 }) {
                     Ok(current_energy) => {
-                        if thread_best_result.is_none() || current_energy < thread_best_result.as_ref().unwrap().best_local_energy {
+                        if current_energy < *thread_best_energy {
+                            *thread_best_energy = current_energy;
                             *thread_best_result = Some(DoubletResult {
                                 rotamer_idx_a: idx_a,
                                 rotamer_idx_b: idx_b,
@@ -180,7 +188,7 @@ where
             },
         )
         .filter_map(|res| res.ok())
-        .map(|(res, _, _, _)| res)
+        .map(|(res, _, _, _, _)| res)
         .reduce_with(|best, current| {
             match (best, current) {
                 (Some(b), Some(c)) => Some(if b.best_local_energy < c.best_local_energy { b } else { c }),
