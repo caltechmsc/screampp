@@ -544,6 +544,7 @@ fn final_refinement(
             let rotamers = context.rotamer_library.get_rotamers_for(res_type).unwrap();
 
             let current_rot_idx = state.working_state.rotamers[&res_id];
+
             let mut best_delta: Option<MoveDelta> = None;
             let mut best_rot_idx = current_rot_idx;
             let mut best_new_score = energy_grid.total_score();
@@ -556,6 +557,24 @@ fn final_refinement(
 
             for idx in 0..rotamers.len() {
                 if idx == current_rot_idx {
+                    continue;
+                }
+
+                let new_el = el_cache
+                    .get(res_id, res_type, idx)
+                    .copied()
+                    .unwrap_or_default();
+                let old_el = energy_grid
+                    .get_el_energy(res_id)
+                    .copied()
+                    .unwrap_or_default();
+                let delta_el_total = new_el.total() - old_el.total();
+
+                let prospective_score_el_only = energy_grid.total_score() + delta_el_total;
+
+                const MAX_FAVORABLE_DELTA_INTERACTION: f64 = -20.0;
+
+                if (prospective_score_el_only + MAX_FAVORABLE_DELTA_INTERACTION) > best_new_score {
                     continue;
                 }
 
