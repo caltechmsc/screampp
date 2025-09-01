@@ -141,3 +141,12 @@ pub struct FileSamplingConfig {
     #[serde(rename = "rotamer-library")]
     pub rotamer_library: Option<String>,
 }
+
+#[derive(Deserialize, Debug, Default)]
+#[serde(deny_unknown_fields)]
+pub struct FileConvergenceConfig {
+    #[serde(rename = "energy-threshold")]
+    pub energy_threshold: Option<f64>,
+    #[serde(rename = "patience-iterations")]
+    pub patience_iterations: Option<usize>,
+}
