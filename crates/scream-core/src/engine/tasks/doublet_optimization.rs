@@ -711,6 +711,7 @@ sidechain_atoms = ["CB"]
             &setup.el_cache,
             &context,
             &active_residues,
+            &reporter,
         )
         .unwrap();
 
@@ -766,6 +767,7 @@ sidechain_atoms = ["CB"]
             &setup.el_cache,
             &context,
             &active_residues,
+            &reporter,
         );
 
         assert!(matches!(result, Err(EngineError::RotamerLibrary { .. })));
@@ -813,6 +815,7 @@ sidechain_atoms = ["CB"]
             &setup.el_cache,
             &context,
             &active_residues,
+            &reporter,
         )
         .unwrap();
 
