@@ -86,8 +86,8 @@ pub struct PlaceArgs {
     pub output: PathBuf,
 
     /// Path to the main configuration file in TOML format.
-    #[arg(short, long, required = true, value_name = "PATH")]
-    pub config: PathBuf,
+    #[arg(short, long, value_name = "PATH")]
+    pub config: Option<PathBuf>,
 
     // --- Forcefield Overrides ---
     /// Override the s-factor for the flat-bottom potential from the config file.
@@ -218,7 +218,7 @@ mod tests {
             Commands::Place(place_args) => {
                 assert_eq!(place_args.input, PathBuf::from("in.bgf"));
                 assert_eq!(place_args.output, PathBuf::from("out.bgf"));
-                assert_eq!(place_args.config, PathBuf::from("config.toml"));
+                assert_eq!(place_args.config, Some(PathBuf::from("config.toml")));
                 assert_eq!(place_args.s_factor, Some(0.8));
                 assert_eq!(
                     place_args.rotamer_library,
