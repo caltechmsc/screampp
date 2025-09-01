@@ -5,9 +5,11 @@ use crate::core::models::system::MolecularSystem;
 use crate::engine::cache::ELCache;
 use crate::engine::context::{OptimizationContext, ProvidesResidueSelections};
 use crate::engine::error::EngineError;
-use crate::engine::placement;
-use std::collections::HashSet;
-use tracing::{debug, instrument, trace};
+use crate::engine::progress::{Progress, ProgressReporter};
+use crate::engine::transaction::SystemView;
+use std::collections::{HashMap, HashSet};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use tracing::{debug, instrument};
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -27,6 +29,7 @@ pub fn run<C>(
     el_cache: &ELCache,
     context: &OptimizationContext<C>,
     active_residues: &HashSet<ResidueId>,
+    reporter: &ProgressReporter,
 ) -> Result<DoubletResult, EngineError>
 where
     C: ProvidesResidueSelections + Sync,
@@ -78,34 +81,23 @@ where
         });
     }
 
-    let res_name_a = res_type_a.to_three_letter();
-    let topology_a =
-        context
-            .topology_registry
-            .get(res_name_a)
-            .ok_or_else(|| EngineError::TopologyNotFound {
-                residue_name: res_name_a.to_string(),
-            })?;
-    let res_name_b = res_type_b.to_three_letter();
-    let topology_b =
-        context
-            .topology_registry
-            .get(res_name_b)
-            .ok_or_else(|| EngineError::TopologyNotFound {
-                residue_name: res_name_b.to_string(),
-            })?;
-
-    // --- 2. Generate all conformation pairs and prepare for parallel computation ---
     let index_pairs: Vec<(usize, usize)> = (0..rotamers_a.len())
         .flat_map(|i| (0..rotamers_b.len()).map(move |j| (i, j)))
         .collect();
 
+    let total_pairs = index_pairs.len();
     debug!(
         "Optimizing doublet with {}x{} = {} total pairs.",
         rotamers_a.len(),
         rotamers_b.len(),
-        index_pairs.len()
+        total_pairs
     );
+
+    reporter.report(Progress::TaskStart {
+        total: total_pairs as u64,
+    });
+    let processed_count = AtomicUsize::new(0);
+    const REPORT_INTERVAL: usize = 256;
 
     let other_active_residue_ids: Vec<ResidueId> = active_residues
         .iter()
@@ -113,80 +105,231 @@ where
         .cloned()
         .collect();
 
-    #[cfg(not(feature = "parallel"))]
-    let iterator = index_pairs.iter();
+    // --- Phase 2: High-Performance Parallel Evaluation with Thread-Local State ---
+    let best_pair_result = {
+        #[cfg(feature = "parallel")]
+        {
+            index_pairs
+                .par_iter()
+                .fold(
+                    || -> Result<(Option<DoubletResult>, MolecularSystem, HashMap<ResidueId, usize>, &OptimizationContext<C>, f64), EngineError> {
+                        let thread_local_system = system.clone();
+                        let mut thread_local_rotamers = HashMap::new();
+                        thread_local_rotamers.insert(res_a_id, 0);
+                        thread_local_rotamers.insert(res_b_id, 0);
+                        let thread_local_context = context;
+                        let thread_best_energy = f64::MAX;
+                        Ok((None, thread_local_system, thread_local_rotamers, thread_local_context, thread_best_energy))
+                    },
 
-    #[cfg(feature = "parallel")]
-    let iterator = index_pairs.par_iter();
+                    |mut acc, &(idx_a, idx_b)| {
+                        if acc.is_err() {
+                            return acc;
+                        }
+                        let (thread_best_result, thread_system, thread_rotamers, thread_context, thread_best_energy) =
+                            acc.as_mut().unwrap();
 
-    // --- 3. Core energy evaluation loop ---
-    let best_pair = iterator
-        .map(|&(idx_a, idx_b)| {
-            let rot_a = &rotamers_a[idx_a];
-            let rot_b = &rotamers_b[idx_b];
+                        let count = processed_count.fetch_add(1, Ordering::Relaxed);
+                        if count % REPORT_INTERVAL == 0 {
+                            reporter.report(Progress::TaskIncrement { amount: REPORT_INTERVAL as u64 });
+                        }
 
-            // a. Get precomputed EL energy (interaction energy with fixed environment + internal energy)
-            let el_a_term = el_cache.get(res_a_id, res_type_a, idx_a).copied().unwrap_or_default();
-            let el_b_term = el_cache.get(res_b_id, res_type_b, idx_b).copied().unwrap_or_default();
+                        const MAX_FAVORABLE_INTERACTION: f64 = -20.0;
 
-            // b. Place conformations on a temporary system
-            let mut temp_system = system.clone();
-            placement::place_rotamer_on_system(&mut temp_system, res_a_id, rot_a, topology_a)?;
-            placement::place_rotamer_on_system(&mut temp_system, res_b_id, rot_b, topology_b)?;
+                        let el_a = el_cache
+                            .get(res_a_id, res_type_a, idx_a)
+                            .copied()
+                            .unwrap_or_default();
+                        let el_b = el_cache
+                            .get(res_b_id, res_type_b, idx_b)
+                            .copied()
+                            .unwrap_or_default();
+                        let el_sum = el_a.total() + el_b.total();
 
-            let scorer = Scorer::new(&temp_system, context.forcefield);
+                        if (el_sum + MAX_FAVORABLE_INTERACTION) > *thread_best_energy {
+                            return acc;
+                        }
 
-            // c. Extract atom groups for energy calculation
-            let get_sc_atoms = |sys: &MolecularSystem, res_id: ResidueId| -> Vec<AtomId> {
-                sys.residue(res_id).unwrap().atoms().iter()
-                    .filter_map(|&id| sys.atom(id).and_then(|a| if a.role == AtomRole::Sidechain { Some(id) } else { None }))
-                    .collect()
-            };
+                        let mut system_view = SystemView::new(thread_system, thread_context, thread_rotamers);
 
-            let atoms_a_sc = get_sc_atoms(&temp_system, res_a_id);
-            let atoms_b_sc = get_sc_atoms(&temp_system, res_b_id);
-            let other_active_sc_atoms: Vec<AtomId> = other_active_residue_ids.iter().flat_map(|&id| get_sc_atoms(&temp_system, id)).collect();
+                        match system_view.transaction_doublet(res_a_id, res_b_id, |view| {
+                            view.apply_move(res_a_id, idx_a)?;
+                            view.apply_move(res_b_id, idx_b)?;
 
-            // d. Calculate all relevant interaction energies
-            let inter_ab = scorer.score_interaction(&atoms_a_sc, &atoms_b_sc)?;
-            let inter_a_others = scorer.score_interaction(&atoms_a_sc, &other_active_sc_atoms)?;
-            let inter_b_others = scorer.score_interaction(&atoms_b_sc, &other_active_sc_atoms)?;
+                            let scorer = Scorer::new(view.system, thread_context.forcefield);
+                            let get_sc_atoms = |sys: &MolecularSystem, res_id: ResidueId| -> Vec<AtomId> {
+                                sys.residue(res_id)
+                                    .unwrap()
+                                    .atoms()
+                                    .iter()
+                                    .filter_map(|&id| {
+                                        sys.atom(id).and_then(|a| {
+                                            if a.role == AtomRole::Sidechain {
+                                                Some(id)
+                                            } else {
+                                                None
+                                            }
+                                        })
+                                    })
+                                    .collect()
+                            };
 
-            let total_interaction_energy = inter_ab + inter_a_others + inter_b_others;
+                            let atoms_a_sc = get_sc_atoms(view.system, res_a_id);
+                            let atoms_b_sc = get_sc_atoms(view.system, res_b_id);
+                            let other_active_sc_atoms: Vec<AtomId> = other_active_residue_ids
+                                .iter()
+                                .flat_map(|&id| get_sc_atoms(view.system, id))
+                                .collect();
 
-            // e. Calculate the final local energy comparable to global OptimizationScore
-            let comparable_local_energy = el_a_term.total() + el_b_term.total() + total_interaction_energy.total();
+                            let inter_ab = scorer.score_interaction(&atoms_a_sc, &atoms_b_sc)?;
+                            let inter_a_others = scorer.score_interaction(&atoms_a_sc, &other_active_sc_atoms)?;
+                            let inter_b_others = scorer.score_interaction(&atoms_b_sc, &other_active_sc_atoms)?;
 
-            trace!(
-                "Pair (A:{}, B:{}): E_local = {:.2} (EL_A={:.2}, EL_B={:.2}, Int_AB={:.2}, Int_A_others={:.2}, Int_B_others={:.2})",
-                idx_a, idx_b, comparable_local_energy, el_a_term.total(), el_b_term.total(),
-                inter_ab.total(), inter_a_others.total(), inter_b_others.total()
-            );
+                            let total_interaction_energy = inter_ab + inter_a_others + inter_b_others;
 
-            Ok((comparable_local_energy, (idx_a, idx_b)))
-        })
-        .collect::<Result<Vec<_>, EngineError>>()?
-        .into_iter()
-        .min_by(|(energy_1, _), (energy_2, _)| {
-            energy_1.partial_cmp(energy_2).unwrap_or(std::cmp::Ordering::Equal)
+                            Ok(el_sum + total_interaction_energy.total())
+                        }) {
+                            Ok(current_energy) => {
+                                if current_energy < *thread_best_energy {
+                                    *thread_best_energy = current_energy;
+                                    *thread_best_result = Some(DoubletResult {
+                                        rotamer_idx_a: idx_a,
+                                        rotamer_idx_b: idx_b,
+                                        best_local_energy: current_energy,
+                                    });
+                                }
+                            }
+                            Err(e) => return Err(e),
+                        }
+                        acc
+                    },
+                )
+                .filter_map(|res| res.ok())
+                .map(|(res, _, _, _, _)| res)
+                .reduce_with(|best, current| match (best, current) {
+                    (Some(b), Some(c)) => Some(if b.best_local_energy < c.best_local_energy { b } else { c }),
+                    (Some(b), None) => Some(b),
+                    (None, Some(c)) => Some(c),
+                    (None, None) => None,
+                })
+                .flatten()
+        }
+
+        #[cfg(not(feature = "parallel"))]
+        {
+            let mut best_result: Option<DoubletResult> = None;
+            let mut best_energy: f64 = f64::MAX;
+
+            for &(idx_a, idx_b) in index_pairs.iter() {
+                let count = processed_count.fetch_add(1, Ordering::Relaxed);
+                if count % REPORT_INTERVAL == 0 {
+                    reporter.report(Progress::TaskIncrement {
+                        amount: REPORT_INTERVAL as u64,
+                    });
+                }
+
+                const MAX_FAVORABLE_INTERACTION: f64 = -20.0;
+
+                let el_a = el_cache
+                    .get(res_a_id, res_type_a, idx_a)
+                    .copied()
+                    .unwrap_or_default();
+                let el_b = el_cache
+                    .get(res_b_id, res_type_b, idx_b)
+                    .copied()
+                    .unwrap_or_default();
+                let el_sum = el_a.total() + el_b.total();
+
+                if (el_sum + MAX_FAVORABLE_INTERACTION) > best_energy {
+                    continue;
+                }
+
+                let mut thread_system = system.clone();
+                let mut thread_rotamers = HashMap::new();
+                thread_rotamers.insert(res_a_id, 0);
+                thread_rotamers.insert(res_b_id, 0);
+
+                let mut system_view =
+                    SystemView::new(&mut thread_system, context, &mut thread_rotamers);
+
+                let result = system_view.transaction_doublet(res_a_id, res_b_id, |view| {
+                    view.apply_move(res_a_id, idx_a)?;
+                    view.apply_move(res_b_id, idx_b)?;
+
+                    let scorer = Scorer::new(view.system, context.forcefield);
+                    let get_sc_atoms = |sys: &MolecularSystem, res_id: ResidueId| -> Vec<AtomId> {
+                        sys.residue(res_id)
+                            .unwrap()
+                            .atoms()
+                            .iter()
+                            .filter_map(|&id| {
+                                sys.atom(id).and_then(|a| {
+                                    if a.role == AtomRole::Sidechain {
+                                        Some(id)
+                                    } else {
+                                        None
+                                    }
+                                })
+                            })
+                            .collect()
+                    };
+
+                    let atoms_a_sc = get_sc_atoms(view.system, res_a_id);
+                    let atoms_b_sc = get_sc_atoms(view.system, res_b_id);
+                    let other_active_sc_atoms: Vec<AtomId> = other_active_residue_ids
+                        .iter()
+                        .flat_map(|&id| get_sc_atoms(view.system, id))
+                        .collect();
+
+                    let inter_ab = scorer.score_interaction(&atoms_a_sc, &atoms_b_sc)?;
+                    let inter_a_others =
+                        scorer.score_interaction(&atoms_a_sc, &other_active_sc_atoms)?;
+                    let inter_b_others =
+                        scorer.score_interaction(&atoms_b_sc, &other_active_sc_atoms)?;
+
+                    let total_interaction_energy = inter_ab + inter_a_others + inter_b_others;
+
+                    Ok(el_sum + total_interaction_energy.total())
+                });
+
+                match result {
+                    Ok(current_energy) => {
+                        if current_energy < best_energy {
+                            best_energy = current_energy;
+                            best_result = Some(DoubletResult {
+                                rotamer_idx_a: idx_a,
+                                rotamer_idx_b: idx_b,
+                                best_local_energy: current_energy,
+                            });
+                        }
+                    }
+                    Err(e) => return Err(e),
+                }
+            }
+
+            best_result
+        }
+    };
+
+    let final_count = processed_count.load(Ordering::Relaxed);
+    if final_count > 0 && final_count % REPORT_INTERVAL != 0 {
+        reporter.report(Progress::TaskIncrement {
+            amount: (final_count % REPORT_INTERVAL) as u64,
         });
+    }
+    reporter.report(Progress::TaskFinish);
 
-    // --- 4. Return the best result ---
-    match best_pair {
-        Some((best_energy, (best_idx_a, best_idx_b))) => {
+    match best_pair_result {
+        Some(result) => {
             debug!(
                 "Found best pair (A:{}, B:{}) with local energy {:.4} kcal/mol",
-                best_idx_a, best_idx_b, best_energy
+                result.rotamer_idx_a, result.rotamer_idx_b, result.best_local_energy
             );
-            Ok(DoubletResult {
-                rotamer_idx_a: best_idx_a,
-                rotamer_idx_b: best_idx_b,
-                best_local_energy: best_energy,
-            })
+            Ok(result)
         }
         None => Err(EngineError::PhaseFailed {
             phase: "Doublet Optimization",
-            reason: "No valid rotamer pairs could be evaluated. This should not happen if rotamer lists are not empty.".to_string(),
+            reason: "No valid rotamer pairs could be evaluated.".to_string(),
         }),
     }
 }
@@ -568,6 +711,7 @@ sidechain_atoms = ["CB"]
             &setup.el_cache,
             &context,
             &active_residues,
+            &reporter,
         )
         .unwrap();
 
@@ -623,6 +767,7 @@ sidechain_atoms = ["CB"]
             &setup.el_cache,
             &context,
             &active_residues,
+            &reporter,
         );
 
         assert!(matches!(result, Err(EngineError::RotamerLibrary { .. })));
@@ -670,6 +815,7 @@ sidechain_atoms = ["CB"]
             &setup.el_cache,
             &context,
             &active_residues,
+            &reporter,
         )
         .unwrap();
 

@@ -4,7 +4,6 @@ use crate::core::forcefield::term::EnergyTerm;
 use crate::core::models::ids::ResidueId;
 use crate::core::models::system::MolecularSystem;
 use crate::engine::error::EngineError;
-use crate::engine::progress::{Progress, ProgressReporter};
 use itertools::Itertools;
 use std::cmp::Ordering;
 use std::collections::HashSet;
@@ -40,7 +39,6 @@ pub fn run(
     forcefield: &Forcefield,
     active_residues: &HashSet<ResidueId>,
     clash_threshold_kcal_mol: f64,
-    reporter: &ProgressReporter,
 ) -> Result<Vec<ClashPair>, EngineError> {
     info!(
         threshold = clash_threshold_kcal_mol,
@@ -53,10 +51,6 @@ pub fn run(
         return Ok(Vec::new());
     }
 
-    reporter.report(Progress::TaskStart {
-        total: residue_pairs.len() as u64,
-    });
-
     let scorer = Scorer::new(system, forcefield);
 
     #[cfg(not(feature = "parallel"))]
@@ -67,7 +61,6 @@ pub fn run(
 
     let clashes: Result<Vec<ClashPair>, EngineError> = iterator
         .filter_map(|pair| {
-            reporter.report(Progress::TaskIncrement { amount: 1 });
             let res_id_a = *pair[0];
             let res_id_b = *pair[1];
 
@@ -87,8 +80,6 @@ pub fn run(
         .collect();
 
     let mut clashes = clashes?;
-
-    reporter.report(Progress::TaskFinish);
 
     clashes.sort_unstable();
 
@@ -171,9 +162,8 @@ mod tests {
         system.atom_mut(res2_atom_id).unwrap().position = Point3::new(0.1, 0.0, 0.0);
 
         let ff = create_test_forcefield();
-        let reporter = ProgressReporter::default();
 
-        let clashes = run(&system, &ff, &active_residues, 1.0, &reporter).unwrap();
+        let clashes = run(&system, &ff, &active_residues, 1.0).unwrap();
 
         assert_eq!(clashes.len(), 1);
         assert!(clashes[0].energy.total() > 1.0);
@@ -183,9 +173,8 @@ mod tests {
     fn run_detects_no_clash_when_residues_are_far() {
         let (system, active_residues, _, _) = create_test_system();
         let ff = create_test_forcefield();
-        let reporter = ProgressReporter::default();
 
-        let clashes = run(&system, &ff, &active_residues, 1.0, &reporter).unwrap();
+        let clashes = run(&system, &ff, &active_residues, 1.0).unwrap();
 
         assert!(clashes.is_empty());
     }
@@ -196,12 +185,11 @@ mod tests {
         let res2_atom_id = system.residue(res2_id).unwrap().atoms()[0];
         system.atom_mut(res2_atom_id).unwrap().position = Point3::new(0.1, 0.0, 0.0);
         let ff = create_test_forcefield();
-        let reporter = ProgressReporter::default();
 
-        let clashes_low_threshold = run(&system, &ff, &active_residues, 1.0, &reporter).unwrap();
+        let clashes_low_threshold = run(&system, &ff, &active_residues, 1.0).unwrap();
         assert_eq!(clashes_low_threshold.len(), 1);
 
-        let clashes_high_threshold = run(&system, &ff, &active_residues, 1e15, &reporter).unwrap();
+        let clashes_high_threshold = run(&system, &ff, &active_residues, 1e15).unwrap();
         assert!(clashes_high_threshold.is_empty());
     }
 
@@ -213,9 +201,8 @@ mod tests {
         assert_eq!(active_residues.len(), 1);
 
         let ff = create_test_forcefield();
-        let reporter = ProgressReporter::default();
 
-        let clashes = run(&system, &ff, &active_residues, 1.0, &reporter).unwrap();
+        let clashes = run(&system, &ff, &active_residues, 1.0).unwrap();
 
         assert!(clashes.is_empty());
     }
@@ -242,9 +229,8 @@ mod tests {
         let active_residues = vec![res1_id, res2_id, res3_id].into_iter().collect();
 
         let ff = create_test_forcefield();
-        let reporter = ProgressReporter::default();
 
-        let clashes = run(&system, &ff, &active_residues, 0.01, &reporter).unwrap();
+        let clashes = run(&system, &ff, &active_residues, 0.01).unwrap();
 
         assert_eq!(
             clashes.len(),
