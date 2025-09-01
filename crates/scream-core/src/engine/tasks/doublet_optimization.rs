@@ -5,8 +5,10 @@ use crate::core::models::system::MolecularSystem;
 use crate::engine::cache::ELCache;
 use crate::engine::context::{OptimizationContext, ProvidesResidueSelections};
 use crate::engine::error::EngineError;
+use crate::engine::progress::{Progress, ProgressReporter};
 use crate::engine::transaction::SystemView;
 use std::collections::{HashMap, HashSet};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use tracing::{debug, instrument};
 
 #[cfg(feature = "parallel")]
@@ -27,6 +29,7 @@ pub fn run<C>(
     el_cache: &ELCache,
     context: &OptimizationContext<C>,
     active_residues: &HashSet<ResidueId>,
+    reporter: &ProgressReporter,
 ) -> Result<DoubletResult, EngineError>
 where
     C: ProvidesResidueSelections + Sync,
@@ -82,12 +85,19 @@ where
         .flat_map(|i| (0..rotamers_b.len()).map(move |j| (i, j)))
         .collect();
 
+    let total_pairs = index_pairs.len();
     debug!(
         "Optimizing doublet with {}x{} = {} total pairs.",
         rotamers_a.len(),
         rotamers_b.len(),
-        index_pairs.len()
+        total_pairs
     );
+
+    reporter.report(Progress::TaskStart {
+        total: total_pairs as u64,
+    });
+    let processed_count = AtomicUsize::new(0);
+    const REPORT_INTERVAL: usize = 256;
 
     let other_active_residue_ids: Vec<ResidueId> = active_residues
         .iter()
@@ -118,6 +128,11 @@ where
                         }
                         let (thread_best_result, thread_system, thread_rotamers, thread_context, thread_best_energy) =
                             acc.as_mut().unwrap();
+
+                        let count = processed_count.fetch_add(1, Ordering::Relaxed);
+                        if count % REPORT_INTERVAL == 0 {
+                            reporter.report(Progress::TaskIncrement { amount: REPORT_INTERVAL as u64 });
+                        }
 
                         const MAX_FAVORABLE_INTERACTION: f64 = -20.0;
 
@@ -206,6 +221,13 @@ where
             let mut best_energy: f64 = f64::MAX;
 
             for &(idx_a, idx_b) in index_pairs.iter() {
+                let count = processed_count.fetch_add(1, Ordering::Relaxed);
+                if count % REPORT_INTERVAL == 0 {
+                    reporter.report(Progress::TaskIncrement {
+                        amount: REPORT_INTERVAL as u64,
+                    });
+                }
+
                 const MAX_FAVORABLE_INTERACTION: f64 = -20.0;
 
                 let el_a = el_cache
@@ -288,6 +310,14 @@ where
             best_result
         }
     };
+
+    let final_count = processed_count.load(Ordering::Relaxed);
+    if final_count > 0 && final_count % REPORT_INTERVAL != 0 {
+        reporter.report(Progress::TaskIncrement {
+            amount: (final_count % REPORT_INTERVAL) as u64,
+        });
+    }
+    reporter.report(Progress::TaskFinish);
 
     match best_pair_result {
         Some(result) => {
