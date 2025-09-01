@@ -74,3 +74,63 @@ pub struct FileForcefieldConfig {
     #[serde(default, rename = "energy-weights")]
     pub energy_weights: FileEnergyWeights,
 }
+
+#[derive(Deserialize, Debug, Clone, Copy)]
+#[serde(deny_unknown_fields)]
+pub struct FileEnergyComponentWeights {
+    #[serde(default = "default_one")]
+    pub vdw: f64,
+    #[serde(default = "default_one")]
+    pub coulomb: f64,
+    #[serde(default = "default_one")]
+    pub hbond: f64,
+}
+
+fn default_one() -> f64 {
+    1.0
+}
+
+#[derive(Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
+pub struct FileWeightRule {
+    pub groups: [String; 2],
+    pub weights: FileEnergyComponentWeights,
+}
+
+#[derive(Deserialize, Debug, Clone, Default)]
+#[serde(deny_unknown_fields)]
+pub struct FileEnergyWeights {
+    #[serde(default)]
+    pub rules: Vec<FileWeightRule>,
+}
+
+impl From<FileEnergyComponentWeights>
+    for screampp::core::forcefield::params::EnergyComponentWeights
+{
+    fn from(w: FileEnergyComponentWeights) -> Self {
+        Self {
+            vdw: w.vdw,
+            coulomb: w.coulomb,
+            hbond: w.hbond,
+        }
+    }
+}
+
+impl From<FileEnergyWeights> for screampp::core::forcefield::params::EnergyWeights {
+    fn from(w: FileEnergyWeights) -> Self {
+        use std::str::FromStr;
+        let mut rules: Vec<screampp::core::forcefield::params::WeightRule> = Vec::new();
+        for r in w.rules.into_iter() {
+            if let (Ok(g1), Ok(g2)) = (
+                AtomRole::from_str(&r.groups[0]),
+                AtomRole::from_str(&r.groups[1]),
+            ) {
+                rules.push(screampp::core::forcefield::params::WeightRule {
+                    groups: [g1, g2],
+                    weights: r.weights.into(),
+                });
+            }
+        }
+        screampp::core::forcefield::params::EnergyWeights { rules }
+    }
+}
