@@ -162,9 +162,8 @@ mod tests {
         system.atom_mut(res2_atom_id).unwrap().position = Point3::new(0.1, 0.0, 0.0);
 
         let ff = create_test_forcefield();
-        let reporter = ProgressReporter::default();
 
-        let clashes = run(&system, &ff, &active_residues, 1.0, &reporter).unwrap();
+        let clashes = run(&system, &ff, &active_residues, 1.0).unwrap();
 
         assert_eq!(clashes.len(), 1);
         assert!(clashes[0].energy.total() > 1.0);
@@ -174,9 +173,8 @@ mod tests {
     fn run_detects_no_clash_when_residues_are_far() {
         let (system, active_residues, _, _) = create_test_system();
         let ff = create_test_forcefield();
-        let reporter = ProgressReporter::default();
 
-        let clashes = run(&system, &ff, &active_residues, 1.0, &reporter).unwrap();
+        let clashes = run(&system, &ff, &active_residues, 1.0).unwrap();
 
         assert!(clashes.is_empty());
     }
@@ -187,12 +185,11 @@ mod tests {
         let res2_atom_id = system.residue(res2_id).unwrap().atoms()[0];
         system.atom_mut(res2_atom_id).unwrap().position = Point3::new(0.1, 0.0, 0.0);
         let ff = create_test_forcefield();
-        let reporter = ProgressReporter::default();
 
-        let clashes_low_threshold = run(&system, &ff, &active_residues, 1.0, &reporter).unwrap();
+        let clashes_low_threshold = run(&system, &ff, &active_residues, 1.0).unwrap();
         assert_eq!(clashes_low_threshold.len(), 1);
 
-        let clashes_high_threshold = run(&system, &ff, &active_residues, 1e15, &reporter).unwrap();
+        let clashes_high_threshold = run(&system, &ff, &active_residues, 1e15).unwrap();
         assert!(clashes_high_threshold.is_empty());
     }
 
@@ -204,9 +201,8 @@ mod tests {
         assert_eq!(active_residues.len(), 1);
 
         let ff = create_test_forcefield();
-        let reporter = ProgressReporter::default();
 
-        let clashes = run(&system, &ff, &active_residues, 1.0, &reporter).unwrap();
+        let clashes = run(&system, &ff, &active_residues, 1.0).unwrap();
 
         assert!(clashes.is_empty());
     }
@@ -233,9 +229,8 @@ mod tests {
         let active_residues = vec![res1_id, res2_id, res3_id].into_iter().collect();
 
         let ff = create_test_forcefield();
-        let reporter = ProgressReporter::default();
 
-        let clashes = run(&system, &ff, &active_residues, 0.01, &reporter).unwrap();
+        let clashes = run(&system, &ff, &active_residues, 0.01).unwrap();
 
         assert_eq!(
             clashes.len(),
