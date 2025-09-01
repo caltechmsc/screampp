@@ -163,3 +163,42 @@ pub struct FileSimulatedAnnealingConfig {
     #[serde(rename = "steps-per-temperature")]
     pub steps_per_temperature: Option<usize>,
 }
+
+#[derive(Deserialize, Debug, Default)]
+#[serde(deny_unknown_fields)]
+pub struct FileOptimizationConfig {
+    #[serde(rename = "max-iterations")]
+    pub max_iterations: Option<usize>,
+    #[serde(rename = "num-solutions")]
+    pub num_solutions: Option<usize>,
+    #[serde(rename = "include-input-conformation")]
+    pub include_input_conformation: Option<bool>,
+    pub convergence: Option<FileConvergenceConfig>,
+    #[serde(rename = "simulated-annealing")]
+    pub simulated_annealing: Option<FileSimulatedAnnealingConfig>,
+    #[serde(rename = "final-refinement-iterations")]
+    pub final_refinement_iterations: Option<usize>,
+}
+
+#[derive(Deserialize, Debug, Default)]
+#[serde(deny_unknown_fields)]
+pub struct FileConfig {
+    pub forcefield: Option<FileForcefieldConfig>,
+    pub sampling: Option<FileSamplingConfig>,
+    pub optimization: Option<FileOptimizationConfig>,
+    #[serde(rename = "residues-to-optimize")]
+    pub residues_to_optimize: Option<FileResidueSelection>,
+    #[serde(rename = "topology-registry-path")]
+    pub topology_registry: Option<String>,
+}
+
+impl FileConfig {
+    pub fn from_file(path: &Path) -> Result<Self> {
+        debug!("Loading configuration from file: {:?}", path);
+        let content = std::fs::read_to_string(path)?;
+        toml::from_str(&content).map_err(|e| CliError::FileParsing {
+            path: path.to_path_buf(),
+            source: e.into(),
+        })
+    }
+}
