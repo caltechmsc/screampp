@@ -265,3 +265,240 @@ fn apply_set_values(mut config: FileConfig, set_values: &[String]) -> Result<Fil
     }
     Ok(config)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cli::{IncludeInputConformation, PlaceArgs};
+    use std::fs;
+    use tempfile::tempdir;
+
+    fn setup_mock_data_tree() -> (DataManager, PathBuf) {
+        let tmp = tempdir().expect("create temp dir");
+        let base = tmp.path().to_path_buf();
+
+        let data_root = base.join("data");
+        fs::create_dir_all(data_root.join("rotamers/amber")).unwrap();
+        fs::create_dir_all(data_root.join("rotamers/charmm")).unwrap();
+        fs::create_dir_all(data_root.join("forcefield")).unwrap();
+        fs::create_dir_all(data_root.join("delta")).unwrap();
+        fs::create_dir_all(data_root.join("topology")).unwrap();
+
+        fs::write(data_root.join("rotamers/amber/rmsd-1.0.toml"), b"").unwrap();
+        fs::write(data_root.join("rotamers/charmm/rmsd-1.0.toml"), b"").unwrap();
+        fs::write(data_root.join("forcefield/dreiding-lj-12-6-0.4.toml"), b"").unwrap();
+        fs::write(data_root.join("forcefield/dreiding-exp-6-0.4.toml"), b"").unwrap();
+        fs::write(data_root.join("delta/delta-rmsd-1.0.csv"), b"header\n").unwrap();
+        fs::write(data_root.join("topology/registry.toml"), b"# registry").unwrap();
+
+        let manager = DataManager::with_custom_path(base.clone());
+        (manager, base)
+    }
+
+    fn base_place_args() -> PlaceArgs {
+        PlaceArgs {
+            input: PathBuf::from("in.bgf"),
+            output: PathBuf::from("out.bgf"),
+            config: None,
+            s_factor: None,
+            forcefield_path: None,
+            delta_params_path: None,
+            topology_registry: None,
+            rotamer_library: None,
+            num_solutions: None,
+            max_iterations: None,
+            include_input_conformation: IncludeInputConformation {
+                with_input_conformation: false,
+                no_input_conformation: false,
+            },
+            no_refinement: false,
+            no_annealing: false,
+            set_values: vec![],
+        }
+    }
+
+    #[test]
+    fn build_config_with_cli_paths_and_defaults_for_rest() {
+        let (manager, base) = setup_mock_data_tree();
+        let mut args = base_place_args();
+        args.forcefield_path = Some("lj-12-6@0.4".to_string());
+        args.rotamer_library = Some("amber@rmsd-1.0".to_string());
+
+        let app = build_config(&args, &manager).expect("build ok");
+        let cfg = app.core_config;
+
+        assert_eq!(
+            cfg.forcefield.forcefield_path,
+            base.join("data/forcefield/dreiding-lj-12-6-0.4.toml")
+        );
+        assert_eq!(
+            cfg.sampling.rotamer_library_path,
+            base.join("data/rotamers/amber/rmsd-1.0.toml")
+        );
+        assert_eq!(
+            cfg.forcefield.delta_params_path,
+            base.join("data/delta/delta-rmsd-1.0.csv")
+        );
+        assert_eq!(
+            cfg.topology_registry_path,
+            base.join("data/topology/registry.toml")
+        );
+
+        assert_eq!(cfg.forcefield.s_factor, DefaultsConfig::default().s_factor);
+        assert_eq!(
+            cfg.optimization.num_solutions,
+            DefaultsConfig::default().num_solutions
+        );
+        assert_eq!(
+            cfg.optimization.max_iterations,
+            DefaultsConfig::default().max_iterations
+        );
+        assert_eq!(
+            cfg.optimization.final_refinement_iterations,
+            DefaultsConfig::default().final_refinement_iterations
+        );
+        assert_eq!(
+            cfg.optimization.include_input_conformation,
+            DefaultsConfig::default().include_input_conformation
+        );
+        assert_eq!(
+            cfg.optimization.convergence.energy_threshold,
+            DefaultsConfig::default().energy_threshold
+        );
+        assert_eq!(
+            cfg.optimization.convergence.patience_iterations,
+            DefaultsConfig::default().patience_iterations
+        );
+        assert_eq!(cfg.residues_to_optimize, core_config::ResidueSelection::All);
+    }
+
+    #[test]
+    fn build_config_reads_file_and_merges() {
+        let (manager, base) = setup_mock_data_tree();
+        let dir = tempdir().unwrap();
+        let cfg_path = dir.path().join("config.toml");
+        let toml = r#"
+            topology-registry-path = "default"
+
+            [forcefield]
+            s-factor = 0.9
+            forcefield-path = "lj-12-6@0.4"
+            delta-params-path = "rmsd-1.0"
+
+            [sampling]
+            rotamer-library = "amber@rmsd-1.0"
+
+            [optimization]
+            max-iterations = 150
+            num-solutions = 5
+            include-input-conformation = false
+            final-refinement-iterations = 3
+
+            [optimization.convergence]
+            energy-threshold = 0.005
+            patience-iterations = 7
+
+            [residues-to-optimize]
+            type = "all"
+            "#;
+        fs::write(&cfg_path, toml).unwrap();
+
+        let mut args = base_place_args();
+        args.config = Some(cfg_path);
+
+        let app = build_config(&args, &manager).expect("build ok");
+        let cfg = app.core_config;
+
+        assert_eq!(cfg.forcefield.s_factor, 0.9);
+        assert_eq!(cfg.optimization.max_iterations, 150);
+        assert_eq!(cfg.optimization.num_solutions, 5);
+        assert!(!cfg.optimization.include_input_conformation);
+        assert_eq!(cfg.optimization.final_refinement_iterations, 3);
+        assert_eq!(cfg.optimization.convergence.energy_threshold, 0.005);
+        assert_eq!(cfg.optimization.convergence.patience_iterations, 7);
+        assert_eq!(cfg.residues_to_optimize, core_config::ResidueSelection::All);
+
+        assert_eq!(
+            cfg.forcefield.forcefield_path,
+            base.join("data/forcefield/dreiding-lj-12-6-0.4.toml")
+        );
+    }
+
+    #[test]
+    fn cli_overrides_file_values() {
+        let (manager, base) = setup_mock_data_tree();
+        let dir = tempdir().unwrap();
+        let cfg_path = dir.path().join("config.toml");
+        let toml = r#"
+            topology-registry-path = "default"
+            [forcefield]
+            s-factor = 0.7
+            forcefield-path = "lj-12-6@0.4"
+            delta-params-path = "rmsd-1.0"
+            [sampling]
+            rotamer-library = "amber@rmsd-1.0"
+            [optimization]
+            num-solutions = 2
+            "#;
+        fs::write(&cfg_path, toml).unwrap();
+
+        let mut args = base_place_args();
+        args.config = Some(cfg_path);
+        args.s_factor = Some(0.95);
+        args.num_solutions = Some(10);
+        args.include_input_conformation = IncludeInputConformation {
+            with_input_conformation: true,
+            no_input_conformation: false,
+        };
+
+        let app = build_config(&args, &manager).expect("build ok");
+        let cfg = app.core_config;
+
+        assert_eq!(cfg.forcefield.s_factor, 0.95);
+        assert_eq!(cfg.optimization.num_solutions, 10);
+        assert!(cfg.optimization.include_input_conformation);
+        assert_eq!(
+            cfg.forcefield.forcefield_path,
+            base.join("data/forcefield/dreiding-lj-12-6-0.4.toml")
+        );
+    }
+
+    #[test]
+    fn set_values_override() {
+        let (manager, _) = setup_mock_data_tree();
+        let mut args = base_place_args();
+        args.forcefield_path = Some("lj-12-6@0.4".to_string());
+        args.rotamer_library = Some("amber@rmsd-1.0".to_string());
+        args.set_values = vec![
+            "optimization.num-solutions=20".to_string(),
+            "optimization.convergence.energy-threshold=0.004".to_string(),
+            "optimization.convergence.patience-iterations=6".to_string(),
+            "optimization.max-iterations=123".to_string(),
+            "forcefield.s-factor=1.25".to_string(),
+        ];
+
+        let app = build_config(&args, &manager).expect("build ok");
+        let cfg = app.core_config;
+
+        assert_eq!(cfg.optimization.num_solutions, 20);
+        assert_eq!(cfg.optimization.max_iterations, 123);
+        assert!((cfg.optimization.convergence.energy_threshold - 0.004).abs() < 1e-12);
+        assert_eq!(cfg.optimization.convergence.patience_iterations, 6);
+        assert!((cfg.forcefield.s_factor - 1.25).abs() < 1e-12);
+    }
+
+    #[test]
+    fn annealing_and_refinement_cli_flags() {
+        let (manager, _) = setup_mock_data_tree();
+        let mut args = base_place_args();
+        args.forcefield_path = Some("lj-12-6@0.4".to_string());
+        args.rotamer_library = Some("amber@rmsd-1.0".to_string());
+        args.no_annealing = true;
+        args.no_refinement = true;
+
+        let app = build_config(&args, &manager).expect("build ok");
+        let cfg = app.core_config;
+        assert!(cfg.optimization.simulated_annealing.is_none());
+        assert_eq!(cfg.optimization.final_refinement_iterations, 0);
+    }
+}
