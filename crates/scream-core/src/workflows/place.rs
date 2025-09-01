@@ -285,12 +285,7 @@ fn resolve_clashes(
             system_view.context.forcefield,
             active_residues,
             CLASH_THRESHOLD_KCAL_MOL,
-            system_view.context.reporter,
         )?;
-
-        context.reporter.report(Progress::StatusUpdate {
-            text: format!("Pass {}/{}, Clashes: {}", iter + 1, max_iter, clashes.len()),
-        });
 
         if clashes.is_empty() {
             info!(
@@ -307,6 +302,22 @@ fn resolve_clashes(
         let worst_clash = &clashes[0];
         let (res_a_id, res_b_id) = (worst_clash.residue_a, worst_clash.residue_b);
 
+        let res_a = context.system.residue(res_a_id).unwrap();
+        let res_b = context.system.residue(res_b_id).unwrap();
+        let status_text = format!(
+            "Pass {}/{}, Clashes: {}, Optimizing: {} {} - {} {}",
+            iter + 1,
+            max_iter,
+            clashes.len(),
+            res_a.name,
+            res_a.residue_number,
+            res_b.name,
+            res_b.residue_number,
+        );
+        context
+            .reporter
+            .report(Progress::StatusUpdate { text: status_text });
+
         let doublet_result = tasks::doublet_optimization::run(
             res_a_id,
             res_b_id,
@@ -314,6 +325,7 @@ fn resolve_clashes(
             el_cache,
             system_view.context,
             active_residues,
+            context.reporter,
         )?;
 
         let delta_a = energy_grid.calculate_delta_for_move(
