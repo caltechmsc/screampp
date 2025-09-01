@@ -1,5 +1,5 @@
 use crate::cli::PlaceArgs;
-use crate::config::PartialPlacementConfig;
+use crate::config;
 use crate::data::DataManager;
 use crate::error::{CliError, Result};
 use crate::ui::{CliProgressHandler, UiEvent};
@@ -17,14 +17,13 @@ pub async fn run(args: PlaceArgs, ui_sender: mpsc::Sender<UiEvent>) -> Result<()
     info!("Initializing data manager...");
     let data_manager = DataManager::new()?;
 
-    let partial_config = PartialPlacementConfig::from_file(&args.config)?;
-    info!("Merging configuration from file and CLI arguments...");
-    let final_config = partial_config.merge_with_cli(&args, &data_manager)?;
+    info!("Building and validating configuration...");
+    let app_config = config::builder::build_config(&args, &data_manager)?;
 
-    info!("Loading input structure from {:?}", &args.input);
+    info!("Loading input structure from {:?}", &app_config.input_path);
     let (system, metadata) =
-        BgfFile::read_from_path(&args.input).map_err(|e| CliError::FileParsing {
-            path: args.input.clone(),
+        BgfFile::read_from_path(&app_config.input_path).map_err(|e| CliError::FileParsing {
+            path: app_config.input_path.clone(),
             source: e.into(),
         })?;
 
@@ -34,7 +33,8 @@ pub async fn run(args: PlaceArgs, ui_sender: mpsc::Sender<UiEvent>) -> Result<()
     println!("\n🚀 Starting side-chain placement...");
     info!("Invoking the core placement workflow...");
 
-    let workflow_task = task::spawn_blocking(move || place::run(&system, &final_config, &reporter));
+    let workflow_task =
+        task::spawn_blocking(move || place::run(&system, &app_config.core_config, &reporter));
 
     let placement_result = match workflow_task.await {
         Ok(Ok(result)) => Ok(result),
@@ -53,7 +53,7 @@ pub async fn run(args: PlaceArgs, ui_sender: mpsc::Sender<UiEvent>) -> Result<()
         }
     }?;
 
-    process_and_display_results(placement_result, &args.output, &metadata).await?;
+    process_and_display_results(placement_result, &app_config.output_template, &metadata).await?;
 
     Ok(())
 }
@@ -202,19 +202,20 @@ fn generate_output_path(
     .any(|p| template_str.contains(p));
 
     if contains_placeholder {
-        let path_str = template_str
-            .replace("{n}", &index.to_string())
-            .replace("{i}", &index.to_string())
-            .replace("{N}", &total.to_string())
-            .replace("{total}", &total.to_string())
-            .replace("{total_energy}", &format!("{:.2}", solution.total_energy))
-            .replace("{energy}", &format!("{:.2}", solution.total_energy))
-            .replace(
-                "{opt_score}",
-                &format!("{:.2}", solution.optimization_score),
-            )
-            .replace("{score}", &format!("{:.2}", solution.optimization_score));
-        PathBuf::from(path_str)
+        PathBuf::from(
+            template_str
+                .replace("{n}", &index.to_string())
+                .replace("{i}", &index.to_string())
+                .replace("{N}", &total.to_string())
+                .replace("{total}", &total.to_string())
+                .replace("{total_energy}", &format!("{:.2}", solution.total_energy))
+                .replace("{energy}", &format!("{:.2}", solution.total_energy))
+                .replace(
+                    "{opt_score}",
+                    &format!("{:.2}", solution.optimization_score),
+                )
+                .replace("{score}", &format!("{:.2}", solution.optimization_score)),
+        )
     } else {
         generate_indexed_path(base_path_template, index)
     }
