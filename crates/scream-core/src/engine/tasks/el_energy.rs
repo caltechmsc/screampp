@@ -3,12 +3,14 @@ use crate::core::forcefield::term::EnergyTerm;
 use crate::core::models::atom::AtomRole;
 use crate::core::models::ids::{AtomId, ResidueId};
 use crate::core::models::residue::ResidueType;
+use crate::core::models::system::MolecularSystem;
 use crate::engine::cache::ELCache;
 use crate::engine::config::DesignSpecExt;
 use crate::engine::context::{OptimizationContext, ProvidesResidueSelections};
 use crate::engine::error::EngineError;
 use crate::engine::placement::place_rotamer_on_system;
 use crate::engine::progress::Progress;
+use crate::engine::utils::query::precompute_environment_atoms;
 use std::collections::HashMap;
 use tracing::{info, instrument, warn};
 
@@ -41,7 +43,8 @@ where
         return Ok(ELCache::new());
     }
 
-    let environment_atom_ids = precompute_environment_atoms(context)?;
+    let active_residue_ids = context.resolve_all_active_residues()?;
+    let environment_atom_ids = precompute_environment_atoms(context.system, &active_residue_ids);
 
     context.reporter.report(Progress::TaskStart {
         total: work_list.len() as u64,
@@ -54,7 +57,19 @@ where
     let iterator = work_list.par_iter();
 
     let results: Vec<WorkResult> = iterator
-        .map(|unit| compute_energies_for_unit(unit, &environment_atom_ids, context))
+        .map(|unit| {
+            #[cfg(feature = "parallel")]
+            {
+                let mut local_system = context.system.clone();
+                compute_energies_for_unit(unit, &environment_atom_ids, context, &mut local_system)
+            }
+
+            #[cfg(not(feature = "parallel"))]
+            {
+                let mut temp_system = context.system.clone();
+                compute_energies_for_unit(unit, &environment_atom_ids, context, &mut temp_system)
+            }
+        })
         .collect();
 
     context.reporter.report(Progress::TaskFinish);
@@ -89,7 +104,7 @@ where
     }
 
     let scorer = Scorer::new(context.system, context.forcefield);
-    let environment_atom_ids = precompute_environment_atoms(context)?;
+    let environment_atom_ids = precompute_environment_atoms(context.system, &active_residues);
 
     let mut total_el_energy = EnergyTerm::default();
 
@@ -183,38 +198,12 @@ where
     Ok(work_list)
 }
 
-fn precompute_environment_atoms<C>(
-    context: &OptimizationContext<C>,
-) -> Result<Vec<AtomId>, EngineError>
-where
-    C: ProvidesResidueSelections + Sync,
-{
-    let active_residue_ids = context.resolve_all_active_residues()?;
-
-    let environment_atom_ids = context
-        .system
-        .atoms_iter()
-        .filter_map(|(atom_id, atom)| match atom.role {
-            AtomRole::Ligand | AtomRole::Water | AtomRole::Other => Some(atom_id),
-            AtomRole::Backbone => Some(atom_id),
-            AtomRole::Sidechain => {
-                if !active_residue_ids.contains(&atom.residue_id) {
-                    Some(atom_id)
-                } else {
-                    None
-                }
-            }
-        })
-        .collect();
-
-    Ok(environment_atom_ids)
-}
-
 #[instrument(skip_all, fields(residue_id = ?unit.residue_id, residue_type = %unit.residue_type))]
 fn compute_energies_for_unit<C>(
     unit: &WorkUnit,
     environment_atom_ids: &[AtomId],
     context: &OptimizationContext<C>,
+    system: &mut MolecularSystem,
 ) -> WorkResult
 where
     C: ProvidesResidueSelections + Sync,
@@ -237,17 +226,15 @@ where
     let mut energy_map = HashMap::with_capacity(rotamers.len());
 
     for (rotamer_idx, rotamer) in rotamers.iter().enumerate() {
-        let mut temp_system = context.system.clone();
+        place_rotamer_on_system(system, unit.residue_id, rotamer, topology)?;
 
-        place_rotamer_on_system(&mut temp_system, unit.residue_id, rotamer, topology)?;
-
-        let query_atoms: Vec<AtomId> = temp_system
+        let query_atoms: Vec<AtomId> = system
             .residue(unit.residue_id)
             .unwrap()
             .atoms()
             .iter()
             .filter_map(|&atom_id| {
-                temp_system.atom(atom_id).and_then(|atom| {
+                system.atom(atom_id).and_then(|atom| {
                     if atom.role == AtomRole::Sidechain {
                         Some(atom_id)
                     } else {
@@ -262,7 +249,7 @@ where
             continue;
         }
 
-        let scorer = Scorer::new(&temp_system, context.forcefield);
+        let scorer = Scorer::new(system, context.forcefield);
 
         let interaction_energy = scorer.score_interaction(&query_atoms, environment_atom_ids)?;
         let internal_energy = scorer.score_group_internal(&query_atoms)?;
@@ -529,42 +516,6 @@ mod tests {
     }
 
     #[test]
-    fn precompute_environment_atoms_works_correctly() {
-        let setup = TestSetup::new();
-        let config = setup.create_placement_config(ResidueSelection::All);
-        let reporter = setup.reporter();
-        let context = OptimizationContext::new(
-            &setup.system,
-            &setup.forcefield,
-            &reporter,
-            &config,
-            &setup.rotamer_library,
-            &setup.topology_registry,
-        );
-
-        let env_atoms = precompute_environment_atoms(&context).unwrap();
-
-        let env_atom_info: HashSet<(isize, String)> = env_atoms
-            .iter()
-            .map(|id| {
-                let atom = context.system.atom(*id).unwrap();
-                let res = context.system.residue(atom.residue_id).unwrap();
-                (res.residue_number, atom.name.clone())
-            })
-            .collect();
-
-        assert!(!env_atom_info.contains(&(1, "CB".to_string())));
-        assert!(!env_atom_info.contains(&(2, "CB".to_string())));
-
-        assert!(env_atom_info.contains(&(1, "N".to_string())));
-        assert!(env_atom_info.contains(&(1, "CA".to_string())));
-        assert!(env_atom_info.contains(&(1, "C".to_string())));
-        assert!(env_atom_info.contains(&(2, "N".to_string())));
-        assert!(env_atom_info.contains(&(2, "CA".to_string())));
-        assert!(env_atom_info.contains(&(1, "O".to_string())));
-    }
-
-    #[test]
     fn run_calculates_correct_el_energy_value() {
         let setup = TestSetup::new();
         let ala_id = setup.get_residue_id('A', 1);
@@ -617,7 +568,7 @@ mod tests {
             })
             .collect();
 
-        let env_atom_ids = precompute_environment_atoms(&context).unwrap();
+        let env_atom_ids = precompute_environment_atoms(&temp_system, &HashSet::from([ala_id]));
 
         let scorer = Scorer::new(&temp_system, &setup.forcefield);
 
@@ -772,7 +723,8 @@ mod tests {
         );
 
         let scorer = Scorer::new(&setup.system, &setup.forcefield);
-        let env_atoms = precompute_environment_atoms(&context).unwrap();
+        let active_residue_ids = context.resolve_all_active_residues().unwrap();
+        let env_atoms = precompute_environment_atoms(&setup.system, &active_residue_ids);
         let mut expected_energy = EnergyTerm::default();
         let active_residue_ids = context.resolve_all_active_residues().unwrap();
         for res_id in active_residue_ids {

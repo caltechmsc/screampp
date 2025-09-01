@@ -1,12 +1,12 @@
 use crate::core::forcefield::params::Forcefield;
 use crate::core::forcefield::scoring::Scorer;
 use crate::core::forcefield::term::EnergyTerm;
-use crate::core::models::atom::AtomRole;
-use crate::core::models::ids::{AtomId, ResidueId};
+use crate::core::models::ids::ResidueId;
 use crate::core::models::system::MolecularSystem;
 use crate::engine::error::EngineError;
+use crate::engine::utils::query::collect_active_sidechain_atoms;
 use itertools::Itertools;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -96,32 +96,6 @@ pub fn run(
     };
 
     Ok(total_interaction_energy)
-}
-
-fn collect_active_sidechain_atoms(
-    system: &MolecularSystem,
-    active_residues: &HashSet<ResidueId>,
-) -> HashMap<ResidueId, Vec<AtomId>> {
-    let mut map = HashMap::with_capacity(active_residues.len());
-    for &residue_id in active_residues {
-        if let Some(residue) = system.residue(residue_id) {
-            let sidechain_ids: Vec<AtomId> = residue
-                .atoms()
-                .iter()
-                .filter_map(|&atom_id| {
-                    system.atom(atom_id).and_then(|atom| {
-                        if atom.role == AtomRole::Sidechain {
-                            Some(atom_id)
-                        } else {
-                            None
-                        }
-                    })
-                })
-                .collect();
-            map.insert(residue_id, sidechain_ids);
-        }
-    }
-    map
 }
 
 #[cfg(test)]
@@ -423,40 +397,5 @@ mod tests {
         let total_energy = run(&setup.system, &setup.forcefield, &active_residues).unwrap();
 
         assert!((total_energy.total() - expected_energy.total()).abs() < TOLERANCE);
-    }
-
-    #[test]
-    fn collect_active_sidechain_atoms_works_correctly() {
-        let setup = setup();
-        let active_residues: HashSet<_> = [setup.ala_id, setup.gly_id, setup.leu_id]
-            .iter()
-            .cloned()
-            .collect();
-
-        let map = collect_active_sidechain_atoms(&setup.system, &active_residues);
-
-        assert_eq!(map.len(), 3);
-        assert_eq!(
-            map.get(&setup.ala_id).unwrap().len(),
-            1,
-            "ALA should have 1 sidechain atom"
-        );
-        assert!(
-            map.get(&setup.gly_id).unwrap().is_empty(),
-            "GLY should have 0 sidechain atoms"
-        );
-        assert_eq!(
-            map.get(&setup.leu_id).unwrap().len(),
-            2,
-            "LEU should have 2 sidechain atoms"
-        );
-
-        let ala_cb_id = setup
-            .system
-            .residue(setup.ala_id)
-            .unwrap()
-            .get_first_atom_id_by_name("CB")
-            .unwrap();
-        assert_eq!(map.get(&setup.ala_id).unwrap()[0], ala_cb_id);
     }
 }
