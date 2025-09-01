@@ -117,3 +117,36 @@ pub fn build_config(args: &PlaceArgs, data_manager: &DataManager) -> Result<AppC
         core_config,
     })
 }
+
+fn resolve_path_or_logical_name(
+    cli_arg: Option<&str>,
+    file_arg: Option<&str>,
+    default_arg: &str,
+    kind: &str,
+    data_manager: &DataManager,
+) -> Result<PathBuf> {
+    let name_or_path = cli_arg.or(file_arg).unwrap_or(default_arg);
+
+    let path = Path::new(name_or_path);
+    if path.is_absolute() || name_or_path.contains(['/', '\\']) {
+        if !path.exists() {
+            return Err(CliError::Io(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                format!("Provided path does not exist: {}", name_or_path),
+            )));
+        }
+        return Ok(path.to_path_buf());
+    }
+
+    let parsed_name = parser::parse_logical_name(name_or_path, kind)
+        .map_err(|e| CliError::Argument(e.to_string()))?;
+
+    let resolved = data_manager.resolve_logical_name(&parsed_name)?;
+    if !resolved.exists() {
+        return Err(CliError::Data(format!(
+            "Resolved data file does not exist: {:?}.\nHint: Run 'scream data download' to fetch the default data files.",
+            resolved
+        )));
+    }
+    Ok(resolved)
+}
