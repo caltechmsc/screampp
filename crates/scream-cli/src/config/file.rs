@@ -134,3 +134,10 @@ impl From<FileEnergyWeights> for screampp::core::forcefield::params::EnergyWeigh
         screampp::core::forcefield::params::EnergyWeights { rules }
     }
 }
+
+#[derive(Deserialize, Debug, Default)]
+#[serde(deny_unknown_fields)]
+pub struct FileSamplingConfig {
+    #[serde(rename = "rotamer-library")]
+    pub rotamer_library: Option<String>,
+}
