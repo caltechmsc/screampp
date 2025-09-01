@@ -194,3 +194,74 @@ fn merge_simulated_annealing(
     }
     Ok(None)
 }
+
+fn apply_set_values(mut config: FileConfig, set_values: &[String]) -> Result<FileConfig> {
+    if set_values.is_empty() {
+        return Ok(config);
+    }
+    for kv_pair in set_values {
+        let parts: Vec<_> = kv_pair.splitn(2, '=').collect();
+        if parts.len() != 2 {
+            return Err(CliError::Config(format!(
+                "Invalid --set format: '{}'. Expected KEY=VALUE.",
+                kv_pair
+            )));
+        }
+        let key = parts[0];
+        let value_str = parts[1];
+
+        match key {
+            "forcefield.s-factor" => {
+                config
+                    .forcefield
+                    .get_or_insert_with(Default::default)
+                    .s_factor = Some(value_str.parse().map_err(|_| {
+                    CliError::Config(format!("Invalid float value for {}: {}", key, value_str))
+                })?);
+            }
+            "optimization.max-iterations" => {
+                config
+                    .optimization
+                    .get_or_insert_with(Default::default)
+                    .max_iterations = Some(value_str.parse().map_err(|_| {
+                    CliError::Config(format!("Invalid integer value for {}: {}", key, value_str))
+                })?);
+            }
+            "optimization.num-solutions" => {
+                config
+                    .optimization
+                    .get_or_insert_with(Default::default)
+                    .num_solutions = Some(value_str.parse().map_err(|_| {
+                    CliError::Config(format!("Invalid integer value for {}: {}", key, value_str))
+                })?);
+            }
+            "optimization.convergence.energy-threshold" => {
+                config
+                    .optimization
+                    .get_or_insert_with(Default::default)
+                    .convergence
+                    .get_or_insert_with(Default::default)
+                    .energy_threshold = Some(value_str.parse().map_err(|_| {
+                    CliError::Config(format!("Invalid float value for {}: {}", key, value_str))
+                })?);
+            }
+            "optimization.convergence.patience-iterations" => {
+                config
+                    .optimization
+                    .get_or_insert_with(Default::default)
+                    .convergence
+                    .get_or_insert_with(Default::default)
+                    .patience_iterations = Some(value_str.parse().map_err(|_| {
+                    CliError::Config(format!("Invalid integer value for {}: {}", key, value_str))
+                })?);
+            }
+            _ => {
+                return Err(CliError::Config(format!(
+                    "Unsupported configuration key for --set: '{}'",
+                    key
+                )));
+            }
+        }
+    }
+    Ok(config)
+}
