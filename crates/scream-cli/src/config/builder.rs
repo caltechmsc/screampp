@@ -150,3 +150,47 @@ fn resolve_path_or_logical_name(
     }
     Ok(resolved)
 }
+
+fn merge_convergence(
+    file_val: Option<FileConvergenceConfig>,
+    defaults: &DefaultsConfig,
+) -> Result<core_config::ConvergenceConfig> {
+    let file_val = file_val.unwrap_or_default();
+    Ok(core_config::ConvergenceConfig {
+        energy_threshold: file_val
+            .energy_threshold
+            .unwrap_or(defaults.energy_threshold),
+        patience_iterations: file_val
+            .patience_iterations
+            .unwrap_or(defaults.patience_iterations),
+    })
+}
+
+fn merge_simulated_annealing(
+    cli_no_annealing: bool,
+    file_val: Option<FileSimulatedAnnealingConfig>,
+) -> Result<Option<core_config::SimulatedAnnealingConfig>> {
+    if cli_no_annealing {
+        return Ok(None);
+    }
+    if let Some(p) = file_val {
+        let config = core_config::SimulatedAnnealingConfig {
+            initial_temperature: p.initial_temperature.ok_or_else(|| {
+                CliError::Config("`simulated-annealing` requires `initial-temperature`".to_string())
+            })?,
+            final_temperature: p.final_temperature.ok_or_else(|| {
+                CliError::Config("`simulated-annealing` requires `final-temperature`".to_string())
+            })?,
+            cooling_rate: p.cooling_rate.ok_or_else(|| {
+                CliError::Config("`simulated-annealing` requires `cooling-rate`".to_string())
+            })?,
+            steps_per_temperature: p.steps_per_temperature.ok_or_else(|| {
+                CliError::Config(
+                    "`simulated-annealing` requires `steps-per-temperature`".to_string(),
+                )
+            })?,
+        };
+        return Ok(Some(config));
+    }
+    Ok(None)
+}
