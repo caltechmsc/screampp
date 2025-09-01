@@ -273,7 +273,7 @@ mod tests {
     use std::fs;
     use tempfile::tempdir;
 
-    fn setup_mock_data_tree() -> (DataManager, PathBuf) {
+    fn setup_mock_data_tree() -> (DataManager, PathBuf, tempfile::TempDir) {
         let tmp = tempdir().expect("create temp dir");
         let base = tmp.path().to_path_buf();
 
@@ -292,7 +292,7 @@ mod tests {
         fs::write(data_root.join("topology/registry.toml"), b"# registry").unwrap();
 
         let manager = DataManager::with_custom_path(base.clone());
-        (manager, base)
+        (manager, base, tmp)
     }
 
     fn base_place_args() -> PlaceArgs {
@@ -319,7 +319,7 @@ mod tests {
 
     #[test]
     fn build_config_with_cli_paths_and_defaults_for_rest() {
-        let (manager, base) = setup_mock_data_tree();
+        let (manager, base, _tmp) = setup_mock_data_tree();
         let mut args = base_place_args();
         args.forcefield_path = Some("lj-12-6@0.4".to_string());
         args.rotamer_library = Some("amber@rmsd-1.0".to_string());
@@ -374,7 +374,7 @@ mod tests {
 
     #[test]
     fn build_config_reads_file_and_merges() {
-        let (manager, base) = setup_mock_data_tree();
+        let (manager, base, _tmp) = setup_mock_data_tree();
         let dir = tempdir().unwrap();
         let cfg_path = dir.path().join("config.toml");
         let toml = r#"
@@ -426,7 +426,7 @@ mod tests {
 
     #[test]
     fn cli_overrides_file_values() {
-        let (manager, base) = setup_mock_data_tree();
+        let (manager, base, _tmp) = setup_mock_data_tree();
         let dir = tempdir().unwrap();
         let cfg_path = dir.path().join("config.toml");
         let toml = r#"
@@ -465,7 +465,7 @@ mod tests {
 
     #[test]
     fn set_values_override() {
-        let (manager, _) = setup_mock_data_tree();
+        let (manager, _, _tmp) = setup_mock_data_tree();
         let mut args = base_place_args();
         args.forcefield_path = Some("lj-12-6@0.4".to_string());
         args.rotamer_library = Some("amber@rmsd-1.0".to_string());
@@ -489,7 +489,7 @@ mod tests {
 
     #[test]
     fn annealing_and_refinement_cli_flags() {
-        let (manager, _) = setup_mock_data_tree();
+        let (manager, _, _tmp) = setup_mock_data_tree();
         let mut args = base_place_args();
         args.forcefield_path = Some("lj-12-6@0.4".to_string());
         args.rotamer_library = Some("amber@rmsd-1.0".to_string());
