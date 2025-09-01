@@ -150,3 +150,16 @@ pub struct FileConvergenceConfig {
     #[serde(rename = "patience-iterations")]
     pub patience_iterations: Option<usize>,
 }
+
+#[derive(Deserialize, Debug, Default, Clone)]
+#[serde(deny_unknown_fields)]
+pub struct FileSimulatedAnnealingConfig {
+    #[serde(rename = "initial-temperature")]
+    pub initial_temperature: Option<f64>,
+    #[serde(rename = "final-temperature")]
+    pub final_temperature: Option<f64>,
+    #[serde(rename = "cooling-rate")]
+    pub cooling_rate: Option<f64>,
+    #[serde(rename = "steps-per-temperature")]
+    pub steps_per_temperature: Option<usize>,
+}
