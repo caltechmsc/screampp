@@ -673,7 +673,8 @@ mod tests {
                     res_id,
                     setup.system.residue(res_id).unwrap().residue_type.unwrap(),
                     0,
-                ).unwrap();
+                )
+                .unwrap();
             assert_eq!(el_energy.unwrap(), expected_el);
         }
 
