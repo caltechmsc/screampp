@@ -4,7 +4,6 @@ use crate::core::forcefield::term::EnergyTerm;
 use crate::core::models::ids::ResidueId;
 use crate::core::models::system::MolecularSystem;
 use crate::engine::error::EngineError;
-use crate::engine::progress::{Progress, ProgressReporter};
 use itertools::Itertools;
 use std::cmp::Ordering;
 use std::collections::HashSet;
@@ -40,7 +39,6 @@ pub fn run(
     forcefield: &Forcefield,
     active_residues: &HashSet<ResidueId>,
     clash_threshold_kcal_mol: f64,
-    reporter: &ProgressReporter,
 ) -> Result<Vec<ClashPair>, EngineError> {
     info!(
         threshold = clash_threshold_kcal_mol,
@@ -53,10 +51,6 @@ pub fn run(
         return Ok(Vec::new());
     }
 
-    reporter.report(Progress::TaskStart {
-        total: residue_pairs.len() as u64,
-    });
-
     let scorer = Scorer::new(system, forcefield);
 
     #[cfg(not(feature = "parallel"))]
@@ -67,7 +61,6 @@ pub fn run(
 
     let clashes: Result<Vec<ClashPair>, EngineError> = iterator
         .filter_map(|pair| {
-            reporter.report(Progress::TaskIncrement { amount: 1 });
             let res_id_a = *pair[0];
             let res_id_b = *pair[1];
 
@@ -87,8 +80,6 @@ pub fn run(
         .collect();
 
     let mut clashes = clashes?;
-
-    reporter.report(Progress::TaskFinish);
 
     clashes.sort_unstable();
 
