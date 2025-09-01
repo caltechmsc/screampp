@@ -61,3 +61,16 @@ impl From<FileResidueSelection> for core_config::ResidueSelection {
         }
     }
 }
+
+#[derive(Deserialize, Debug, Default)]
+#[serde(deny_unknown_fields)]
+pub struct FileForcefieldConfig {
+    #[serde(rename = "forcefield-path")]
+    pub forcefield_path: Option<String>,
+    #[serde(rename = "delta-params-path")]
+    pub delta_params_path: Option<String>,
+    #[serde(rename = "s-factor")]
+    pub s_factor: Option<f64>,
+    #[serde(default, rename = "energy-weights")]
+    pub energy_weights: FileEnergyWeights,
+}
