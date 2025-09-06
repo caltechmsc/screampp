@@ -11,20 +11,42 @@ use std::collections::{BTreeSet, HashMap};
 use std::io::{self, BufRead, Write};
 use thiserror::Error;
 
+/// Metadata associated with a BGF file, containing header information and other non-structural data.
+///
+/// This struct holds information that is not part of the molecular system's topology but is
+/// preserved from the original BGF file, such as header lines that may contain remarks or
+/// force field information.
 #[derive(Debug, Default, Clone)]
 pub struct BgfMetadata {
-    pub header_lines: Vec<String>, // Lines before the ATOM records
+    /// Lines from the BGF file header that appear before the atom records.
+    ///
+    /// These typically include remarks, force field specifications, and other metadata
+    /// that should be preserved when writing the file back out.
+    pub header_lines: Vec<String>,
 }
 
+/// A handler for reading and writing BGF (Biograf) molecular structure files.
+///
+/// This struct implements the `MolecularFile` trait to provide support for the BGF format,
+/// which is commonly used in molecular simulations and modeling software. It handles
+/// parsing atom records, connectivity information, and metadata while building a
+/// `MolecularSystem` representation.
 #[derive(Debug, Default)]
 pub struct BgfFile;
 
+/// Errors that can occur during BGF file processing.
+///
+/// This enum covers I/O errors, parsing failures, and logical inconsistencies
+/// encountered when reading or writing BGF files.
 #[derive(Debug, Error)]
 pub enum BgfError {
+    /// An I/O error occurred during file operations.
     #[error("I/O error: {0}")]
     Io(#[from] io::Error),
+    /// A parsing error occurred on a specific line.
     #[error("Parse error on line {line_num}: {message}")]
     Parse { line_num: usize, message: String },
+    /// A logical error occurred during file processing.
     #[error("Logic error during file processing: {0}")]
     Logic(String),
 }
@@ -33,6 +55,26 @@ impl MolecularFile for BgfFile {
     type Metadata = BgfMetadata;
     type Error = BgfError;
 
+    /// Reads a molecular system from a BGF file.
+    ///
+    /// This method parses the BGF file format, extracting atoms, residues, chains,
+    /// and connectivity information to construct a `MolecularSystem`. It handles
+    /// both ATOM and HETATM records, automatically categorizing chains based on
+    /// residue types, and processes CONECT records to establish bonds.
+    ///
+    /// # Arguments
+    ///
+    /// * `reader` - A buffered reader providing the BGF file content.
+    ///
+    /// # Return
+    ///
+    /// Returns a tuple containing the constructed `MolecularSystem` and any
+    /// associated metadata extracted from the file.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `BgfError` if parsing fails due to malformed input, I/O issues,
+    /// or logical inconsistencies in the file structure.
     fn read_from(
         reader: &mut impl BufRead,
     ) -> Result<(MolecularSystem, Self::Metadata), Self::Error> {
@@ -154,6 +196,26 @@ impl MolecularFile for BgfFile {
         Ok((system, metadata))
     }
 
+    /// Writes a molecular system to a BGF file with associated metadata.
+    ///
+    /// This method serializes the `MolecularSystem` into the BGF format, including
+    /// atom records, connectivity information, and any provided metadata. Atoms are
+    /// sorted into canonical order for consistent output, and serial numbers are
+    /// reassigned sequentially.
+    ///
+    /// # Arguments
+    ///
+    /// * `system` - The molecular system to write.
+    /// * `metadata` - Metadata to include in the output file.
+    /// * `writer` - A writer to output the BGF file content.
+    ///
+    /// # Return
+    ///
+    /// Returns `Ok(())` on successful writing.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `BgfError` if writing fails due to I/O issues.
     fn write_to(
         system: &MolecularSystem,
         metadata: &Self::Metadata,
@@ -233,6 +295,24 @@ impl MolecularFile for BgfFile {
         Ok(())
     }
 
+    /// Writes a molecular system to a BGF file with default metadata.
+    ///
+    /// This is a convenience method that writes the system using minimal default
+    /// metadata, including standard BGF header lines for BIOGRF version and
+    /// force field information.
+    ///
+    /// # Arguments
+    ///
+    /// * `system` - The molecular system to write.
+    /// * `writer` - A writer to output the BGF file content.
+    ///
+    /// # Return
+    ///
+    /// Returns `Ok(())` on successful writing.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `BgfError` if writing fails due to I/O issues.
     fn write_system_to(
         system: &MolecularSystem,
         writer: &mut impl Write,
@@ -245,19 +325,24 @@ impl MolecularFile for BgfFile {
     }
 }
 
-#[derive(Debug, Clone)]
-struct ParsedAtomInfo {
-    record_type: String,
-    serial: usize,
-    name: String,
-    res_name: String,
-    chain_char: char,
-    res_seq: isize,
-    pos: Point3<f64>,
-    charge: f64,
-    ff_type: String,
-}
-
+/// Parses a single ATOM or HETATM line from a BGF file.
+///
+/// This function extracts all relevant information from a BGF atom record,
+/// including position, charge, and force field type, returning a structured
+/// representation suitable for building the molecular system.
+///
+/// # Arguments
+///
+/// * `line` - The BGF atom record line to parse.
+///
+/// # Return
+///
+/// Returns a `ParsedAtomInfo` struct containing the parsed data.
+///
+/// # Errors
+///
+/// Returns a `String` describing the parsing error if the line is malformed
+/// or contains invalid data.
 fn parse_atom_line(line: &str) -> Result<ParsedAtomInfo, String> {
     let get_slice = |start, end| {
         line.get(start..end)
@@ -304,6 +389,24 @@ fn parse_atom_line(line: &str) -> Result<ParsedAtomInfo, String> {
     })
 }
 
+/// Parses a CONECT line from a BGF file to extract connectivity information.
+///
+/// This function processes CONECT records, which specify bonds between atoms
+/// using their serial numbers, returning the base atom and its connected atoms.
+///
+/// # Arguments
+///
+/// * `line` - The BGF CONECT record line to parse.
+///
+/// # Return
+///
+/// Returns a tuple containing the base atom serial and a vector of connected
+/// atom serials.
+///
+/// # Errors
+///
+/// Returns a `String` describing the parsing error if the line is malformed
+/// or contains invalid serial numbers.
 fn parse_conect_line(line: &str) -> Result<(usize, Vec<usize>), String> {
     let mut parts = line.split_whitespace().skip(1);
     let base_serial_str = parts.next().ok_or("Missing base serial in CONECT")?;
@@ -319,6 +422,25 @@ fn parse_conect_line(line: &str) -> Result<(usize, Vec<usize>), String> {
     Ok((base_serial, connected_serials))
 }
 
+/// Formats an atom record line for output in BGF format.
+///
+/// This function constructs a properly formatted BGF atom line from the
+/// provided atom, residue, and chain information, including connectivity
+/// and charge data.
+///
+/// # Arguments
+///
+/// * `record_type` - The record type ("ATOM" or "HETATM").
+/// * `serial` - The sequential serial number for the atom.
+/// * `atom` - The atom to format.
+/// * `residue` - The residue containing the atom.
+/// * `chain` - The chain containing the residue.
+/// * `atoms_connected` - Number of atoms connected to this atom.
+/// * `lone_pairs` - Number of lone pairs (currently placeholder).
+///
+/// # Return
+///
+/// Returns the formatted BGF atom line as a string.
 fn format_atom_line(
     record_type: &str,
     serial: usize,
@@ -344,6 +466,32 @@ fn format_atom_line(
         lone_pairs,
         atom.partial_charge
     )
+}
+
+/// Internal structure holding parsed information from a BGF atom line.
+///
+/// This struct is used internally during parsing to temporarily store
+/// atom information before creating the actual `Atom` instance.
+#[derive(Debug, Clone)]
+struct ParsedAtomInfo {
+    /// The record type ("ATOM" or "HETATM").
+    record_type: String,
+    /// The original serial number from the file.
+    serial: usize,
+    /// The atom name.
+    name: String,
+    /// The residue name.
+    res_name: String,
+    /// The chain identifier character.
+    chain_char: char,
+    /// The residue sequence number.
+    res_seq: isize,
+    /// The 3D position of the atom.
+    pos: Point3<f64>,
+    /// The partial charge of the atom.
+    charge: f64,
+    /// The force field type of the atom.
+    ff_type: String,
 }
 
 #[cfg(test)]
