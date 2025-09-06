@@ -6,6 +6,6 @@ pub mod error;
 pub(crate) mod placement;
 pub mod progress;
 pub mod state;
-pub mod tasks;
+pub(crate) mod tasks;
 pub(crate) mod transaction;
 pub mod utils;
