@@ -3,27 +3,60 @@ use std::fmt;
 use std::str::FromStr;
 use thiserror::Error;
 
+/// Represents the order of a chemical bond between atoms.
+///
+/// This enum defines the possible bond orders used in molecular topology,
+/// supporting common bond types in organic and biological molecules.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u8)]
 pub enum BondOrder {
+    /// Single bond.
     Single,
+    /// Double bond.
     Double,
+    /// Triple bond.
     Triple,
+    /// Aromatic bond.
     Aromatic,
 }
 
 impl Default for BondOrder {
+    /// Returns the default bond order.
+    ///
+    /// The default is `BondOrder::Single`, representing the most common bond type.
     fn default() -> Self {
         BondOrder::Single
     }
 }
 
+/// Error type for failed parsing of bond order strings.
+///
+/// This error is returned when attempting to parse an invalid
+/// string into a `BondOrder`.
 #[derive(Debug, Error)]
 #[error("Invalid bond order string")]
 pub struct ParseBondOrderError;
 
 impl FromStr for BondOrder {
     type Err = ParseBondOrderError;
+
+    /// Parses a string into a `BondOrder`.
+    ///
+    /// This implementation supports multiple string representations
+    /// for each bond order, including numeric and textual forms.
+    /// It is case-insensitive.
+    ///
+    /// # Arguments
+    ///
+    /// * `s` - The string to parse.
+    ///
+    /// # Return
+    ///
+    /// Returns the parsed `BondOrder` if successful.
+    ///
+    /// # Errors
+    ///
+    /// Returns `ParseBondOrderError` if the string is invalid.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
             "1" | "s" | "single" => Ok(Self::Single),
@@ -36,6 +69,10 @@ impl FromStr for BondOrder {
 }
 
 impl fmt::Display for BondOrder {
+    /// Formats the `BondOrder` as a human-readable string.
+    ///
+    /// This implementation allows `BondOrder` to be displayed as a string
+    /// using capitalized names for each variant.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
@@ -50,15 +87,33 @@ impl fmt::Display for BondOrder {
     }
 }
 
+/// Represents a chemical bond between two atoms.
+///
+/// This struct defines a bond with its constituent atoms and order,
+/// providing the basic topology information for molecular structures.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Bond {
-    pub atom1_id: AtomId, // ID of the first atom
-    pub atom2_id: AtomId, // ID of the second atom
-    pub order: BondOrder, // Bond order (e.g., single, double, etc.)
+    /// ID of the first atom in the bond.
+    pub atom1_id: AtomId,
+    /// ID of the second atom in the bond.
+    pub atom2_id: AtomId,
+    /// The order of the bond.
+    pub order: BondOrder,
 }
 
 impl Bond {
+    /// Creates a new `Bond` between two atoms.
+    ///
+    /// This constructor normalizes the atom IDs to ensure `atom1_id <= atom2_id`,
+    /// providing a canonical representation for bond equality and hashing.
+    ///
+    /// # Arguments
+    ///
+    /// * `atom1_id` - ID of one atom in the bond.
+    /// * `atom2_id` - ID of the other atom in the bond.
+    /// * `order` - The order of the bond.
     pub fn new(atom1_id: AtomId, atom2_id: AtomId, order: BondOrder) -> Self {
+        // Normalize atom IDs to ensure consistent ordering for equality and hashing.
         let (atom1_id, atom2_id) = if atom1_id <= atom2_id {
             (atom1_id, atom2_id)
         } else {
@@ -71,6 +126,18 @@ impl Bond {
         }
     }
 
+    /// Checks if the bond contains a specific atom.
+    ///
+    /// This method determines whether the given atom ID is one of the
+    /// two atoms participating in the bond.
+    ///
+    /// # Arguments
+    ///
+    /// * `atom_id` - The atom ID to check.
+    ///
+    /// # Return
+    ///
+    /// Returns `true` if the atom is part of the bond, otherwise `false`.
     pub fn contains(&self, atom_id: AtomId) -> bool {
         self.atom1_id == atom_id || self.atom2_id == atom_id
     }
