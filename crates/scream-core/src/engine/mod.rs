@@ -8,4 +8,4 @@ pub mod progress;
 pub mod state;
 pub(crate) mod tasks;
 pub(crate) mod transaction;
-pub mod utils;
+pub(crate) mod utils;
