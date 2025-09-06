@@ -43,7 +43,7 @@ impl Ord for Solution {
 }
 
 #[derive(Debug, Clone)]
-pub struct OptimizationState {
+pub(crate) struct OptimizationState {
     pub working_state: SolutionState,
     pub current_optimization_score: f64,
     solutions: BinaryHeap<Solution>,
