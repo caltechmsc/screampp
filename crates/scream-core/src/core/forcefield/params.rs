@@ -4,56 +4,114 @@ use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use thiserror::Error;
 
+/// Represents the parameters for van der Waals interactions.
+///
+/// This enum supports two common potential functions used in molecular mechanics:
+/// Buckingham exponential-6 and Lennard-Jones 12-6 potentials.
 #[derive(Debug, Deserialize, Clone, PartialEq)]
 #[serde(untagged)]
 pub enum VdwParam {
+    /// Parameters for the Buckingham exponential-6 potential.
+    ///
+    /// This potential combines exponential repulsion with r⁻⁶ dispersion attraction,
+    /// providing better long-range behavior than Lennard-Jones for some systems.
     Buckingham {
+        /// The van der Waals radius parameter.
         radius: f64,
+        /// The potential well depth.
         well_depth: f64,
+        /// The exponential decay parameter.
         scale: f64,
     },
+    /// Parameters for the Lennard-Jones 12-6 potential.
+    ///
+    /// This is the classic potential with r⁻¹² repulsion and r⁻⁶ attraction terms.
     LennardJones {
+        /// The van der Waals radius parameter.
         radius: f64,
+        /// The potential well depth.
         well_depth: f64,
     },
 }
 
+/// Parameters for hydrogen bond interactions.
+///
+/// Hydrogen bonds are directional interactions between donor and acceptor atoms,
+/// modeled with a specialized potential function.
 #[derive(Debug, Deserialize, Clone, PartialEq)]
 pub struct HBondParam {
+    /// The equilibrium distance for the hydrogen bond.
     pub equilibrium_distance: f64,
+    /// The depth of the hydrogen bond potential well.
     pub well_depth: f64,
 }
 
+/// Global parameters that apply to the entire force field.
+///
+/// These parameters define the overall behavior of the force field calculations,
+/// such as the dielectric constant and the type of potential function used.
 #[derive(Debug, Deserialize, Clone, PartialEq, Default)]
 pub struct GlobalParams {
+    /// The dielectric constant used in electrostatic calculations.
     pub dielectric_constant: f64,
+    /// The name of the potential function to use for van der Waals interactions.
     pub potential_function: String,
 }
 
+/// Parameters for non-bonded interactions in the force field.
+///
+/// This struct contains all the parameters needed for calculating van der Waals,
+/// electrostatic, and hydrogen bond interactions between atoms.
 #[derive(Debug, Deserialize, Clone, PartialEq)]
 pub struct NonBondedParams {
+    /// Global parameters for the force field.
     pub globals: GlobalParams,
+    /// Van der Waals parameters for each atom type.
     pub vdw: HashMap<String, VdwParam>,
+    /// Hydrogen bond parameters for donor-acceptor pairs.
     pub hbond: HashMap<String, HBondParam>,
 
+    /// Set of atom types that can act as hydrogen bond donors.
+    ///
+    /// This field is populated automatically during loading based on the
+    /// hydrogen bond parameter keys.
     #[serde(skip)]
     pub hbond_donors: HashSet<String>,
+    /// Set of atom types that can act as hydrogen bond acceptors.
+    ///
+    /// This field is populated automatically during loading based on the
+    /// hydrogen bond parameter keys.
     #[serde(skip)]
     pub hbond_acceptors: HashSet<String>,
 }
 
+/// Parameters for atom-specific corrections (deltas) in the force field.
+///
+/// These parameters allow for fine-tuning of atomic properties on a per-residue,
+/// per-atom basis, typically used for improving agreement with experimental data.
 #[derive(Debug, Deserialize, Clone)]
 pub struct DeltaParam {
+    /// The residue type for which this delta applies.
     pub residue_type: String,
+    /// The atom name within the residue.
     pub atom_name: String,
+    /// The mean correction value.
     pub mu: f64,
+    /// The standard deviation of the correction.
     pub sigma: f64,
 }
 
+/// Weights for different energy components in force field calculations.
+///
+/// This struct allows scaling the contribution of different interaction types
+/// to the total energy, which can be useful for optimization or analysis.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct EnergyComponentWeights {
+    /// Weight for van der Waals interactions.
     pub vdw: f64,
+    /// Weight for electrostatic interactions.
     pub coulomb: f64,
+    /// Weight for hydrogen bond interactions.
     pub hbond: f64,
 }
 
@@ -67,41 +125,95 @@ impl Default for EnergyComponentWeights {
     }
 }
 
+/// A rule for applying energy weights based on atom roles.
+///
+/// This struct defines how energy components should be weighted when calculating
+/// interactions between atoms of specific roles (e.g., backbone vs. sidechain).
 #[derive(Debug, Clone, PartialEq)]
 pub struct WeightRule {
+    /// The pair of atom roles to which this rule applies.
     pub groups: [AtomRole; 2],
+    /// The weights to apply for interactions between these roles.
     pub weights: EnergyComponentWeights,
 }
 
+/// Configuration for energy component weights across different atom role pairs.
+///
+/// This struct contains a collection of rules that define how energy components
+/// should be weighted based on the roles of the interacting atoms.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct EnergyWeights {
+    /// The list of weighting rules to apply.
     pub rules: Vec<WeightRule>,
 }
 
+/// The complete force field parameter set.
+///
+/// This struct encapsulates all parameters needed for molecular mechanics
+/// calculations, including non-bonded interactions, atomic corrections,
+/// and energy weighting rules.
 #[derive(Debug, Clone)]
 pub struct Forcefield {
+    /// Parameters for non-bonded interactions.
     pub non_bonded: NonBondedParams,
+    /// Atomic correction parameters indexed by (residue_type, atom_name).
     pub deltas: HashMap<(String, String), DeltaParam>,
+    /// Energy weights for different atom role pairs.
     pub weight_map: HashMap<(AtomRole, AtomRole), EnergyComponentWeights>,
 }
 
+/// Errors that can occur during parameter loading.
+///
+/// This enum covers various failure modes when loading force field parameters
+/// from configuration files.
 #[derive(Debug, Error)]
 pub enum ParamLoadError {
+    /// An I/O error occurred while reading a file.
     #[error("File I/O error for '{path}': {source}")]
     Io {
+        /// The path to the file that caused the error.
         path: String,
+        /// The underlying I/O error.
         source: std::io::Error,
     },
+    /// A CSV parsing error occurred.
     #[error("CSV parsing error for '{path}': {source}")]
-    Csv { path: String, source: csv::Error },
+    Csv {
+        /// The path to the CSV file that caused the error.
+        path: String,
+        /// The underlying CSV parsing error.
+        source: csv::Error,
+    },
+    /// A TOML parsing error occurred.
     #[error("TOML parsing error for '{path}': {source}")]
     Toml {
+        /// The path to the TOML file that caused the error.
         path: String,
+        /// The underlying TOML parsing error.
         source: toml::de::Error,
     },
 }
 
 impl Forcefield {
+    /// Loads a complete force field from configuration files.
+    ///
+    /// This method reads non-bonded parameters from a TOML file, delta parameters
+    /// from a CSV file, and applies energy weighting rules to create a complete
+    /// force field parameter set.
+    ///
+    /// # Arguments
+    ///
+    /// * `non_bonded_path` - Path to the TOML file containing non-bonded parameters.
+    /// * `delta_path` - Path to the CSV file containing delta parameters.
+    /// * `energy_weights_config` - Configuration for energy component weights.
+    ///
+    /// # Return
+    ///
+    /// Returns a `Forcefield` instance with all parameters loaded.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `ParamLoadError` if any of the files cannot be read or parsed.
     pub fn load(
         non_bonded_path: &Path,
         delta_path: &Path,
@@ -114,6 +226,7 @@ impl Forcefield {
         for rule in &energy_weights_config.rules {
             let a = rule.groups[0];
             let b = rule.groups[1];
+            // Ensure consistent ordering for the map key
             let key = if a <= b { (a, b) } else { (b, a) };
             weight_map.insert(key, rule.weights);
         }
@@ -125,6 +238,22 @@ impl Forcefield {
         })
     }
 
+    /// Loads non-bonded parameters from a TOML file.
+    ///
+    /// This method parses the TOML file and automatically populates the
+    /// hydrogen bond donor and acceptor sets based on the parameter keys.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Path to the TOML file containing non-bonded parameters.
+    ///
+    /// # Return
+    ///
+    /// Returns the parsed `NonBondedParams`.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `ParamLoadError` if the file cannot be read or parsed.
     fn load_non_bonded(path: &Path) -> Result<NonBondedParams, ParamLoadError> {
         let content = std::fs::read_to_string(path).map_err(|e| ParamLoadError::Io {
             path: path.to_string_lossy().to_string(),
@@ -154,6 +283,22 @@ impl Forcefield {
         Ok(params)
     }
 
+    /// Loads delta parameters from a CSV file.
+    ///
+    /// This method reads atomic correction parameters from a CSV file and
+    /// indexes them by residue type and atom name for efficient lookup.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Path to the CSV file containing delta parameters.
+    ///
+    /// # Return
+    ///
+    /// Returns a map of delta parameters indexed by (residue_type, atom_name).
+    ///
+    /// # Errors
+    ///
+    /// Returns a `ParamLoadError` if the file cannot be read or parsed.
     fn load_delta_csv(
         path: &Path,
     ) -> Result<HashMap<(String, String), DeltaParam>, ParamLoadError> {
