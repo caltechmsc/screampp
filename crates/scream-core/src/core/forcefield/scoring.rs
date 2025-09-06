@@ -6,29 +6,87 @@ use crate::core::models::system::MolecularSystem;
 use std::collections::HashSet;
 use thiserror::Error;
 
+/// Represents errors that can occur during energy scoring operations.
+///
+/// This enum encapsulates various error conditions that may arise when computing
+/// interaction energies between atoms or groups of atoms, providing detailed
+/// context for debugging and error handling in molecular simulations.
 #[derive(Debug, Error)]
 pub enum ScoringError {
+    /// Indicates that an atom with the specified ID was not found in the molecular system.
+    ///
+    /// This error occurs when attempting to access an atom that does not exist in the system,
+    /// which may happen due to invalid atom IDs or system state inconsistencies.
     #[error("Atom with ID {0:?} not found in the system")]
     AtomNotFound(AtomId),
+    /// Indicates that the donor atom for a hydrogen bond could not be identified.
+    ///
+    /// This error occurs when processing hydrogen bonding interactions where the donor
+    /// atom (typically the heavy atom attached to the hydrogen) cannot be found or
+    /// is not properly bonded to the hydrogen atom.
     #[error("Could not find donor for hydrogen atom {0:?}")]
     DonorNotFound(AtomId),
+    /// Indicates that an underlying energy calculation failed.
+    ///
+    /// This error wraps errors from the energy calculation module, providing context
+    /// about which specific energy computation encountered a problem.
     #[error("Energy calculation failed: {source}")]
     EnergyCalculation {
+        /// The underlying energy calculation error.
         #[from]
         source: EnergyCalculationError,
     },
 }
 
+/// Provides methods for calculating interaction energies between atoms and groups of atoms.
+///
+/// This struct serves as the main interface for computing molecular mechanics energies,
+/// including van der Waals, electrostatic, and hydrogen bonding interactions. It uses
+/// the molecular system topology and force field parameters to evaluate energies
+/// between specified groups of atoms, with proper handling of bonded exclusions.
 pub struct Scorer<'a> {
+    /// Reference to the molecular system containing the atoms and their topology.
     system: &'a MolecularSystem,
+    /// Reference to the force field containing energy parameters and weights.
     forcefield: &'a Forcefield,
 }
 
 impl<'a> Scorer<'a> {
+    /// Creates a new scorer with the given molecular system and force field.
+    ///
+    /// # Arguments
+    ///
+    /// * `system` - The molecular system to score interactions in
+    /// * `forcefield` - The force field containing energy parameters
+    ///
+    /// # Return
+    ///
+    /// Returns a new `Scorer` instance configured with the provided references.
     pub fn new(system: &'a MolecularSystem, forcefield: &'a Forcefield) -> Self {
         Self { system, forcefield }
     }
 
+    /// Calculates the total interaction energy between two groups of atoms.
+    ///
+    /// This method computes the complete energy contribution from van der Waals,
+    /// electrostatic, and hydrogen bonding interactions between the specified
+    /// query and environment atom groups. It automatically handles exclusions
+    /// for bonded atoms and applies appropriate energy weighting.
+    ///
+    /// # Arguments
+    ///
+    /// * `query_atom_ids` - IDs of atoms in the first group
+    /// * `environment_atom_ids` - IDs of atoms in the second group
+    ///
+    /// # Return
+    ///
+    /// Returns an `EnergyTerm` containing the total energy breakdown, or an error
+    /// if any atoms are not found or energy calculations fail.
+    ///
+    /// # Errors
+    ///
+    /// Returns `ScoringError::AtomNotFound` if any specified atom ID is invalid.
+    /// Returns `ScoringError::EnergyCalculation` if underlying energy computations fail.
     pub fn score_interaction(
         &self,
         query_atom_ids: &[AtomId],
@@ -39,12 +97,52 @@ impl<'a> Scorer<'a> {
         Ok(energy)
     }
 
+    /// Calculates the internal energy of a group of atoms.
+    ///
+    /// This method computes the energy contributions within a single group of atoms,
+    /// excluding interactions between directly bonded atoms (1-2 and 1-3 interactions)
+    /// while including 1-4 and higher-order interactions. This is typically used for
+    /// evaluating the internal energy of molecular fragments or residues.
+    ///
+    /// # Arguments
+    ///
+    /// * `group_ids` - IDs of atoms in the group to evaluate
+    ///
+    /// # Return
+    ///
+    /// Returns an `EnergyTerm` containing the internal energy breakdown, or an error
+    /// if any atoms are not found or energy calculations fail.
+    ///
+    /// # Errors
+    ///
+    /// Returns `ScoringError::AtomNotFound` if any specified atom ID is invalid.
+    /// Returns `ScoringError::EnergyCalculation` if underlying energy computations fail.
     pub fn score_group_internal(&self, group_ids: &[AtomId]) -> Result<EnergyTerm, ScoringError> {
         let mut energy = self.score_vdw_coulomb(group_ids, group_ids)?;
         energy += self.score_hbond(group_ids, group_ids)?;
         Ok(energy)
     }
 
+    /// Calculates van der Waals and Coulomb energies between two atom groups.
+    ///
+    /// This method computes non-bonded interactions between atoms in two groups,
+    /// automatically excluding 1-2 and 1-3 bonded interactions to prevent double-counting
+    /// of bonded terms. For internal energy calculations (same group), it also avoids
+    /// computing symmetric pairs twice.
+    ///
+    /// # Arguments
+    ///
+    /// * `group1_ids` - IDs of atoms in the first group
+    /// * `group2_ids` - IDs of atoms in the second group
+    ///
+    /// # Return
+    ///
+    /// Returns an `EnergyTerm` containing VDW and Coulomb energy contributions.
+    ///
+    /// # Errors
+    ///
+    /// Returns `ScoringError::AtomNotFound` if any atom ID is invalid.
+    /// Returns `ScoringError::EnergyCalculation` if energy computations fail.
     fn score_vdw_coulomb(
         &self,
         group1_ids: &[AtomId],
@@ -106,6 +204,26 @@ impl<'a> Scorer<'a> {
         Ok(energy)
     }
 
+    /// Calculates hydrogen bonding energies between two atom groups.
+    ///
+    /// This method identifies potential hydrogen bond donor-acceptor pairs between
+    /// the two groups and computes their interaction energies. For internal calculations
+    /// (same group), it avoids double-counting by computing each pair only once.
+    ///
+    /// # Arguments
+    ///
+    /// * `group1_ids` - IDs of atoms in the first group
+    /// * `group2_ids` - IDs of atoms in the second group
+    ///
+    /// # Return
+    ///
+    /// Returns an `EnergyTerm` containing hydrogen bonding energy contributions.
+    ///
+    /// # Errors
+    ///
+    /// Returns `ScoringError::AtomNotFound` if any atom ID is invalid.
+    /// Returns `ScoringError::DonorNotFound` if a hydrogen donor cannot be identified.
+    /// Returns `ScoringError::EnergyCalculation` if energy computations fail.
     fn score_hbond(
         &self,
         group1_ids: &[AtomId],
@@ -123,6 +241,27 @@ impl<'a> Scorer<'a> {
         Ok(energy)
     }
 
+    /// Calculates hydrogen bonding energies in one direction between donor and acceptor groups.
+    ///
+    /// This method iterates through potential hydrogen donors in the first group and
+    /// potential acceptors in the second group, computing hydrogen bond energies
+    /// for valid donor-hydrogen-acceptor triplets. It ensures that donors and acceptors
+    /// are properly classified and that appropriate force field parameters exist.
+    ///
+    /// # Arguments
+    ///
+    /// * `donor_group_ids` - IDs of atoms that may act as hydrogen donors
+    /// * `acceptor_group_ids` - IDs of atoms that may act as hydrogen acceptors
+    ///
+    /// # Return
+    ///
+    /// Returns an `EnergyTerm` containing hydrogen bonding energy contributions.
+    ///
+    /// # Errors
+    ///
+    /// Returns `ScoringError::AtomNotFound` if any atom ID is invalid.
+    /// Returns `ScoringError::DonorNotFound` if a hydrogen donor cannot be identified.
+    /// Returns `ScoringError::EnergyCalculation` if energy computations fail.
     fn calculate_hbond_one_way(
         &self,
         donor_group_ids: &[AtomId],
