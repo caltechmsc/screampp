@@ -1,3 +1,3 @@
 pub mod bgf;
-pub mod sorting;
+pub(crate) mod sorting;
 pub mod traits;
