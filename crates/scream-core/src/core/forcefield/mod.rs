@@ -17,9 +17,7 @@
 //!
 //! ## Key Components
 //!
-//! - [`energy`] - Core energy calculation functions for different potential types
 //! - [`params`] - Force field parameter structures and configuration
-//! - [`potentials`] - Potential energy function implementations
 //! - [`scoring`] - High-level energy scoring interface for molecular systems
 //! - [`term`] - Energy term aggregation and reporting
 //! - [`parameterization`] - Automatic assignment of force field parameters to atoms
