@@ -29,7 +29,7 @@
 //! properly handling bonded exclusions and energy weighting.
 //!
 //! ```ignore
-//! use scream_core::core::forcefield::scoring::Scorer;
+//! use screampp::core::forcefield::scoring::Scorer;
 //!
 //! let scorer = Scorer::new(&system, &forcefield);
 //! let energy = scorer.score_interaction(query_atoms, environment_atoms)?;
