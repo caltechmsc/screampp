@@ -1,4 +1,4 @@
-pub mod cache;
+pub(crate) mod cache;
 pub mod config;
 pub mod context;
 pub mod energy_grid;
