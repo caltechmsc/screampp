@@ -7,5 +7,5 @@ pub mod placement;
 pub mod progress;
 pub mod state;
 pub mod tasks;
-pub mod transaction;
+pub(crate) mod transaction;
 pub mod utils;
