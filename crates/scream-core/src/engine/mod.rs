@@ -1,6 +1,6 @@
 pub(crate) mod cache;
 pub mod config;
-pub mod context;
+pub(crate) mod context;
 pub mod energy_grid;
 pub mod error;
 pub mod placement;
