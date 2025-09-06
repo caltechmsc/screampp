@@ -1,4 +1,4 @@
-pub mod energy;
+pub(crate) mod energy;
 pub mod parameterization;
 pub mod params;
 pub(crate) mod potentials;
