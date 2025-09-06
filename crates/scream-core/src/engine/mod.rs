@@ -1,7 +1,7 @@
 pub(crate) mod cache;
 pub mod config;
 pub(crate) mod context;
-pub mod energy_grid;
+pub(crate) mod energy_grid;
 pub mod error;
 pub mod placement;
 pub mod progress;
