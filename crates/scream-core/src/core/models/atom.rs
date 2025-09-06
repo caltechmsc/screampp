@@ -2,51 +2,94 @@ use super::ids::ResidueId;
 use nalgebra::Point3;
 use std::str::FromStr;
 
+/// Represents the role or classification of an atom within a molecular structure.
+///
+/// This enum categorizes atoms based on their functional role in the molecule,
+/// which is useful for algorithms that need to distinguish between different
+/// types of atoms (e.g., backbone vs. sidechain) for computational efficiency
+/// or specific force field applications.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
 pub enum AtomRole {
-    Backbone,  // Backbone atom (e.g., C, N, O)
-    Sidechain, // Sidechain atom (e.g., CH3, OH)
-    Ligand,    // Ligand atom (e.g., in a small molecule)
-    Water,     // Water molecule atom (e.g., H2O)
+    /// Backbone atom, typically part of the main chain in proteins (e.g., C, N, O).
+    Backbone,
+    /// Sidechain atom, part of the side groups attached to the backbone.
+    Sidechain,
+    /// Ligand atom, associated with small molecules or ligands bound to the structure.
+    Ligand,
+    /// Water molecule atom, for solvent molecules in the system.
+    Water,
+    /// Unknown or unclassified atom role.
     #[default]
-    Other, // Unknown or unclassified atom
+    Other,
 }
 
+/// Caches van der Waals parameters for efficient force field computations.
+///
+/// This enum stores pre-computed parameters for different van der Waals potentials,
+/// allowing for faster energy calculations by avoiding repeated lookups.
+/// It supports common potential forms used in molecular simulations.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum CachedVdwParam {
+    /// Lennard-Jones potential parameters.
     LennardJones {
+        /// The van der Waals radius in Angstroms.
         radius: f64,
+        /// The well depth parameter (epsilon) in kcal/mol.
         well_depth: f64,
     },
+    /// Buckingham potential parameters.
     Buckingham {
+        /// The van der Waals radius in Angstroms.
         radius: f64,
+        /// The well depth parameter in kcal/mol.
         well_depth: f64,
+        /// Scaling factor for the exponential term.
         scale: f64,
     },
+    /// No cached parameters available.
     None,
 }
 
+/// Represents an atom in a molecular structure with its properties and parameters.
+///
+/// This struct encapsulates all the necessary information about an atom,
+/// including its identity, physicochemical properties, and SCREAM-specific
+/// parameters used in side-chain placement algorithms. It is designed for
+/// high-performance computations in protein modeling.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Atom {
-    // --- Identity & Topology ---
-    pub name: String,          // Atom name (e.g., "CA", "N", "O")
-    pub residue_id: ResidueId, // ID of the parent residue
+    /// The name of the atom (e.g., "CA", "N", "O").
+    pub name: String,
+    /// The ID of the parent residue this atom belongs to.
+    pub residue_id: ResidueId,
+    /// The role or classification of the atom in the molecular structure.
     pub role: AtomRole,
-
-    // --- Physicochemical Properties ---
-    pub force_field_type: String, // Force field atom type (e.g., "C.3", "N.2")
-    pub partial_charge: f64,      // Partial atomic charge
-    pub position: Point3<f64>,    // 3D coordinates
-
-    // --- SCREAM Algorithm Specific Parameters ---
-    pub delta: f64, // "Delta" value for the flat-bottom potential
-
-    // --- Cached Force Field Parameters for Performance ---
-    pub vdw_param: CachedVdwParam, // Cached van der Waals parameters
-    pub hbond_type_id: i8, // Hydrogen bond type identifier (-1: None, 0: Donor Hydrogen, >0: Acceptor)
+    /// The force field atom type (e.g., "C.3", "N.2").
+    pub force_field_type: String,
+    /// The partial atomic charge in elementary charge units.
+    pub partial_charge: f64,
+    /// The 3D coordinates of the atom in Angstroms.
+    pub position: Point3<f64>,
+    /// The "Delta" value for the flat-bottom potential in SCREAM algorithm.
+    pub delta: f64,
+    /// Cached van der Waals parameters for performance optimization.
+    pub vdw_param: CachedVdwParam,
+    /// Hydrogen bond type identifier (-1: None, 0: Donor Hydrogen, >0: Acceptor).
+    pub hbond_type_id: i8,
 }
 
 impl Atom {
+    /// Creates a new `Atom` with default values for most fields.
+    ///
+    /// This constructor initializes an atom with the provided name, residue ID,
+    /// and position. Other fields are set to their default values and can be
+    /// modified afterward as needed.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name of the atom.
+    /// * `residue_id` - The ID of the residue this atom belongs to.
+    /// * `position` - The 3D coordinates of the atom.
     pub fn new(name: &str, residue_id: ResidueId, position: Point3<f64>) -> Self {
         Self {
             name: name.to_string(),
@@ -65,6 +108,23 @@ impl Atom {
 impl FromStr for AtomRole {
     type Err = ();
 
+    /// Parses a string into an `AtomRole`.
+    ///
+    /// This implementation allows converting string representations of atom roles
+    /// into the corresponding enum variants. It is case-insensitive and supports
+    /// common variations (e.g., "side-chain" or "side_chain").
+    ///
+    /// # Arguments
+    ///
+    /// * `s` - The string to parse into an `AtomRole`.
+    ///
+    /// # Return
+    ///
+    /// Returns the parsed `AtomRole` if successful.
+    ///
+    /// # Errors
+    ///
+    /// Returns `()` if the input string does not match any known atom role.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_ascii_lowercase().as_str() {
             "backbone" => Ok(AtomRole::Backbone),
