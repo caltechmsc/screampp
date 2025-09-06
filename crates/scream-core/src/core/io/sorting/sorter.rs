@@ -4,14 +4,45 @@ use crate::core::models::ids::AtomId;
 use crate::core::models::system::MolecularSystem;
 use std::cmp::Ordering;
 
+/// Represents an atom in the context of canonical sorting for molecular file output.
+///
+/// This struct wraps an atom with additional metadata needed for sorting,
+/// including the chain character and residue number for hierarchical ordering.
+/// It is used internally during the sorting process to maintain references
+/// to the original atom data while providing sorting keys.
 #[derive(Debug)]
 pub struct CanonicalAtom<'a> {
+    /// The unique identifier of the atom in the molecular system.
     pub id: AtomId,
+    /// A reference to the original atom data.
     pub source: &'a Atom,
+    /// The character identifier of the chain containing this atom.
     pub chain_char: char,
+    /// The sequence number of the residue containing this atom.
     pub residue_number: isize,
 }
 
+/// Sorts all atoms in a molecular system into a canonical order for consistent file output.
+///
+/// This function implements a multi-level sorting algorithm that organizes atoms
+/// hierarchically by chain, then by residue sequence, and finally by atom name
+/// according to standard molecular naming conventions. This ensures that molecular
+/// files are written in a predictable, canonical order regardless of the internal
+/// storage order of atoms in the system.
+///
+/// The sorting uses predefined atom name aliases and weights to handle common
+/// naming variations and establish a biologically meaningful atom order within
+/// each residue.
+///
+/// # Arguments
+///
+/// * `system` - The molecular system containing the atoms to sort.
+///
+/// # Return
+///
+/// Returns a vector of `CanonicalAtom` instances sorted in canonical order.
+/// Each element contains the atom ID, a reference to the original atom, and
+/// the sorting metadata (chain character and residue number).
 pub fn sort_system_atoms(system: &MolecularSystem) -> Vec<CanonicalAtom> {
     let mut atoms_to_sort: Vec<CanonicalAtom> = system
         .atoms_iter()
@@ -44,6 +75,23 @@ pub fn sort_system_atoms(system: &MolecularSystem) -> Vec<CanonicalAtom> {
     atoms_to_sort
 }
 
+/// Compares two atom names according to canonical molecular naming conventions.
+///
+/// This function implements the third level of sorting in the canonical atom order.
+/// It handles atom name aliases (e.g., "HCA" as "HA") and uses predefined weights
+/// to establish a biologically meaningful order for atoms within a residue.
+/// Unknown atom names are sorted after known ones, and among unknowns,
+/// alphabetical order is used.
+///
+/// # Arguments
+///
+/// * `name_a` - The first atom name to compare.
+/// * `name_b` - The second atom name to compare.
+///
+/// # Return
+///
+/// Returns an `Ordering` indicating whether `name_a` should come before,
+/// after, or at the same position as `name_b` in canonical order.
 fn compare_atom_names(name_a: &str, name_b: &str) -> Ordering {
     let trimmed_a = name_a.trim();
     let trimmed_b = name_b.trim();
