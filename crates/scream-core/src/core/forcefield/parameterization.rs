@@ -13,40 +13,90 @@ use std::collections::{HashMap, HashSet};
 use thiserror::Error;
 use tracing::warn;
 
+/// Defines the force field type identifier for hydrogen atoms that can participate as donors in hydrogen bonding.
+///
+/// This constant represents the specific force field type used to identify hydrogen atoms
+/// that are capable of forming hydrogen bonds as donors in the Dreiding force field.
 const DREIDING_HBOND_DONOR_HYDROGEN: &str = "H___A";
 
+/// Represents errors that can occur during the parameterization process.
+///
+/// This enum encapsulates various error conditions that may arise when assigning
+/// force field parameters to molecular systems or rotamers, providing detailed
+/// context for debugging and error handling in molecular simulations.
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum ParameterizationError {
+    /// Indicates that a required van der Waals parameter is missing for a specific force field type.
+    ///
+    /// This error occurs when an atom's force field type is defined but no corresponding
+    /// VDW parameters (Lennard-Jones or Buckingham) are found in the force field data.
     #[error(
         "Missing VDW parameter for force field type: '{ff_type}' in atom '{atom_name}' of residue {residue_name}"
     )]
     MissingVdwParams {
+        /// The force field type that is missing parameters.
         ff_type: String,
+        /// The name of the atom with missing parameters.
         atom_name: String,
+        /// The name of the residue containing the atom.
         residue_name: String,
     },
+    /// Indicates that a required anchor atom is missing or misclassified in the residue topology.
+    ///
+    /// This error occurs when the topology definition specifies an anchor atom that is either
+    /// not present in the system or has been incorrectly classified as a sidechain atom.
     #[error(
         "Missing or misclassified anchor atom in residue '{residue_name}': Cannot find required anchor atom '{atom_name}', or it was incorrectly defined as a sidechain atom in the topology."
     )]
     InvalidAnchorAtom {
+        /// The name of the residue with the invalid anchor atom.
         residue_name: String,
+        /// The name of the missing or misclassified anchor atom.
         atom_name: String,
     },
 }
 
+/// Handles the assignment of force field parameters to molecular systems and rotamers.
+///
+/// This struct provides methods to parameterize atoms with their physicochemical properties,
+/// including van der Waals parameters, delta values for flat-bottom potentials, and hydrogen
+/// bonding classifications. It uses topology information to assign atom roles and force field
+/// data to compute interaction parameters.
 pub struct Parameterizer<'a> {
+    /// Reference to the force field containing parameter definitions.
     forcefield: &'a Forcefield,
+    /// Reference to the topology registry for residue definitions.
     topology_registry: &'a TopologyRegistry,
+    /// Scaling factor for the sigma component of delta parameters.
     delta_s_factor: f64,
 }
 
+/// Internal structure for storing calculated atom parameters before applying them.
+///
+/// This struct holds the computed parameters for an atom during the parameterization
+/// process, allowing for a two-phase approach where parameters are calculated first
+/// and then applied to avoid borrowing conflicts.
 struct CalculatedAtomParams {
+    /// The delta value for flat-bottom potential modifications.
     delta: f64,
+    /// The cached van der Waals parameter for the atom.
     vdw_param: CachedVdwParam,
+    /// The hydrogen bonding classification ID (-1: none, 0: donor, 1: acceptor).
     hbond_type_id: i8,
 }
 
 impl<'a> Parameterizer<'a> {
+    /// Creates a new parameterizer with the given force field and topology registry.
+    ///
+    /// # Arguments
+    ///
+    /// * `forcefield` - The force field containing parameter definitions
+    /// * `topology_registry` - The registry of residue topologies
+    /// * `delta_s_factor` - Scaling factor for delta sigma values
+    ///
+    /// # Return
+    ///
+    /// Returns a new `Parameterizer` instance configured with the provided references.
     pub fn new(
         forcefield: &'a Forcefield,
         topology_registry: &'a TopologyRegistry,
@@ -59,6 +109,26 @@ impl<'a> Parameterizer<'a> {
         }
     }
 
+    /// Parameterizes all atoms in a molecular system with force field properties.
+    ///
+    /// This method performs a complete parameterization of the system in two passes:
+    /// first assigning atom roles based on topology, then computing physicochemical
+    /// parameters for each atom. The two-pass approach ensures that mutable borrowing
+    /// conflicts are avoided during parameter calculation.
+    ///
+    /// # Arguments
+    ///
+    /// * `system` - The molecular system to parameterize (modified in place)
+    ///
+    /// # Return
+    ///
+    /// Returns `Ok(())` if parameterization succeeds, or an error if required parameters
+    /// or topology information is missing.
+    ///
+    /// # Errors
+    ///
+    /// Returns `ParameterizationError::InvalidAnchorAtom` if required anchor atoms
+    /// are missing from any residue.
     pub fn parameterize_system(
         &self,
         system: &mut MolecularSystem,
@@ -98,6 +168,27 @@ impl<'a> Parameterizer<'a> {
         Ok(())
     }
 
+    /// Parameterizes a rotamer with force field properties.
+    ///
+    /// This method assigns atom roles based on the provided topology and computes
+    /// physicochemical parameters for each atom in the rotamer. It is designed for
+    /// use with individual rotamer conformations during side-chain placement.
+    ///
+    /// # Arguments
+    ///
+    /// * `rotamer` - The rotamer to parameterize (modified in place)
+    /// * `residue_name` - The name of the residue this rotamer represents
+    /// * `topology` - The topology definition for the residue
+    ///
+    /// # Return
+    ///
+    /// Returns `Ok(())` if parameterization succeeds, or an error if required parameters
+    /// or topology information is missing.
+    ///
+    /// # Errors
+    ///
+    /// Returns `ParameterizationError::InvalidAnchorAtom` if required anchor atoms
+    /// are missing from the rotamer.
     pub fn parameterize_rotamer(
         &self,
         rotamer: &mut Rotamer,
@@ -129,6 +220,27 @@ impl<'a> Parameterizer<'a> {
         Ok(())
     }
 
+    /// Assigns atom roles for a specific residue in the molecular system.
+    ///
+    /// This method determines the role (backbone, sidechain, etc.) of each atom in a residue
+    /// based on the chain type and available topology information. For protein residues,
+    /// it uses topology definitions to classify atoms; for other chain types, it assigns
+    /// roles based on the chain category.
+    ///
+    /// # Arguments
+    ///
+    /// * `residue_id` - The ID of the residue to parameterize
+    /// * `system` - The molecular system containing the residue
+    ///
+    /// # Return
+    ///
+    /// Returns `Ok(())` if role assignment succeeds, or an error if required topology
+    /// information is missing.
+    ///
+    /// # Errors
+    ///
+    /// Returns `ParameterizationError::InvalidAnchorAtom` if required anchor atoms
+    /// are missing from the residue.
     fn assign_atom_roles_for_residue(
         &self,
         residue_id: ResidueId,
@@ -187,6 +299,25 @@ impl<'a> Parameterizer<'a> {
         Ok(())
     }
 
+    /// Calculates the core physicochemical parameters for an atom.
+    ///
+    /// This method computes the delta value (for flat-bottom potentials) and van der Waals
+    /// parameters for a single atom based on its force field type and residue-specific
+    /// delta parameters.
+    ///
+    /// # Arguments
+    ///
+    /// * `atom` - The atom to parameterize
+    /// * `residue_name` - The name of the residue containing the atom
+    ///
+    /// # Return
+    ///
+    /// Returns a tuple of `(delta, vdw_param)` if calculation succeeds.
+    ///
+    /// # Errors
+    ///
+    /// This method does not return errors directly, but the VDW parameter lookup
+    /// may result in `CachedVdwParam::None` if the force field type is not found.
     fn calculate_core_params(
         &self,
         atom: &Atom,
@@ -212,6 +343,22 @@ impl<'a> Parameterizer<'a> {
         Ok((delta, vdw_param))
     }
 
+    /// Determines the hydrogen bonding role for an atom in the molecular system.
+    ///
+    /// This method analyzes the atom's force field type and its bonding environment
+    /// to classify it as a hydrogen bond donor, acceptor, or neither.
+    ///
+    /// # Arguments
+    ///
+    /// * `atom_id` - The ID of the atom to classify
+    /// * `system` - The molecular system containing the atom
+    ///
+    /// # Return
+    ///
+    /// Returns an integer indicating the hydrogen bonding role:
+    /// - `-1`: Not involved in hydrogen bonding
+    /// - `0`: Hydrogen bond donor
+    /// - `1`: Hydrogen bond acceptor
     fn determine_hbond_role_for_system_atom(
         &self,
         atom_id: AtomId,
@@ -231,6 +378,22 @@ impl<'a> Parameterizer<'a> {
         })
     }
 
+    /// Determines the hydrogen bonding role for an atom in a rotamer.
+    ///
+    /// This method analyzes the atom's force field type and its bonding environment
+    /// within the rotamer to classify it as a hydrogen bond donor, acceptor, or neither.
+    ///
+    /// # Arguments
+    ///
+    /// * `atom_index` - The index of the atom in the rotamer's atom list
+    /// * `rotamer` - The rotamer containing the atom
+    ///
+    /// # Return
+    ///
+    /// Returns an integer indicating the hydrogen bonding role:
+    /// - `-1`: Not involved in hydrogen bonding
+    /// - `0`: Hydrogen bond donor
+    /// - `1`: Hydrogen bond acceptor
     fn determine_hbond_role_for_rotamer_atom(&self, atom_index: usize, rotamer: &Rotamer) -> i8 {
         let atom = &rotamer.atoms[atom_index];
         self.determine_hbond_role(&atom.force_field_type, || {
@@ -256,6 +419,24 @@ impl<'a> Parameterizer<'a> {
         })
     }
 
+    /// Determines the hydrogen bonding role based on force field type and neighbor information.
+    ///
+    /// This generic method implements the logic for classifying atoms as hydrogen bond
+    /// donors or acceptors based on their force field types and the types of their bonded
+    /// neighbors. It handles the special case of donor hydrogens that require checking
+    /// the heavy atom they are attached to.
+    ///
+    /// # Arguments
+    ///
+    /// * `ff_type` - The force field type of the atom
+    /// * `get_neighbor_ff_type` - A closure that returns the force field type of the bonded neighbor
+    ///
+    /// # Return
+    ///
+    /// Returns an integer indicating the hydrogen bonding role:
+    /// - `-1`: Not involved in hydrogen bonding
+    /// - `0`: Hydrogen bond donor
+    /// - `1`: Hydrogen bond acceptor
     fn determine_hbond_role<'b, F>(&self, ff_type: &str, get_neighbor_ff_type: F) -> i8
     where
         F: Fn() -> Option<&'b str>,
@@ -285,6 +466,30 @@ impl<'a> Parameterizer<'a> {
     }
 }
 
+/// Assigns atom roles to a collection of atoms based on residue topology.
+///
+/// This function implements a multi-step algorithm to classify atoms as backbone or
+/// sidechain based on topology definitions. It uses a pool-based approach to handle
+/// cases where multiple atoms may have the same name, ensuring proper assignment
+/// by consuming atoms from different ends of the pool for anchor vs sidechain atoms.
+///
+/// # Arguments
+///
+/// * `atoms` - Mutable slice of atoms to assign roles to
+/// * `get_name` - Function to extract the atom name from an atom
+/// * `set_role` - Function to set the role on an atom
+/// * `topology` - The topology definition for the residue
+/// * `residue_name` - The name of the residue for error reporting
+///
+/// # Return
+///
+/// Returns `Ok(())` if role assignment succeeds, or an error if required anchor atoms
+/// are missing.
+///
+/// # Errors
+///
+/// Returns `ParameterizationError::InvalidAnchorAtom` if any required anchor atom
+/// is missing from the atom collection.
 fn assign_protein_roles_from_pool<'a, T>(
     atoms: &'a mut [T],
     get_name: impl for<'b> Fn(&'b T) -> &'b str,
@@ -348,6 +553,11 @@ fn assign_protein_roles_from_pool<'a, T>(
     Ok(())
 }
 
+/// Converts a force field VDW parameter into a cached parameter for efficient computation.
+///
+/// This implementation provides a direct conversion from the configuration-based
+/// `VdwParam` enum to the runtime-optimized `CachedVdwParam` enum used during
+/// energy calculations.
 impl From<super::params::VdwParam> for CachedVdwParam {
     fn from(param: super::params::VdwParam) -> Self {
         match param {
