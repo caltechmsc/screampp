@@ -3,7 +3,7 @@ pub mod config;
 pub(crate) mod context;
 pub(crate) mod energy_grid;
 pub mod error;
-pub mod placement;
+pub(crate) mod placement;
 pub mod progress;
 pub mod state;
 pub mod tasks;
