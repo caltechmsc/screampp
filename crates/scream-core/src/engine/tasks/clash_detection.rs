@@ -12,10 +12,21 @@ use tracing::{info, instrument};
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
+/// Represents a pair of residues that are clashing with each other.
+///
+/// A clash occurs when the interaction energy between two residues exceeds
+/// a specified threshold, indicating unfavorable steric or electrostatic interactions.
+/// This struct stores the residue IDs and the computed energy of the clash.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ClashPair {
+    /// The ID of the first residue in the clashing pair.
     pub residue_a: ResidueId,
+    /// The ID of the second residue in the clashing pair.
     pub residue_b: ResidueId,
+    /// The computed interaction energy between the two residues.
+    ///
+    /// This includes all relevant energy terms (van der Waals, electrostatic, etc.)
+    /// as calculated by the forcefield scorer.
     pub energy: EnergyTerm,
 }
 
@@ -33,6 +44,30 @@ impl Ord for ClashPair {
     }
 }
 
+/// Detects steric and energetic clashes between pairs of active residues.
+///
+/// This function performs pairwise clash detection by computing interaction energies
+/// between all combinations of active residues. Residue pairs with energies exceeding
+/// the specified threshold are identified as clashes. The algorithm uses parallel
+/// processing when available to improve performance on large systems.
+///
+/// The results are sorted by energy in descending order (most severe clashes first),
+/// making it easy to prioritize the most problematic interactions for resolution.
+///
+/// # Arguments
+///
+/// * `system` - The molecular system containing the residues to analyze.
+/// * `forcefield` - The forcefield parameters used for energy calculations.
+/// * `active_residues` - The set of residue IDs to check for clashes.
+/// * `clash_threshold_kcal_mol` - The energy threshold above which interactions are considered clashes.
+///
+/// # Return
+///
+/// Returns a vector of `ClashPair` structs representing detected clashes, sorted by energy descending.
+///
+/// # Errors
+///
+/// Returns `EngineError` if energy calculation fails for any residue pair.
 #[instrument(skip_all, name = "clash_detection_task")]
 pub fn run(
     system: &MolecularSystem,
@@ -45,6 +80,7 @@ pub fn run(
         "Detecting residue clashes."
     );
 
+    // Generate all unique pairs of active residues for comparison
     let residue_pairs: Vec<_> = active_residues.iter().combinations(2).collect();
 
     if residue_pairs.is_empty() {
@@ -53,6 +89,7 @@ pub fn run(
 
     let scorer = Scorer::new(system, forcefield);
 
+    // Use parallel iteration if the "parallel" feature is enabled
     #[cfg(not(feature = "parallel"))]
     let iterator = residue_pairs.iter();
 
@@ -81,6 +118,7 @@ pub fn run(
 
     let mut clashes = clashes?;
 
+    // Sort clashes by energy in descending order (most severe first)
     clashes.sort_unstable();
 
     info!(num_clashes = clashes.len(), "Clash detection complete.");
