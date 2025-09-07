@@ -6,6 +6,26 @@ use crate::engine::context::{OptimizationContext, ProvidesResidueSelections};
 use crate::engine::error::EngineError;
 use tracing::{info, instrument};
 
+/// Calculates the constant energy offset for the fixed parts of the molecular system.
+///
+/// This function computes the internal non-bonded energy of all atoms that are not part of
+/// the active residues being optimized. This energy offset remains constant throughout
+/// the optimization process and is used to normalize total energy calculations by providing
+/// a baseline energy for the fixed structural elements.
+///
+/// # Arguments
+///
+/// * `context` - The optimization context containing the molecular system, forcefield parameters, and configuration for residue selections.
+///
+/// # Return
+///
+/// Returns an `EnergyTerm` representing the total internal energy of all fixed atoms,
+/// including van der Waals, Coulomb, and hydrogen bonding contributions.
+///
+/// # Errors
+///
+/// Returns `EngineError` if there are issues resolving the active residues or if energy
+/// scoring fails due to invalid system state or forcefield parameters.
 #[instrument(skip_all, name = "fixed_energy_task")]
 pub fn run<C>(context: &OptimizationContext<C>) -> Result<EnergyTerm, EngineError>
 where
@@ -37,12 +57,30 @@ where
     Ok(total_offset_energy)
 }
 
+/// Collects all atom IDs that are considered fixed during optimization.
+///
+/// Fixed atoms include those in inactive residues and backbone atoms in active residues.
+/// These atoms do not change during side-chain placement and their internal energy
+/// is precomputed as a constant offset to avoid redundant calculations.
+///
+/// # Arguments
+///
+/// * `context` - The optimization context providing access to the molecular system and residue selection configuration.
+///
+/// # Return
+///
+/// A vector containing the IDs of all fixed atoms in the system.
+///
+/// # Errors
+///
+/// Returns `EngineError` if the active residues cannot be resolved from the context.
 fn collect_fixed_atom_ids<C>(context: &OptimizationContext<C>) -> Result<Vec<AtomId>, EngineError>
 where
     C: ProvidesResidueSelections + Sync,
 {
     let active_residues = context.resolve_all_active_residues()?;
 
+    // Collect atoms that are either in inactive residues or are backbone atoms in active residues.
     let fixed_atom_ids = context
         .system
         .atoms_iter()
