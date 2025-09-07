@@ -4,80 +4,214 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use thiserror::Error;
 
+/// Errors that can occur during configuration building and validation.
+///
+/// This enum defines the possible errors that may arise when constructing
+/// configuration objects for placement, design, or analysis operations in SCREAM++.
+/// Each variant provides specific information about what went wrong to aid in
+/// debugging configuration issues.
 #[derive(Debug, Error, PartialEq, Eq, Clone)]
 pub enum ConfigError {
+    /// A required configuration parameter was not provided.
+    ///
+    /// This error is returned when attempting to build a configuration without
+    /// supplying all mandatory parameters. The parameter name is included in
+    /// the error message to help identify what needs to be specified.
     #[error("Missing required parameter: {0}")]
     MissingParameter(&'static str),
 }
 
+/// Uniquely identifies a residue within a protein structure.
+///
+/// This struct serves as a key to reference specific amino acid residues in
+/// molecular structures. It combines the chain identifier with the residue
+/// sequence number to provide unambiguous targeting for various computational
+/// operations such as side-chain placement, design, or analysis.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ResidueSpecifier {
+    /// The character identifier of the protein chain containing this residue.
     pub chain_id: char,
+    /// The sequential position number of the residue within its chain.
     pub residue_number: isize,
 }
 
+/// Defines how to select residues for computational operations.
+///
+/// This enum provides flexible ways to specify which residues should be
+/// included or excluded from operations like side-chain optimization or
+/// protein design. It supports selecting all residues, specific lists,
+/// or regions around a ligand binding site.
 #[derive(Debug, Clone, PartialEq)]
 pub enum ResidueSelection {
+    /// Select all residues in the structure.
     All,
+    /// Select specific residues with optional exclusions.
+    ///
+    /// # Arguments
+    ///
+    /// * `include` - List of residues to include in the selection.
+    /// * `exclude` - List of residues to exclude from the selection.
     List {
         include: Vec<ResidueSpecifier>,
         exclude: Vec<ResidueSpecifier>,
     },
+    /// Select residues within a specified radius of a ligand.
+    ///
+    /// # Arguments
+    ///
+    /// * `ligand_residue` - The residue identifier of the ligand.
+    /// * `radius_angstroms` - The radius in Angstroms around the ligand.
     LigandBindingSite {
         ligand_residue: ResidueSpecifier,
         radius_angstroms: f64,
     },
 }
 
+/// Configuration parameters for optimization convergence criteria.
+///
+/// This struct defines the thresholds and patience settings used to determine
+/// when an optimization algorithm has converged to a stable solution. It helps
+/// balance computational efficiency with solution quality in iterative
+/// refinement processes.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ConvergenceConfig {
+    /// The minimum energy difference threshold for convergence.
+    ///
+    /// Optimization stops when the energy change between iterations
+    /// falls below this value (in kcal/mol).
     pub energy_threshold: f64,
+    /// Number of iterations to wait before checking convergence.
+    ///
+    /// This prevents premature termination due to temporary energy fluctuations
+    /// during the early stages of optimization.
     pub patience_iterations: usize,
 }
 
+/// Configuration for simulated annealing optimization.
+///
+/// This struct contains the parameters that control the simulated annealing
+/// algorithm used for global optimization of side-chain conformations. The
+/// algorithm uses a temperature schedule to explore the conformational space
+/// and gradually converge to optimal solutions.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SimulatedAnnealingConfig {
+    /// The starting temperature for the annealing process.
+    ///
+    /// Higher values allow more exploration of the conformational space
+    /// at the beginning of optimization.
     pub initial_temperature: f64,
+    /// The final temperature at which annealing terminates.
+    ///
+    /// Lower values focus the search on local optima near the end.
     pub final_temperature: f64,
+    /// The factor by which temperature decreases each step.
+    ///
+    /// Values between 0.8 and 0.99 are typical, with lower values
+    /// providing faster cooling.
     pub cooling_rate: f64,
+    /// Number of optimization steps performed at each temperature level.
     pub steps_per_temperature: usize,
 }
 
+/// Configuration for force field parameters and energy calculations.
+///
+/// This struct specifies the force field files and parameters used for
+/// molecular mechanics energy calculations. It includes the main force field
+/// parameters, delta parameters for side-chain corrections, and energy
+/// weighting factors.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ForcefieldConfig {
+    /// Path to the main force field parameter file.
     pub forcefield_path: PathBuf,
+    /// Path to the delta parameter file for side-chain corrections.
     pub delta_params_path: PathBuf,
+    /// Scaling factor for non-bonded interactions.
+    ///
+    /// This parameter adjusts the strength of van der Waals and electrostatic
+    /// interactions in the force field.
     pub s_factor: f64,
+    /// Relative weights for different energy components.
     pub energy_weights: EnergyWeights,
 }
 
+/// Configuration for rotamer sampling during optimization.
+///
+/// This struct specifies the rotamer library used to sample side-chain
+/// conformations during placement and design operations. Rotamer libraries
+/// contain pre-computed, energetically favorable side-chain orientations.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SamplingConfig {
+    /// Path to the rotamer library file.
     pub rotamer_library_path: PathBuf,
 }
 
+/// Configuration for the overall optimization process.
+///
+/// This struct defines the parameters that control the optimization algorithm,
+/// including iteration limits, solution generation, convergence criteria,
+/// and optional simulated annealing settings.
 #[derive(Debug, Clone, PartialEq)]
 pub struct OptimizationConfig {
+    /// Maximum number of optimization iterations.
     pub max_iterations: usize,
+    /// Number of solution candidates to generate.
     pub num_solutions: usize,
+    /// Whether to include the input conformation as a candidate.
     pub include_input_conformation: bool,
+    /// Convergence criteria for optimization termination.
     pub convergence: ConvergenceConfig,
+    /// Optional simulated annealing configuration.
+    ///
+    /// If None, standard optimization without annealing is used.
     pub simulated_annealing: Option<SimulatedAnnealingConfig>,
+    /// Number of final refinement iterations after convergence.
     pub final_refinement_iterations: usize,
 }
 
+/// Complete configuration for side-chain placement operations.
+///
+/// This struct encapsulates all parameters needed to perform automated
+/// side-chain placement on a protein structure. It includes force field
+/// settings, sampling parameters, optimization controls, and residue
+/// selection criteria.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PlacementConfig {
+    /// Force field configuration for energy calculations.
     pub forcefield: ForcefieldConfig,
+    /// Rotamer sampling configuration.
     pub sampling: SamplingConfig,
+    /// Optimization algorithm parameters.
     pub optimization: OptimizationConfig,
+    /// Selection of residues to optimize.
     pub residues_to_optimize: ResidueSelection,
+    /// Path to the topology registry file.
     pub topology_registry_path: PathBuf,
 }
 
+/// Type alias for specifying amino acid mutations in protein design.
+///
+/// This type maps residue specifiers to lists of allowed amino acid types,
+/// defining the design space for computational protein design operations.
+/// Each entry specifies which residue positions can mutate to which amino acids.
 pub type DesignSpec = HashMap<ResidueSpecifier, Vec<ResidueType>>;
 
+/// Extension trait for DesignSpec providing convenient access methods.
+///
+/// This trait adds utility methods to the DesignSpec type alias to simplify
+/// common operations when working with design specifications in protein
+/// design workflows.
 pub trait DesignSpecExt {
+    /// Retrieves the allowed amino acid types for a specific residue.
+    ///
+    /// # Arguments
+    ///
+    /// * `chain_id` - The chain identifier of the residue.
+    /// * `residue_number` - The sequence number of the residue.
+    ///
+    /// # Return
+    ///
+    /// Returns `Some(Vec<ResidueType>)` if the residue is in the design spec,
+    /// or `None` if it is not specified.
     fn get_by_specifier(&self, chain_id: char, residue_number: isize) -> Option<&Vec<ResidueType>>;
 }
 
@@ -90,41 +224,87 @@ impl DesignSpecExt for DesignSpec {
     }
 }
 
+/// Complete configuration for computational protein design operations.
+///
+/// This struct defines all parameters required for protein design, including
+/// force field settings, rotamer sampling, optimization parameters, the design
+/// specification, and neighbor repacking criteria.
 #[derive(Debug, Clone, PartialEq)]
 pub struct DesignConfig {
+    /// Force field configuration for energy calculations.
     pub forcefield: ForcefieldConfig,
+    /// Rotamer sampling configuration.
     pub sampling: SamplingConfig,
+    /// Optimization algorithm parameters.
     pub optimization: OptimizationConfig,
+    /// Specification of allowed mutations at each position.
     pub design_spec: DesignSpec,
+    /// Selection of neighboring residues to repack during design.
     pub neighbors_to_repack: ResidueSelection,
+    /// Path to the topology registry file.
     pub topology_registry_path: PathBuf,
 }
 
+/// Defines how to select atoms for analysis operations.
+///
+/// This enum provides ways to specify which atoms should be included in
+/// molecular analysis calculations, such as interaction energy computations
+/// or clash detection.
 #[derive(Debug, Clone, PartialEq)]
 pub enum AtomSelection {
+    /// Select a single residue's atoms.
     Residue(ResidueSpecifier),
+    /// Select all atoms in a specific chain.
     Chain(char),
+    /// Select all atoms in the structure.
     All,
 }
 
+/// Specifies the type of molecular analysis to perform.
+///
+/// This enum defines the available analysis operations that can be performed
+/// on molecular structures, including interaction energy calculations and
+/// steric clash detection.
 #[derive(Debug, Clone, PartialEq)]
 pub enum AnalysisType {
+    /// Calculate interaction energies between two atom groups.
+    ///
+    /// # Arguments
+    ///
+    /// * `group1` - First group of atoms for interaction calculation.
+    /// * `group2` - Second group of atoms for interaction calculation.
     Interaction {
         group1: AtomSelection,
         group2: AtomSelection,
     },
-    ClashDetection {
-        threshold_kcal_mol: f64,
-    },
+    /// Detect steric clashes above a threshold.
+    ///
+    /// # Arguments
+    ///
+    /// * `threshold_kcal_mol` - Energy threshold for clash detection in kcal/mol.
+    ClashDetection { threshold_kcal_mol: f64 },
 }
 
+/// Complete configuration for molecular analysis operations.
+///
+/// This struct contains all parameters needed to perform analysis on
+/// molecular structures, including force field settings and the specific
+/// type of analysis to conduct.
 #[derive(Debug, Clone, PartialEq)]
 pub struct AnalyzeConfig {
+    /// Force field configuration for energy calculations.
     pub forcefield: ForcefieldConfig,
+    /// The type of analysis to perform.
     pub analysis_type: AnalysisType,
+    /// Path to the topology registry file.
     pub topology_registry_path: PathBuf,
 }
 
+/// Builder pattern implementation for constructing PlacementConfig.
+///
+/// This struct provides a fluent interface for building placement configurations
+/// with validation. It ensures all required parameters are provided and
+/// uses sensible defaults for optional fields.
 #[derive(Default)]
 pub struct PlacementConfigBuilder {
     forcefield_path: Option<PathBuf>,
@@ -143,63 +323,194 @@ pub struct PlacementConfigBuilder {
 }
 
 impl PlacementConfigBuilder {
+    /// Creates a new builder with default values.
+    ///
+    /// # Return
+    ///
+    /// Returns a new `PlacementConfigBuilder` instance with all fields unset.
     pub fn new() -> Self {
         Self::default()
     }
-
+    /// Sets the force field parameter file path.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Path to the force field parameter file.
+    ///
+    /// # Return
+    ///
+    /// Returns the builder for method chaining.
     pub fn forcefield_path(mut self, path: impl Into<PathBuf>) -> Self {
         self.forcefield_path = Some(path.into());
         self
     }
+    /// Sets the delta parameters file path.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Path to the delta parameters file.
+    ///
+    /// # Return
+    ///
+    /// Returns the builder for method chaining.
     pub fn delta_params_path(mut self, path: impl Into<PathBuf>) -> Self {
         self.delta_params_path = Some(path.into());
         self
     }
+    /// Sets the scaling factor for non-bonded interactions.
+    ///
+    /// # Arguments
+    ///
+    /// * `factor` - The scaling factor value.
+    ///
+    /// # Return
+    ///
+    /// Returns the builder for method chaining.
     pub fn s_factor(mut self, factor: f64) -> Self {
         self.s_factor = Some(factor);
         self
     }
+    /// Sets the energy weights for different force field components.
+    ///
+    /// # Arguments
+    ///
+    /// * `weights` - The energy weights configuration.
+    ///
+    /// # Return
+    ///
+    /// Returns the builder for method chaining.
     pub fn energy_weights(mut self, weights: EnergyWeights) -> Self {
         self.energy_weights = Some(weights);
         self
     }
+    /// Sets the rotamer library file path.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Path to the rotamer library file.
+    ///
+    /// # Return
+    ///
+    /// Returns the builder for method chaining.
     pub fn rotamer_library_path(mut self, path: impl Into<PathBuf>) -> Self {
         self.rotamer_library_path = Some(path.into());
         self
     }
+    /// Sets the topology registry file path.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Path to the topology registry file.
+    ///
+    /// # Return
+    ///
+    /// Returns the builder for method chaining.
     pub fn topology_registry_path(mut self, path: impl Into<PathBuf>) -> Self {
         self.topology_registry_path = Some(path.into());
         self
     }
+    /// Sets the maximum number of optimization iterations.
+    ///
+    /// # Arguments
+    ///
+    /// * `iterations` - The maximum number of iterations.
+    ///
+    /// # Return
+    ///
+    /// Returns the builder for method chaining.
     pub fn max_iterations(mut self, iterations: usize) -> Self {
         self.max_iterations = Some(iterations);
         self
     }
+    /// Sets the number of solution candidates to generate.
+    ///
+    /// # Arguments
+    ///
+    /// * `n` - The number of solutions.
+    ///
+    /// # Return
+    ///
+    /// Returns the builder for method chaining.
     pub fn num_solutions(mut self, n: usize) -> Self {
         self.num_solutions = Some(n);
         self
     }
+    /// Sets whether to include the input conformation as a candidate.
+    ///
+    /// # Arguments
+    ///
+    /// * `include` - Whether to include the input conformation.
+    ///
+    /// # Return
+    ///
+    /// Returns the builder for method chaining.
     pub fn include_input_conformation(mut self, include: bool) -> Self {
         self.include_input_conformation = Some(include);
         self
     }
+    /// Sets the convergence configuration.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - The convergence configuration.
+    ///
+    /// # Return
+    ///
+    /// Returns the builder for method chaining.
     pub fn convergence_config(mut self, config: ConvergenceConfig) -> Self {
         self.convergence_config = Some(config);
         self
     }
+    /// Sets the simulated annealing configuration.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - The simulated annealing configuration, or None to disable.
+    ///
+    /// # Return
+    ///
+    /// Returns the builder for method chaining.
     pub fn simulated_annealing_config(mut self, config: Option<SimulatedAnnealingConfig>) -> Self {
         self.simulated_annealing_config = config;
         self
     }
+    /// Sets the number of final refinement iterations.
+    ///
+    /// # Arguments
+    ///
+    /// * `iterations` - The number of refinement iterations.
+    ///
+    /// # Return
+    ///
+    /// Returns the builder for method chaining.
     pub fn final_refinement_iterations(mut self, iterations: usize) -> Self {
         self.final_refinement_iterations = Some(iterations);
         self
     }
+    /// Sets the residue selection for optimization.
+    ///
+    /// # Arguments
+    ///
+    /// * `selection` - The residue selection criteria.
+    ///
+    /// # Return
+    ///
+    /// Returns the builder for method chaining.
     pub fn residues_to_optimize(mut self, selection: ResidueSelection) -> Self {
         self.residues_to_optimize = Some(selection);
         self
     }
 
+    /// Builds the PlacementConfig from the current builder state.
+    ///
+    /// # Return
+    ///
+    /// Returns `Ok(PlacementConfig)` if all required parameters are set,
+    /// or `Err(ConfigError)` if any required parameter is missing.
+    ///
+    /// # Errors
+    ///
+    /// Returns `ConfigError::MissingParameter` if any required field is not set.
     pub fn build(self) -> Result<PlacementConfig, ConfigError> {
         let forcefield = ForcefieldConfig {
             forcefield_path: self
@@ -249,6 +560,11 @@ impl PlacementConfigBuilder {
     }
 }
 
+/// Builder pattern implementation for constructing DesignConfig.
+///
+/// This struct provides a fluent interface for building design configurations
+/// with validation. It ensures all required parameters are provided and
+/// uses sensible defaults for optional fields.
 #[derive(Default)]
 pub struct DesignConfigBuilder {
     forcefield_path: Option<PathBuf>,
@@ -268,70 +584,211 @@ pub struct DesignConfigBuilder {
 }
 
 impl DesignConfigBuilder {
+    /// Creates a new builder with default values.
+    ///
+    /// # Return
+    ///
+    /// Returns a new `DesignConfigBuilder` instance with all fields unset.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Sets the force field parameter file path.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Path to the force field parameter file.
+    ///
+    /// # Return
+    ///
+    /// Returns the builder for method chaining.
     pub fn forcefield_path(mut self, path: impl Into<PathBuf>) -> Self {
         self.forcefield_path = Some(path.into());
         self
     }
+    /// Sets the delta parameters file path.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Path to the delta parameters file.
+    ///
+    /// # Return
+    ///
+    /// Returns the builder for method chaining.
     pub fn delta_params_path(mut self, path: impl Into<PathBuf>) -> Self {
         self.delta_params_path = Some(path.into());
         self
     }
+    /// Sets the scaling factor for non-bonded interactions.
+    ///
+    /// # Arguments
+    ///
+    /// * `factor` - The scaling factor value.
+    ///
+    /// # Return
+    ///
+    /// Returns the builder for method chaining.
     pub fn s_factor(mut self, factor: f64) -> Self {
         self.s_factor = Some(factor);
         self
     }
+    /// Sets the energy weights for different force field components.
+    ///
+    /// # Arguments
+    ///
+    /// * `weights` - The energy weights configuration.
+    ///
+    /// # Return
+    ///
+    /// Returns the builder for method chaining.
     pub fn energy_weights(mut self, weights: EnergyWeights) -> Self {
         self.energy_weights = Some(weights);
         self
     }
 
+    /// Sets the rotamer library file path.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Path to the rotamer library file.
+    ///
+    /// # Return
+    ///
+    /// Returns the builder for method chaining.
     pub fn rotamer_library_path(mut self, path: impl Into<PathBuf>) -> Self {
         self.rotamer_library_path = Some(path.into());
         self
     }
+    /// Sets the topology registry file path.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Path to the topology registry file.
+    ///
+    /// # Return
+    ///
+    /// Returns the builder for method chaining.
     pub fn topology_registry_path(mut self, path: impl Into<PathBuf>) -> Self {
         self.topology_registry_path = Some(path.into());
         self
     }
 
+    /// Sets the maximum number of optimization iterations.
+    ///
+    /// # Arguments
+    ///
+    /// * `iterations` - The maximum number of iterations.
+    ///
+    /// # Return
+    ///
+    /// Returns the builder for method chaining.
     pub fn max_iterations(mut self, iterations: usize) -> Self {
         self.max_iterations = Some(iterations);
         self
     }
+    /// Sets the number of solution candidates to generate.
+    ///
+    /// # Arguments
+    ///
+    /// * `n` - The number of solutions.
+    ///
+    /// # Return
+    ///
+    /// Returns the builder for method chaining.
     pub fn num_solutions(mut self, n: usize) -> Self {
         self.num_solutions = Some(n);
         self
     }
+    /// Sets whether to include the input conformation as a candidate.
+    ///
+    /// # Arguments
+    ///
+    /// * `include` - Whether to include the input conformation.
+    ///
+    /// # Return
+    ///
+    /// Returns the builder for method chaining.
     pub fn include_input_conformation(mut self, include: bool) -> Self {
         self.include_input_conformation = Some(include);
         self
     }
+    /// Sets the convergence configuration.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - The convergence configuration.
+    ///
+    /// # Return
+    ///
+    /// Returns the builder for method chaining.
     pub fn convergence_config(mut self, config: ConvergenceConfig) -> Self {
         self.convergence_config = Some(config);
         self
     }
+    /// Sets the simulated annealing configuration.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - The simulated annealing configuration.
+    ///
+    /// # Return
+    ///
+    /// Returns the builder for method chaining.
     pub fn simulated_annealing_config(mut self, config: SimulatedAnnealingConfig) -> Self {
         self.simulated_annealing_config = Some(config);
         self
     }
+    /// Sets the number of final refinement iterations.
+    ///
+    /// # Arguments
+    ///
+    /// * `iterations` - The number of refinement iterations.
+    ///
+    /// # Return
+    ///
+    /// Returns the builder for method chaining.
     pub fn final_refinement_iterations(mut self, iterations: usize) -> Self {
         self.final_refinement_iterations = Some(iterations);
         self
     }
 
+    /// Sets the design specification.
+    ///
+    /// # Arguments
+    ///
+    /// * `spec` - The design specification mapping residues to allowed types.
+    ///
+    /// # Return
+    ///
+    /// Returns the builder for method chaining.
     pub fn design_spec(mut self, spec: DesignSpec) -> Self {
         self.design_spec = Some(spec);
         self
     }
+    /// Sets the residue selection for neighbors to repack.
+    ///
+    /// # Arguments
+    ///
+    /// * `selection` - The residue selection criteria for neighbors.
+    ///
+    /// # Return
+    ///
+    /// Returns the builder for method chaining.
     pub fn neighbors_to_repack(mut self, selection: ResidueSelection) -> Self {
         self.neighbors_to_repack = Some(selection);
         self
     }
 
+    /// Builds the DesignConfig from the current builder state.
+    ///
+    /// # Return
+    ///
+    /// Returns `Ok(DesignConfig)` if all required parameters are set,
+    /// or `Err(ConfigError)` if any required parameter is missing.
+    ///
+    /// # Errors
+    ///
+    /// Returns `ConfigError::MissingParameter` if any required field is not set.
     pub fn build(self) -> Result<DesignConfig, ConfigError> {
         let forcefield = ForcefieldConfig {
             forcefield_path: self
@@ -386,6 +843,11 @@ impl DesignConfigBuilder {
     }
 }
 
+/// Builder pattern implementation for constructing AnalyzeConfig.
+///
+/// This struct provides a fluent interface for building analysis configurations
+/// with validation. It ensures all required parameters are provided and
+/// uses sensible defaults for optional fields.
 #[derive(Default)]
 pub struct AnalyzeConfigBuilder {
     forcefield_path: Option<PathBuf>,
@@ -397,35 +859,104 @@ pub struct AnalyzeConfigBuilder {
 }
 
 impl AnalyzeConfigBuilder {
+    /// Creates a new builder with default values.
+    ///
+    /// # Return
+    ///
+    /// Returns a new `AnalyzeConfigBuilder` instance with all fields unset.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Sets the force field parameter file path.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Path to the force field parameter file.
+    ///
+    /// # Return
+    ///
+    /// Returns the builder for method chaining.
     pub fn forcefield_path(mut self, path: impl Into<PathBuf>) -> Self {
         self.forcefield_path = Some(path.into());
         self
     }
+    /// Sets the delta parameters file path.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Path to the delta parameters file.
+    ///
+    /// # Return
+    ///
+    /// Returns the builder for method chaining.
     pub fn delta_params_path(mut self, path: impl Into<PathBuf>) -> Self {
         self.delta_params_path = Some(path.into());
         self
     }
+    /// Sets the scaling factor for non-bonded interactions.
+    ///
+    /// # Arguments
+    ///
+    /// * `factor` - The scaling factor value.
+    ///
+    /// # Return
+    ///
+    /// Returns the builder for method chaining.
     pub fn s_factor(mut self, factor: f64) -> Self {
         self.s_factor = Some(factor);
         self
     }
+    /// Sets the energy weights for different force field components.
+    ///
+    /// # Arguments
+    ///
+    /// * `weights` - The energy weights configuration.
+    ///
+    /// # Return
+    ///
+    /// Returns the builder for method chaining.
     pub fn energy_weights(mut self, weights: EnergyWeights) -> Self {
         self.energy_weights = Some(weights);
         self
     }
+    /// Sets the topology registry file path.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Path to the topology registry file.
+    ///
+    /// # Return
+    ///
+    /// Returns the builder for method chaining.
     pub fn topology_registry_path(mut self, path: impl Into<PathBuf>) -> Self {
         self.topology_registry_path = Some(path.into());
         self
     }
+    /// Sets the type of analysis to perform.
+    ///
+    /// # Arguments
+    ///
+    /// * `analysis_type` - The analysis type configuration.
+    ///
+    /// # Return
+    ///
+    /// Returns the builder for method chaining.
     pub fn analysis_type(mut self, analysis_type: AnalysisType) -> Self {
         self.analysis_type = Some(analysis_type);
         self
     }
 
+    /// Builds the AnalyzeConfig from the current builder state.
+    ///
+    /// # Return
+    ///
+    /// Returns `Ok(AnalyzeConfig)` if all required parameters are set,
+    /// or `Err(ConfigError)` if any required parameter is missing.
+    ///
+    /// # Errors
+    ///
+    /// Returns `ConfigError::MissingParameter` if any required field is not set.
     pub fn build(self) -> Result<AnalyzeConfig, ConfigError> {
         let forcefield = ForcefieldConfig {
             forcefield_path: self
