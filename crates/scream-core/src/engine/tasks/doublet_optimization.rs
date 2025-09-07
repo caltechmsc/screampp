@@ -14,13 +14,55 @@ use tracing::{debug, instrument};
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
+/// Represents the result of optimizing a pair of residues (doublet) simultaneously.
+///
+/// This struct contains the optimal rotamer indices for both residues in the pair
+/// along with the computed local energy of the optimized configuration. The local
+/// energy includes interactions between the two residues and with other active residues
+/// in the system, but excludes the individual rotamer self-energies.
 #[derive(Debug, Clone, Copy)]
 pub struct DoubletResult {
+    /// The index of the optimal rotamer for the first residue in the pair.
     pub rotamer_idx_a: usize,
+    /// The index of the optimal rotamer for the second residue in the pair.
     pub rotamer_idx_b: usize,
+    /// The computed local interaction energy for the optimal rotamer pair.
+    ///
+    /// This includes the interaction energy between residues A and B, plus
+    /// interactions of each residue with all other active residues in the system.
     pub best_local_energy: f64,
 }
 
+/// Performs simultaneous optimization of two residues (doublet optimization).
+///
+/// This function optimizes the rotamer configurations of two residues simultaneously
+/// by evaluating all possible combinations of their rotamers. It uses a brute-force
+/// approach with early termination heuristics to find the optimal pair that minimizes
+/// the total interaction energy with other active residues in the system.
+///
+/// The algorithm employs parallel processing when available and uses cached individual
+/// rotamer energies to avoid recomputation. Progress is reported through the provided
+/// reporter for long-running optimizations.
+///
+/// # Arguments
+///
+/// * `res_a_id` - The ID of the first residue in the doublet.
+/// * `res_b_id` - The ID of the second residue in the doublet.
+/// * `system` - The molecular system containing the residues.
+/// * `el_cache` - Cache of precomputed individual rotamer energies.
+/// * `context` - The optimization context containing forcefield and rotamer library.
+/// * `active_residues` - Set of all active residue IDs in the optimization.
+/// * `reporter` - Progress reporter for tracking optimization progress.
+///
+/// # Return
+///
+/// Returns a `DoubletResult` containing the optimal rotamer indices and local energy.
+///
+/// # Errors
+///
+/// Returns `EngineError::Internal` if residues are not found or not standard types.
+/// Returns `EngineError::RotamerLibrary` if rotamers are not available for the residues.
+/// Returns `EngineError::PhaseFailed` if no valid rotamer pairs can be evaluated.
 #[instrument(skip_all, name = "doublet_optimization_task", fields(res_a = ?res_a_id, res_b = ?res_b_id))]
 pub fn run<C>(
     res_a_id: ResidueId,
@@ -35,6 +77,7 @@ where
     C: ProvidesResidueSelections + Sync,
 {
     // --- 1. Prepare data ---
+    // Validate and extract residue information
     let residue_a = system.residue(res_a_id).ok_or_else(|| {
         EngineError::Internal(format!("Residue {:?} not found in system", res_a_id))
     })?;
@@ -55,6 +98,7 @@ where
         ))
     })?;
 
+    // Retrieve rotamer libraries for both residues
     let rotamers_a = context
         .rotamer_library
         .get_rotamers_for(res_type_a)
@@ -81,6 +125,7 @@ where
         });
     }
 
+    // Generate all possible rotamer combinations
     let index_pairs: Vec<(usize, usize)> = (0..rotamers_a.len())
         .flat_map(|i| (0..rotamers_b.len()).map(move |j| (i, j)))
         .collect();
@@ -99,6 +144,7 @@ where
     let processed_count = AtomicUsize::new(0);
     const REPORT_INTERVAL: usize = 256;
 
+    // Collect IDs of other active residues for interaction calculations
     let other_active_residue_ids: Vec<ResidueId> = active_residues
         .iter()
         .filter(|&&id| id != res_a_id && id != res_b_id)
@@ -109,10 +155,12 @@ where
     let best_pair_result = {
         #[cfg(feature = "parallel")]
         {
+            // Parallel evaluation using rayon
             index_pairs
                 .par_iter()
                 .fold(
                     || -> Result<(Option<DoubletResult>, MolecularSystem, HashMap<ResidueId, usize>, &OptimizationContext<C>, f64), EngineError> {
+                        // Initialize thread-local state
                         let thread_local_system = system.clone();
                         let mut thread_local_rotamers = HashMap::new();
                         thread_local_rotamers.insert(res_a_id, 0);
@@ -134,6 +182,7 @@ where
                             reporter.report(Progress::TaskIncrement { amount: REPORT_INTERVAL as u64 });
                         }
 
+                        // Early termination heuristic: skip if individual energies are too high
                         const MAX_FAVORABLE_INTERACTION: f64 = -20.0;
 
                         let el_a = el_cache
@@ -150,6 +199,7 @@ where
                             return acc;
                         }
 
+                        // Evaluate rotamer pair using transactional system view
                         let mut system_view = SystemView::new(thread_system, thread_context, thread_rotamers);
 
                         match system_view.transaction_doublet(res_a_id, res_b_id, |view| {
@@ -157,6 +207,8 @@ where
                             view.apply_move(res_b_id, idx_b)?;
 
                             let scorer = Scorer::new(view.system, thread_context.forcefield);
+
+                            // Helper to extract sidechain atoms
                             let get_sc_atoms = |sys: &MolecularSystem, res_id: ResidueId| -> Vec<AtomId> {
                                 sys.residue(res_id)
                                     .unwrap()
@@ -181,6 +233,7 @@ where
                                 .flat_map(|&id| get_sc_atoms(view.system, id))
                                 .collect();
 
+                            // Calculate all relevant interaction energies
                             let inter_ab = scorer.score_interaction(&atoms_a_sc, &atoms_b_sc)?;
                             let inter_a_others = scorer.score_interaction(&atoms_a_sc, &other_active_sc_atoms)?;
                             let inter_b_others = scorer.score_interaction(&atoms_b_sc, &other_active_sc_atoms)?;
@@ -217,6 +270,7 @@ where
 
         #[cfg(not(feature = "parallel"))]
         {
+            // Sequential evaluation
             let mut best_result: Option<DoubletResult> = None;
             let mut best_energy: f64 = f64::MAX;
 
@@ -228,6 +282,7 @@ where
                     });
                 }
 
+                // Early termination heuristic
                 const MAX_FAVORABLE_INTERACTION: f64 = -20.0;
 
                 let el_a = el_cache
@@ -244,6 +299,7 @@ where
                     continue;
                 }
 
+                // Evaluate rotamer pair
                 let mut thread_system = system.clone();
                 let mut thread_rotamers = HashMap::new();
                 thread_rotamers.insert(res_a_id, 0);
@@ -257,6 +313,8 @@ where
                     view.apply_move(res_b_id, idx_b)?;
 
                     let scorer = Scorer::new(view.system, context.forcefield);
+
+                    // Helper to extract sidechain atoms
                     let get_sc_atoms = |sys: &MolecularSystem, res_id: ResidueId| -> Vec<AtomId> {
                         sys.residue(res_id)
                             .unwrap()
@@ -281,6 +339,7 @@ where
                         .flat_map(|&id| get_sc_atoms(view.system, id))
                         .collect();
 
+                    // Calculate interaction energies
                     let inter_ab = scorer.score_interaction(&atoms_a_sc, &atoms_b_sc)?;
                     let inter_a_others =
                         scorer.score_interaction(&atoms_a_sc, &other_active_sc_atoms)?;
@@ -311,6 +370,7 @@ where
         }
     };
 
+    // Report final progress
     let final_count = processed_count.load(Ordering::Relaxed);
     if final_count > 0 && final_count % REPORT_INTERVAL != 0 {
         reporter.report(Progress::TaskIncrement {
