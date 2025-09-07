@@ -17,14 +17,48 @@ use tracing::{info, instrument, warn};
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
+/// Represents a unit of work for EL energy computation.
+///
+/// Each work unit corresponds to a specific residue and residue type combination
+/// that needs to have its rotamer energies precomputed and cached.
 #[derive(Debug)]
 struct WorkUnit {
+    /// The ID of the residue to process.
     residue_id: ResidueId,
+    /// The residue type for which to compute energies.
     residue_type: ResidueType,
 }
 
+/// Type alias for the result of processing a work unit.
+///
+/// Contains either the computed energy map for a residue-type combination
+/// or an error that occurred during computation.
 type WorkResult = Result<((ResidueId, ResidueType), HashMap<usize, EnergyTerm>), EngineError>;
 
+/// Precomputes Empty Lattice (EL) energies for all rotamers of active residues.
+///
+/// This function performs the computationally intensive task of calculating interaction
+/// energies between each rotamer of each active residue and the fixed molecular environment.
+/// The results are cached to avoid recomputation during optimization. This is a key
+/// preprocessing step that enables efficient side-chain placement algorithms.
+///
+/// The EL energy for each rotamer includes:
+/// - Interactions with all non-active atoms (backbone and other residues)
+/// - Internal non-bonded energies within the rotamer itself
+///
+/// The computation can be parallelized when the "parallel" feature is enabled.
+///
+/// # Arguments
+///
+/// * `context` - The optimization context containing system, forcefield, and configuration.
+///
+/// # Return
+///
+/// Returns an `ELCache` containing precomputed energies for all rotamer combinations.
+///
+/// # Errors
+///
+/// Returns `EngineError` if work list construction fails or energy calculations encounter errors.
 #[instrument(skip_all, name = "el_energy_cache_generation_task")]
 pub fn run<C>(context: &OptimizationContext<C>) -> Result<ELCache, EngineError>
 where
@@ -35,6 +69,7 @@ where
         name: "EL Pre-computation",
     });
 
+    // Build the list of work units (residue-type combinations to process)
     let work_list = build_work_list(context)?;
 
     if work_list.is_empty() {
@@ -43,6 +78,7 @@ where
         return Ok(ELCache::new());
     }
 
+    // Precompute environment atoms for efficient energy calculations
     let active_residue_ids = context.resolve_all_active_residues()?;
     let environment_atom_ids = precompute_environment_atoms(context.system, &active_residue_ids);
 
@@ -50,12 +86,14 @@ where
         total: work_list.len() as u64,
     });
 
+    // Use parallel processing if available
     #[cfg(not(feature = "parallel"))]
     let iterator = work_list.iter();
 
     #[cfg(feature = "parallel")]
     let iterator = work_list.par_iter();
 
+    // Process each work unit to compute rotamer energies
     let results: Vec<WorkResult> = iterator
         .map(|unit| {
             #[cfg(feature = "parallel")]
@@ -74,6 +112,7 @@ where
 
     context.reporter.report(Progress::TaskFinish);
 
+    // Populate the cache with computed energies
     let mut cache = ELCache::new();
     for result in results {
         let ((residue_id, residue_type), energy_map) = result?;
@@ -90,6 +129,29 @@ where
     Ok(cache)
 }
 
+/// Calculates the current total Empty Lattice energy for all active sidechains.
+///
+/// This function computes the EL energy of the current molecular conformation by
+/// summing the interaction energies between each active sidechain and the molecular
+/// environment, plus the internal energies within each sidechain. This provides
+/// a baseline energy measurement for the current state.
+///
+/// The calculation includes:
+/// - Interactions between each sidechain and all environment atoms
+/// - Internal non-bonded energies within each sidechain
+/// - Sum across all active residues
+///
+/// # Arguments
+///
+/// * `context` - The optimization context containing the current system state.
+///
+/// # Return
+///
+/// Returns the total EL energy as an `EnergyTerm`.
+///
+/// # Errors
+///
+/// Returns `EngineError` if energy calculations fail for any residue.
 #[instrument(skip_all, name = "current_el_energy_task")]
 pub fn calculate_current<C>(context: &OptimizationContext<C>) -> Result<EnergyTerm, EngineError>
 where
@@ -109,6 +171,7 @@ where
     let mut total_el_energy = EnergyTerm::default();
 
     for residue_id in active_residues {
+        // Extract sidechain atoms for this residue
         let sidechain_atoms: Vec<AtomId> = context
             .system
             .residue(residue_id)
@@ -130,14 +193,14 @@ where
             continue;
         }
 
-        // 1. Interaction with fixed environment for THIS sidechain
+        // Calculate interaction with environment atoms
         let interaction_energy =
             scorer.score_interaction(&sidechain_atoms, &environment_atom_ids)?;
 
-        // 2. Internal non-bonded energy for THIS sidechain
+        // Calculate internal energy within the sidechain
         let internal_energy = scorer.score_group_internal(&sidechain_atoms)?;
 
-        // 3. Add this residue's complete EL energy to the total
+        // Add this residue's complete EL energy to the total
         total_el_energy += interaction_energy + internal_energy;
     }
 
@@ -148,6 +211,23 @@ where
     Ok(total_el_energy)
 }
 
+/// Builds the list of work units for EL energy computation.
+///
+/// This function determines which residue-type combinations need to have their
+/// rotamer energies precomputed. It considers both design sites (where multiple
+/// residue types are allowed) and native residues that have available rotamers.
+///
+/// # Arguments
+///
+/// * `context` - The optimization context containing configuration and system data.
+///
+/// # Return
+///
+/// Returns a vector of `WorkUnit` structs representing the computation tasks.
+///
+/// # Errors
+///
+/// Returns `EngineError` if residue resolution fails.
 fn build_work_list<C>(context: &OptimizationContext<C>) -> Result<Vec<WorkUnit>, EngineError>
 where
     C: ProvidesResidueSelections + Sync,
@@ -158,6 +238,7 @@ where
     for &residue_id in &active_residues {
         let residue = context.system.residue(residue_id).unwrap();
 
+        // Check if this is a design site with multiple allowed types
         let mut is_design_site = false;
         if let Some(design_spec) = context.config.design_spec() {
             let chain = context.system.chain(residue.chain_id).unwrap();
@@ -180,6 +261,7 @@ where
             }
         }
 
+        // If not a design site, use the native residue type
         if !is_design_site {
             if let Some(native_type) = residue.residue_type {
                 if context
@@ -198,6 +280,22 @@ where
     Ok(work_list)
 }
 
+/// Computes EL energies for all rotamers of a specific residue-type combination.
+///
+/// This function places each available rotamer for the given residue and computes
+/// its interaction energy with the molecular environment plus its internal energy.
+/// The results are collected into an energy map for caching.
+///
+/// # Arguments
+///
+/// * `unit` - The work unit specifying residue and type to process.
+/// * `environment_atom_ids` - Precomputed list of environment atom IDs.
+/// * `context` - The optimization context containing forcefield and topology.
+/// * `system` - Mutable reference to the molecular system for rotamer placement.
+///
+/// # Return
+///
+/// Returns a `WorkResult` containing the computed energy map or an error.
 #[instrument(skip_all, fields(residue_id = ?unit.residue_id, residue_type = %unit.residue_type))]
 fn compute_energies_for_unit<C>(
     unit: &WorkUnit,
@@ -208,6 +306,7 @@ fn compute_energies_for_unit<C>(
 where
     C: ProvidesResidueSelections + Sync,
 {
+    // Retrieve rotamers for this residue type
     let rotamers = context
         .rotamer_library
         .get_rotamers_for(unit.residue_type)
@@ -216,6 +315,7 @@ where
             message: "No rotamers found for this residue type during EL calculation.".to_string(),
         })?;
 
+    // Get topology for rotamer placement
     let residue_name = unit.residue_type.to_three_letter();
     let topology = context.topology_registry.get(residue_name).ok_or_else(|| {
         EngineError::TopologyNotFound {
@@ -225,9 +325,12 @@ where
 
     let mut energy_map = HashMap::with_capacity(rotamers.len());
 
+    // Process each rotamer
     for (rotamer_idx, rotamer) in rotamers.iter().enumerate() {
+        // Place the rotamer on the system
         place_rotamer_on_system(system, unit.residue_id, rotamer, topology)?;
 
+        // Extract sidechain atoms for energy calculation
         let query_atoms: Vec<AtomId> = system
             .residue(unit.residue_id)
             .unwrap()
@@ -251,7 +354,9 @@ where
 
         let scorer = Scorer::new(system, context.forcefield);
 
+        // Calculate interaction with environment
         let interaction_energy = scorer.score_interaction(&query_atoms, environment_atom_ids)?;
+        // Calculate internal energy within rotamer
         let internal_energy = scorer.score_group_internal(&query_atoms)?;
 
         let total_el_energy = interaction_energy + internal_energy;
@@ -259,6 +364,7 @@ where
         energy_map.insert(rotamer_idx, total_el_energy);
     }
 
+    // Report progress
     context
         .reporter
         .report(Progress::TaskIncrement { amount: 1 });
