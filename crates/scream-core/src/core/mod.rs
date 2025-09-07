@@ -30,16 +30,6 @@
 //! - **Rotamer library management** for side-chain conformation sampling
 //! - **Topology-aware atom classification** for backbone/sidechain distinction
 //! - **Extensible force field support** for different parameter sets
-//!
-//! ## Scientific Foundation
-//!
-//! The core module implements algorithms based on established computational chemistry
-//! principles:
-//!
-//! - **Molecular mechanics** for energy minimization and conformational analysis
-//! - **Rotamer libraries** derived from statistical analysis of protein structures
-//! - **Force field methods** including Lennard-Jones, Coulomb, and hydrogen bonding potentials
-//! - **Topology-based modeling** respecting molecular connectivity and stereochemistry
 
 pub mod forcefield;
 pub mod io;
