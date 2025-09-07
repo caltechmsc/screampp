@@ -31,7 +31,7 @@ const CLASH_THRESHOLD_KCAL_MOL: f64 = 25.0;
 pub struct PlacementResult {
     /// The initial state of the molecular system before optimization.
     pub initial_state: InitialState,
-    /// A vector of optimized solutions, sorted by optimization score.
+    /// A vector of optimized solutions, sorted by optimization score (best first).
     pub solutions: Vec<Solution>,
 }
 
