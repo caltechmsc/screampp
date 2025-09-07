@@ -23,12 +23,38 @@ use tracing::{info, instrument};
 
 const CLASH_THRESHOLD_KCAL_MOL: f64 = 25.0;
 
+/// Represents the result of a side-chain placement workflow.
+///
+/// This struct contains the initial state of the system and a collection of optimized
+/// solutions found during the placement process.
 #[derive(Debug, Clone)]
 pub struct PlacementResult {
+    /// The initial state of the molecular system before optimization.
     pub initial_state: InitialState,
+    /// A vector of optimized solutions, sorted by optimization score.
     pub solutions: Vec<Solution>,
 }
 
+/// Executes the complete side-chain placement workflow.
+///
+/// This function orchestrates the entire optimization process for protein side-chain
+/// conformation prediction, including preparation, energy calculations, clash resolution,
+/// optional simulated annealing, and final refinement.
+///
+/// # Arguments
+///
+/// * `initial_system` - The input molecular system to optimize.
+/// * `config` - Configuration parameters for the placement workflow.
+/// * `reporter` - Progress reporter for tracking optimization progress.
+///
+/// # Return
+///
+/// Returns a `PlacementResult` containing the initial state and optimized solutions.
+///
+/// # Errors
+///
+/// Returns `EngineError` if any step in the workflow fails due to invalid input,
+/// configuration issues, or computational errors.
 #[instrument(skip_all, name = "placement_workflow")]
 pub fn run(
     initial_system: &MolecularSystem,
@@ -156,6 +182,24 @@ pub fn run(
     Ok(result)
 }
 
+/// Prepares the optimization context by resolving active residues from the configuration.
+///
+/// This function determines which residues will be optimized based on the user's selection
+/// criteria and ensures the rotamer library contains appropriate conformations.
+///
+/// # Arguments
+///
+/// * `initial_system` - The input molecular system.
+/// * `config` - Configuration containing residue selection criteria.
+/// * `rotamer_library` - Mutable reference to the rotamer library for potential updates.
+///
+/// # Return
+///
+/// A set of residue IDs that will be optimized.
+///
+/// # Errors
+///
+/// Returns `EngineError` if residue selection fails or if selected residues are invalid.
 fn prepare_context(
     initial_system: &MolecularSystem,
     config: &PlacementConfig,
@@ -169,6 +213,23 @@ fn prepare_context(
     Ok(active_residues)
 }
 
+/// Calculates the initial state of the system including baseline energies.
+///
+/// This function computes the constant energy offset and evaluates the energy
+/// of the input conformation to establish a baseline for optimization.
+///
+/// # Arguments
+///
+/// * `context` - The optimization context containing system and forcefield.
+/// * `active_residues` - Set of residues being optimized.
+///
+/// # Return
+///
+/// A tuple containing the initial state and the constant energy offset.
+///
+/// # Errors
+///
+/// Returns `EngineError` if energy calculations fail.
 fn calculate_initial_state(
     context: &OptimizationContext<PlacementConfig>,
     active_residues: &HashSet<ResidueId>,
@@ -202,6 +263,25 @@ fn calculate_initial_state(
     Ok((initial_state, energy_offset_constant))
 }
 
+/// Initializes the optimization state by placing ground-state rotamers.
+///
+/// This function selects the lowest-energy rotamer for each active residue based on
+/// the Empty Lattice energy cache and places them on the system to establish
+/// an initial optimization state.
+///
+/// # Arguments
+///
+/// * `context` - The optimization context.
+/// * `active_residues` - Set of residues to optimize.
+/// * `el_cache` - Precomputed Empty Lattice energy cache.
+///
+/// # Return
+///
+/// An initialized `OptimizationState` with ground-state rotamers placed.
+///
+/// # Errors
+///
+/// Returns `EngineError` if rotamer placement or energy calculation fails.
 fn initialize_optimization_state(
     context: &OptimizationContext<PlacementConfig>,
     active_residues: &HashSet<ResidueId>,
@@ -254,6 +334,23 @@ fn initialize_optimization_state(
     ))
 }
 
+/// Performs iterative clash resolution using doublet optimization.
+///
+/// This function iteratively identifies and resolves steric clashes by optimizing
+/// pairs of residues simultaneously. It continues until no clashes remain or
+/// convergence criteria are met.
+///
+/// # Arguments
+///
+/// * `state` - Mutable reference to the current optimization state.
+/// * `active_residues` - Set of residues being optimized.
+/// * `context` - The optimization context.
+/// * `el_cache` - Empty Lattice energy cache.
+/// * `energy_grid` - Mutable reference to the energy grid for efficient updates.
+///
+/// # Errors
+///
+/// Returns `EngineError` if clash detection or optimization fails.
 fn resolve_clashes(
     state: &mut OptimizationState,
     active_residues: &HashSet<ResidueId>,
@@ -383,6 +480,23 @@ fn resolve_clashes(
     Ok(())
 }
 
+/// Runs simulated annealing optimization if configured.
+///
+/// This function implements a simulated annealing algorithm to explore the conformational
+/// space more thoroughly. It uses temperature-based acceptance criteria to escape local
+/// minima and find better global solutions.
+///
+/// # Arguments
+///
+/// * `state` - Mutable reference to the current optimization state.
+/// * `active_residues` - Set of residues being optimized.
+/// * `context` - The optimization context.
+/// * `el_cache` - Empty Lattice energy cache.
+/// * `energy_grid` - Mutable reference to the energy grid.
+///
+/// # Errors
+///
+/// Returns `EngineError` if simulated annealing configuration is invalid or execution fails.
 fn run_simulated_annealing(
     state: &mut OptimizationState,
     active_residues: &HashSet<ResidueId>,
@@ -515,6 +629,23 @@ fn run_simulated_annealing(
     Ok(())
 }
 
+/// Performs final refinement through singlet optimization passes.
+///
+/// This function runs multiple passes of single-residue optimization to fine-tune
+/// the solution. Each pass evaluates all residues and applies the best rotamer
+/// change found, continuing until no improvements are made.
+///
+/// # Arguments
+///
+/// * `state` - Mutable reference to the current optimization state.
+/// * `active_residues` - Set of residues being optimized.
+/// * `context` - The optimization context.
+/// * `el_cache` - Empty Lattice energy cache.
+/// * `energy_grid` - Mutable reference to the energy grid.
+///
+/// # Errors
+///
+/// Returns `EngineError` if refinement operations fail.
 fn final_refinement(
     state: &mut OptimizationState,
     active_residues: &HashSet<ResidueId>,
@@ -637,6 +768,22 @@ fn final_refinement(
     Ok(())
 }
 
+/// Finalizes and organizes the optimization results.
+///
+/// This function collects all solutions found during optimization, sorts them by energy,
+/// removes duplicates, and ensures the initial conformation is included if it's among
+/// the best solutions.
+///
+/// # Arguments
+///
+/// * `state` - The final optimization state.
+/// * `initial_state` - The initial state before optimization.
+/// * `energy_offset` - The constant energy offset to add to all solutions.
+/// * `num_solutions` - Maximum number of solutions to return.
+///
+/// # Return
+///
+/// A `PlacementResult` containing the initial state and sorted solutions.
 fn finalize_results(
     state: OptimizationState,
     initial_state: InitialState,
@@ -683,6 +830,21 @@ fn finalize_results(
     }
 }
 
+/// Updates the rotamer assignment in the optimization state.
+///
+/// This function applies a new rotamer to a residue in the system and updates
+/// the state's rotamer tracking map.
+///
+/// # Arguments
+///
+/// * `state` - Mutable reference to the optimization state.
+/// * `res_id` - The residue ID to update.
+/// * `new_rot_idx` - The index of the new rotamer to apply.
+/// * `context` - The optimization context containing rotamer library and topology.
+///
+/// # Errors
+///
+/// Returns `EngineError` if rotamer placement fails.
 fn update_rotamers_in_state(
     state: &mut OptimizationState,
     res_id: ResidueId,
