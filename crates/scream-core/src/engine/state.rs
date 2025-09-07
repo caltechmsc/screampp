@@ -2,23 +2,46 @@ use crate::core::models::ids::ResidueId;
 use crate::core::models::system::MolecularSystem;
 use std::collections::{BinaryHeap, HashMap};
 
+/// Represents the initial state of a molecular system before optimization.
+///
+/// This struct captures the starting point of an optimization process, including
+/// the molecular system configuration and its associated energy values. It serves
+/// as a baseline for tracking optimization progress and comparing final results.
 #[derive(Debug, Clone)]
 pub struct InitialState {
+    /// The molecular system in its initial configuration.
     pub system: MolecularSystem,
+    /// The total energy of the initial system configuration.
     pub total_energy: f64,
+    /// The optimization score used to evaluate the initial state.
     pub optimization_score: f64,
 }
 
+/// Represents a specific state of the molecular system with assigned rotamers.
+///
+/// This struct stores a snapshot of the molecular system along with the rotamer
+/// assignments for each residue. It captures both the structural configuration
+/// and the conformational choices made during optimization.
 #[derive(Debug, Clone)]
 pub struct SolutionState {
+    /// The molecular system with its current atomic coordinates and structure.
     pub system: MolecularSystem,
+    /// Mapping of residue IDs to their assigned rotamer indices.
     pub rotamers: HashMap<ResidueId, usize>,
 }
 
+/// Represents a complete solution from the optimization process.
+///
+/// This struct encapsulates a solution found during optimization, including its
+/// energy values, optimization score, and the complete system state with rotamer
+/// assignments. Solutions are comparable based on their optimization scores.
 #[derive(Debug, Clone)]
 pub struct Solution {
+    /// The total energy of this solution configuration.
     pub total_energy: f64,
+    /// The optimization score used for ranking and comparison of solutions.
     pub optimization_score: f64,
+    /// The complete state of the molecular system and rotamer assignments.
     pub state: SolutionState,
 }
 
@@ -37,26 +60,51 @@ impl PartialOrd for Solution {
 }
 
 impl Ord for Solution {
+    // Solutions are ordered by optimization score, with lower scores being better
+    // This makes the BinaryHeap act as a max-heap where the "largest" (worst) solution is at the top
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.partial_cmp(other).unwrap_or(std::cmp::Ordering::Equal)
     }
 }
 
+/// Manages the state of an ongoing optimization process.
+///
+/// This struct tracks the current working state of the molecular system during
+/// optimization, maintains a collection of the best solutions found so far, and
+/// provides methods for submitting new solutions and retrieving results. It uses
+/// a binary heap to efficiently maintain the top N solutions by optimization score.
 #[derive(Debug, Clone)]
 pub(crate) struct OptimizationState {
+    /// The current working state of the molecular system being optimized.
     pub working_state: SolutionState,
+    /// The optimization score of the current working state.
     pub current_optimization_score: f64,
+    /// Binary heap storing the best solutions found, ordered by optimization score.
     solutions: BinaryHeap<Solution>,
+    /// Maximum number of solutions to maintain in the collection.
     max_solutions: usize,
 }
 
 impl OptimizationState {
+    /// Creates a new optimization state with the initial system configuration.
+    ///
+    /// # Arguments
+    ///
+    /// * `initial_system` - The starting molecular system configuration.
+    /// * `initial_rotamers` - Initial rotamer assignments for residues.
+    /// * `initial_optimization_score` - Starting optimization score.
+    /// * `max_solutions` - Maximum number of solutions to track (minimum 1).
+    ///
+    /// # Return
+    ///
+    /// Returns a new `OptimizationState` instance initialized with the provided parameters.
     pub fn new(
         initial_system: MolecularSystem,
         initial_rotamers: HashMap<ResidueId, usize>,
         initial_optimization_score: f64,
         max_solutions: usize,
     ) -> Self {
+        // Ensure at least one solution is tracked to avoid empty collections
         let max_s = if max_solutions == 0 { 1 } else { max_solutions };
 
         let initial_state = SolutionState {
@@ -79,6 +127,12 @@ impl OptimizationState {
         }
     }
 
+    /// Submits the current working state as a potential solution.
+    ///
+    /// This method evaluates the current working state and adds it to the solution
+    /// collection if it improves upon the existing solutions. If the collection is
+    /// at capacity, it replaces the worst solution if the current state is better.
+    /// The optimization score determines solution quality, with lower scores being better.
     pub fn submit_current_solution(&mut self) {
         if self.solutions.len() < self.max_solutions {
             self.solutions.push(Solution {
@@ -89,6 +143,8 @@ impl OptimizationState {
             return;
         }
 
+        // BinaryHeap is a max-heap, so peek() gives the worst solution (highest score)
+        // Replace it only if current solution has a better (lower) score
         if let Some(worst_of_the_best) = self.solutions.peek() {
             if self.current_optimization_score < worst_of_the_best.optimization_score {
                 let mut worst_solution_placeholder = self.solutions.pop().unwrap();
@@ -99,10 +155,25 @@ impl OptimizationState {
         }
     }
 
+    /// Consumes the optimization state and returns all solutions in sorted order.
+    ///
+    /// Solutions are sorted by optimization score in ascending order (best first).
+    /// This method takes ownership of the state, so it should be called when
+    /// optimization is complete.
+    ///
+    /// # Return
+    ///
+    /// Returns a `Vec<Solution>` containing all tracked solutions, sorted by quality.
     pub fn into_sorted_solutions(self) -> Vec<Solution> {
         self.solutions.into_sorted_vec()
     }
 
+    /// Returns the best optimization score among all tracked solutions.
+    ///
+    /// # Return
+    ///
+    /// Returns the minimum optimization score (best value) from all solutions,
+    /// or `f64::INFINITY` if no solutions are available.
     pub fn best_energy(&self) -> f64 {
         self.solutions
             .iter()
