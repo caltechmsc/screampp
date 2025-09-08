@@ -37,24 +37,35 @@ pub struct PlacementResult {
 
 /// Executes the complete side-chain placement workflow.
 ///
-/// This function orchestrates the entire optimization process for protein side-chain
-/// conformation prediction, including preparation, energy calculations, clash resolution,
-/// optional simulated annealing, and final refinement.
+/// This is the primary high-level entry point for running the SCREAM++ algorithm. It orchestrates
+/// the entire optimization process, translating a static molecular system and a configuration
+/// into a set of optimized, low-energy solutions.
+///
+/// The workflow follows the multi-stage algorithm described in the original SCREAM paper:
+/// 1. **Preparation**: Loads all necessary resources (forcefield, rotamers) and identifies active residues.
+/// 2. **Pre-computation**: Calculates the Empty Lattice (EL) energy for every possible rotamer of every active residue.
+/// 3. **Initialization**: Creates an initial "ground state" conformation by selecting the lowest EL-energy rotamer for each residue.
+/// 4. **Clash Resolution**: Iteratively identifies and resolves the worst energetic clashes using doublet optimization.
+/// 5. **Simulated Annealing (Optional)**: Explores the conformational space to escape local energy minima.
+/// 6. **Final Refinement**: Performs final single-residue optimizations to polish the best solutions.
 ///
 /// # Arguments
 ///
-/// * `initial_system` - The input molecular system to optimize.
-/// * `config` - Configuration parameters for the placement workflow.
-/// * `reporter` - Progress reporter for tracking optimization progress.
+/// * `initial_system` - A reference to the input `MolecularSystem` with the protein backbone and initial side-chain positions.
+/// * `config` - A `PlacementConfig` struct containing all parameters for the run, including forcefield paths, residue selections, and algorithm settings.
+/// * `reporter` - A `ProgressReporter` that can be used to receive progress updates for long-running calculations, useful for GUIs or CLIs.
 ///
 /// # Return
 ///
-/// Returns a `PlacementResult` containing the initial state and optimized solutions.
+/// Returns a `Result` containing a `PlacementResult` on success. The `PlacementResult` holds the
+/// initial state of the system and a vector of the best `Solution`s found, sorted by energy.
 ///
 /// # Errors
 ///
-/// Returns `EngineError` if any step in the workflow fails due to invalid input,
-/// configuration issues, or computational errors.
+/// Returns an `EngineError` if any stage of the workflow fails, such as:
+/// - `EngineError::LibraryLoad`: If a required rotamer library or parameter file cannot be found or parsed.
+/// - `EngineError::ResidueNotFound`: If a residue specified in the config does not exist in the system.
+/// - `EngineError::Placement`: If a geometric error occurs during rotamer placement.
 #[instrument(skip_all, name = "placement_workflow")]
 pub fn run(
     initial_system: &MolecularSystem,
