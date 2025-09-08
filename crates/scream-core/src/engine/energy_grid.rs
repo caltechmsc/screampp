@@ -15,13 +15,22 @@ use tracing::{info, trace};
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
-/// Manages the energy landscape for molecular optimization in SCREAM++.
+/// Manages the energy landscape for molecular optimization, enabling high-performance incremental updates.
 ///
-/// This struct provides a comprehensive energy calculation framework for protein
-/// side-chain placement optimization. It maintains pairwise interaction energies
-/// between residues, total interaction energies, and individual residue energies
-/// to enable efficient delta energy calculations during optimization moves.
-/// The energy grid supports both serial and parallel computation modes.
+/// The `EnergyGrid` is a cornerstone of the SCREAM++ engine's performance. A naive optimization
+/// approach would recalculate the entire system's energy (an O(N^2) operation for N active residues)
+/// after every single rotamer change. This becomes prohibitively expensive.
+///
+/// This structure solves that problem by implementing an **incremental update model**. It pre-calculates
+/// and stores all pairwise interaction energies. When a single residue's conformation changes,
+/// only the O(N) interactions involving that residue need to be recomputed. The `EnergyGrid`
+/// can then update the total energy in O(N) time by applying a `MoveDelta`.
+///
+/// It tracks:
+/// - Pairwise interaction energies between all active residue pairs.
+/// - The sum of interaction energies for each individual residue.
+/// - The pre-computed Empty Lattice (EL) energy for each residue's current rotamer.
+/// - The total optimization score, which is the sum of all interaction and EL energies.
 #[derive(Debug, Clone)]
 pub struct EnergyGrid {
     /// Pairwise interaction energies between residue pairs.
