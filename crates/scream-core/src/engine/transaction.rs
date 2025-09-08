@@ -5,12 +5,21 @@ use crate::core::models::ids::ResidueId;
 use crate::core::models::system::MolecularSystem;
 use std::collections::HashMap;
 
-/// Provides a transactional view of the molecular system for optimization operations.
+/// Provides a transactional, temporary view into a `MolecularSystem` for "what-if" calculations.
 ///
-/// This struct enables safe, temporary modifications to the molecular system during
-/// optimization moves. It tracks rotamer assignments and provides transaction methods
-/// that automatically revert changes after evaluation, ensuring the system remains
-/// in a consistent state for energy calculations.
+/// A critical challenge in optimization algorithms is evaluating the energy of a proposed
+/// move without permanently altering the system state. The naive approach is to `clone()` the
+/// entire `MolecularSystem` for each evaluation, which is extremely costly in terms of both
+/// memory allocation and CPU time, especially for large proteins.
+///
+/// `SystemView` solves this problem by providing a safe, temporary mutable view. The `transaction`
+/// and `transaction_doublet` methods work by:
+/// 1. Saving the original state (rotamer indices) of the target residue(s).
+/// 2. Executing a user-provided closure that is allowed to make temporary modifications.
+/// 3. **Guaranteeing** that the original state is restored after the closure completes.
+///
+/// This provides the illusion of a temporary copy with virtually zero overhead, dramatically
+/// improving performance and reducing memory pressure.
 pub struct SystemView<'a, 'ctx, C>
 where
     C: super::context::ProvidesResidueSelections + Sync,
