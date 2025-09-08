@@ -39,6 +39,8 @@ SCREAM++ relies on a set of data files, including forcefield parameters, rotamer
 
 ### Downloading Data Files
 
+> **Important:** This is a **mandatory first step**. SCREAM++ cannot run without these data files. (Unless you plan to provide all necessary files manually, which is not recommended for typical users.)
+
 This is the **mandatory first step** for using SCREAM++. Execute the following command to download and automatically unpack all required data files to their default location:
 
 ```sh
