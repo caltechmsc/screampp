@@ -198,9 +198,10 @@ impl ResidueType {
 
 /// Represents a residue in a molecular structure.
 ///
-/// This struct encapsulates the properties and atoms of a single residue,
-/// providing efficient access to backbone and sidechain atoms through caching.
-/// It is used in protein modeling and side-chain placement algorithms.
+/// This struct encapsulates the properties and atoms of a single residue.
+/// It uses lazy caching for backbone and sidechain atom lookups to improve
+/// performance in frequently accessed operations. The cache is automatically
+/// invalidated when atoms are added or removed.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Residue {
     /// The sequential number of the residue in its chain.
