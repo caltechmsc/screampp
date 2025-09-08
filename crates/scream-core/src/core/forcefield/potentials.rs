@@ -117,20 +117,26 @@ pub fn dreiding_hbond_12_10(dist_ad: f64, r_hb: f64, d_hb: f64) -> f64 {
 
 /// Applies a flat-bottom modification to a van der Waals potential function.
 ///
-/// This function modifies the behavior of a potential in the repulsive region by
-/// creating a flat energy well around the ideal distance, which can improve
-/// numerical stability in molecular dynamics simulations.
+/// This function implements the "Flat-Bottom Strategy" central to the SCREAM method.
+/// It addresses the issue of discrete rotamer libraries, where the best available rotamer
+/// may have minor steric clashes with its environment. A standard potential (like Lennard-Jones)
+/// would impose a large, unrealistic energy penalty for such small clashes.
+///
+/// This potential creates a "forgiveness" zone of width `delta` around the ideal
+/// interaction distance (`ideal_dist`). If the distance falls within `[ideal_dist - delta, ideal_dist]`,
+/// the energy is clamped to the potential minimum, applying no penalty. For distances
+/// shorter than this, the repulsive wall is effectively shifted by `delta`.
 ///
 /// # Arguments
 ///
 /// * `dist` - The actual distance between atoms.
-/// * `ideal_dist` - The ideal equilibrium distance.
-/// * `delta` - The width of the flat-bottom region.
-/// * `potential_fn` - The base potential function to modify.
+/// * `ideal_dist` - The ideal equilibrium distance (e.g., R_min in Lennard-Jones).
+/// * `delta` - The width of the flat-bottom region, calculated as `s * σ`.
+/// * `potential_fn` - A closure representing the base potential function (e.g., Lennard-Jones 12-6).
 ///
 /// # Return
 ///
-/// Returns the modified potential energy.
+/// Returns the modified van der Waals potential energy.
 #[inline]
 pub fn apply_flat_bottom_vdw<F>(dist: f64, ideal_dist: f64, delta: f64, potential_fn: F) -> f64
 where
@@ -159,20 +165,27 @@ where
 
 /// Applies a flat-bottom modification to a hydrogen bond potential function.
 ///
-/// This function creates a flat energy region around the ideal hydrogen bond
-/// distance to stabilize the interaction while maintaining the correct asymptotic
-/// behavior at long and short ranges.
+/// This function implements the "Flat-Bottom Strategy" for the hydrogen bond term,
+/// sharing the same motivation as its van der Waals counterpart: to accommodate small
+/// inaccuracies from discrete rotamer libraries. It prevents penalizing near-optimal
+/// polar contacts that are slightly too close or too far from their ideal distance.
+///
+/// The mechanism is distinct from the VDW modification. Instead of only shifting the
+/// repulsive wall, this function widens the entire potential well. Both the inner (repulsive)
+/// and outer (attractive) walls of the potential are shifted inwards by `delta`. This creates a
+/// flat energy minimum in the range `[ideal_dist - delta, ideal_dist + delta]`,
+/// making the potential more "forgiving" for interactions around the optimal geometry.
 ///
 /// # Arguments
 ///
-/// * `dist` - The actual distance between atoms.
-/// * `ideal_dist` - The ideal hydrogen bond distance.
-/// * `delta` - The width of the flat-bottom region.
-/// * `potential_fn` - The base potential function to modify.
+/// * `dist` - The actual distance between the donor and acceptor heavy atoms.
+/// * `ideal_dist` - The ideal equilibrium distance for the hydrogen bond (e.g., R_hb).
+/// * `delta` - The distance to shift both the inner and outer walls, widening the well.
+/// * `potential_fn` - A closure representing the base H-bond potential (e.g., Dreiding 12-10).
 ///
 /// # Return
 ///
-/// Returns the modified potential energy.
+/// Returns the modified hydrogen bond potential energy.
 #[inline]
 pub fn apply_flat_bottom_hbond<F>(dist: f64, ideal_dist: f64, delta: f64, potential_fn: F) -> f64
 where
