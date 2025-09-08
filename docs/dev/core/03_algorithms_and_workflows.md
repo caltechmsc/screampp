@@ -216,11 +216,11 @@ graph TD
 - **The Problem**: A naive approach would re-calculate all pairwise interactions ($O(N^2)$ pairs) after every single rotamer change. For a system with 200 active residues, this is nearly 20,000 pairs.
 - **The Solution**: When a single residue `i` changes its rotamer, only its interactions with the other `N-1` active residues change. The interactions between any other pair `(j, k)` where `j,k ≠ i` remain constant.
 - **`calculate_delta_for_move`**: This function computes the total change in energy without iterating over all pairs.
-  1.  It uses a `SystemView` transaction to temporarily place the new rotamer.
-  2.  It calculates the **new** interaction energies between the new rotamer and all other active side-chains ($O(N)$ calculations).
-  3.  It finds the change in interaction energy: $\Delta E_{\text{interaction}} = E_{\text{interaction}}^{\text{new}} - E_{\text{interaction}}^{\text{old}}$. The old value is efficiently retrieved from the `EnergyGrid`.
-  4.  It finds the change in Empty Lattice energy, $\Delta E_{\text{EL}}$, by a simple $O(1)$ lookup in the `ELCache`.
-  5.  The total change is $\Delta E_{\text{optimization}} = \Delta E_{\text{interaction}} + \Delta E_{\text{EL}}$.
+  1. It uses a `SystemView` transaction to temporarily place the new rotamer.
+  2. It calculates the **new** interaction energies between the new rotamer and all other active side-chains ($O(N)$ calculations).
+  3. It finds the change in interaction energy: $\Delta E_{\text{interaction}} = E_{\text{interaction}}^{\text{new}} - E_{\text{interaction}}^{\text{old}}$. The old value is efficiently retrieved from the `EnergyGrid`.
+  4. It finds the change in Empty Lattice energy, $\Delta E_{\text{EL}}$, by a simple $O(1)$ lookup in the `ELCache`.
+  5. The total change is $\Delta E_{\text{optimization}} = \Delta E_{\text{interaction}} + \Delta E_{\text{EL}}$.
 - **`apply_move`**: This function takes the `MoveDelta` object and updates the `EnergyGrid`'s internal tables in $O(N)$ time, reflecting the new energy landscape.
 
 ### 3.3.2. Doublet Optimization: Heuristic for Clash Resolution
