@@ -27,7 +27,7 @@ The single most important performance feature of the optimization engine is the 
 
 - **The Solution**: The `EnergyGrid` transforms this into an $O(N)$ operation. When a single residue `i` changes its conformation, the only interaction energies that change are those involving residue `i`. All other pairwise interactions $(j, k)$ where $j, k \neq i$ remain unchanged.
 
-**Figure 1: Energy Update Complexity**
+**Figure 1: Visualizing Energy Update Complexity (Example: N=5 Active Residues)**
 
 ```mermaid
 graph TD
@@ -80,6 +80,15 @@ graph TD
     linkStyle 10,11,12,13,14,15 stroke-width:1px,stroke-dasharray: 5 5
     linkStyle 16,17,18,19 stroke-width:2px
 ```
+
+**Explanation of the diagram:**
+
+- **Naive Approach**: When Residue 5 changes, the algorithm recalculates the energy for **all 10 pairs** (solid lines). The complexity grows quadratically with the number of residues.
+- **EnergyGrid Approach**:
+
+  - The interactions between residues 1, 2, 3, and 4 (dashed gray lines) are **not recalculated**. Their values are already stored in the `EnergyGrid`.
+  - Only the **4 pairs** involving the changed Residue 5 (solid blue lines) need to be recomputed.
+  - The total energy is then updated by subtracting the old interaction energies of Residue 5 and adding the new ones. This complexity grows linearly.
 
 - **Implementation**: This is achieved through the `calculate_delta_for_move` and `apply_move` methods on the `EnergyGrid`.
   1. `calculate_delta_for_move` computes the change in energy ($\Delta E$) by summing only the changes in the $N-1$ pairs involving the moving residue.
