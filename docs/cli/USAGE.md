@@ -376,7 +376,7 @@ scream place \
     -s 1.2
 ```
 
-> **Note**: The `diversity` (`rmsd-0.6`) of the `rotamer-library` and `delta-params-path` must match. The `s-factor` (`1.2`) is a recommended value optimized for this diversity.
+> **Note**: The `s-factor` is empirically optimized for a given rotamer library `diversity` to achieve the best accuracy. It is crucial that the `diversity` of the `--rotamer-library` (e.g., `rmsd-0.6`) matches the `--delta-params-path`. Using mismatched values may lead to suboptimal results.
 
 ### Example 3: Optimizing a Ligand Binding Pocket
 
