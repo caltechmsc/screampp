@@ -172,10 +172,10 @@ For complex or reproducible tasks, using a TOML configuration file is highly rec
 
 The configuration file is organized into four main sections (TOML tables):
 
-1.  `[forcefield]`: Parameters related to the energy function.
-2.  `[sampling]`: Parameters related to conformational sampling.
-3.  `[optimization]`: Parameters to control the optimization algorithm.
-4.  `[residues-to-optimize]`: Defines the scope of the optimization.
+1. `[forcefield]`: Parameters related to the energy function.
+2. `[sampling]`: Parameters related to conformational sampling.
+3. `[optimization]`: Parameters to control the optimization algorithm.
+4. `[residues-to-optimize]`: Defines the scope of the optimization.
 
 ### Example Configuration File
 
