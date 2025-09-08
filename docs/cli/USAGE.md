@@ -185,136 +185,134 @@ Here is an example configuration file with all common options and detailed comme
 
 ```toml
 # =============================================================================
-# SCREAM++ Example Configuration File
+# SCREAM++ Complete Configuration File Template
 # =============================================================================
+#
+# This file contains ALL available settings for a `scream place` run.
+# - To use a setting, uncomment it and modify its value.
+# - Settings that are commented out will use the application's default value,
+#   which is shown in the comment for reference.
+# - For detailed explanations, please refer to the full user manual.
 
 # -----------------------------------------------------------------------------
-# [forcefield] - Energy Function & Parameters
+# [forcefield] - Energy function and forcefield parameters
 # -----------------------------------------------------------------------------
 [forcefield]
 
-# -- Core Parameters --
+# s-factor for the flat-bottom potential. This is a critical parameter for accuracy.
+# Its optimal value is dependent on the diversity of the chosen rotamer library.
+# Default: 1.1 (optimized for rmsd-1.0 libraries)
+s-factor = 1.1
 
 # Path or logical name for the main forcefield parameter file.
 # Logical names: 'exp-6@0.4', 'lj-12-6@0.4', etc.
 # Default: "exp-6@0.4"
-forcefield-path = "exp-6@0.4"
+# forcefield-path = "exp-6@0.4"
 
-# Path or logical name for the flat-bottom delta parameters.
-# The diversity (e.g., "rmsd-1.0") should match your rotamer library.
+# Path or logical name for the flat-bottom delta parameter file.
+# The diversity (e.g., "rmsd-1.0") should match the rotamer library.
 # Default: "rmsd-1.0"
-delta-params-path = "rmsd-1.0"
+# delta-params-path = "rmsd-1.0"
 
-# The 's-factor' for the flat-bottom potential. This is a critical parameter
-# that tunes the tolerance for atomic clashes.
-# Default: 1.1
-s-factor = 1.1
-
-# -- [Optional] Advanced Energy Weighting --
-#
-# This section allows you to scale energy terms for interactions between
+# [Optional] Rules for applying custom weights to energy components between
 # different types of atoms (Atom Roles: Backbone, Sidechain, Ligand, Water, Other).
-# By default, all weights are 1.0.
-#
+# By default, all interactions have a weight of 1.0.
 # [[forcefield.energy-weights.rules]]
 # groups = ["Backbone", "Sidechain"]
-# weights = { vdw = 0.8, coulomb = 0.8, hbond = 1.0 }
-#
-# [[forcefield.energy-weights.rules]]
-# groups = ["Sidechain", "Ligand"]
-# weights = { vdw = 0.5, coulomb = 1.0, hbond = 1.2 }
-
+# weights = { vdw = 1.0, coulomb = 1.0, hbond = 1.0 }
 
 # -----------------------------------------------------------------------------
-# [sampling] - Conformational Sampling
+# [sampling] - Side-chain conformation sampling
 # -----------------------------------------------------------------------------
 [sampling]
 
 # Path or logical name for the rotamer library.
-# The diversity (e.g., "rmsd-1.0") should match your delta-params-path.
+# The diversity (e.g., "rmsd-1.0") should match `delta-params-path`.
 # Logical names: 'charmm@rmsd-1.0', 'amber@rmsd-1.0', etc.
 # Default: "charmm@rmsd-1.0"
-rotamer-library = "charmm@rmsd-1.0"
-
+# rotamer-library = "charmm@rmsd-1.0"
 
 # -----------------------------------------------------------------------------
-# [optimization] - Algorithm Control
+# [optimization] - Algorithm control
 # -----------------------------------------------------------------------------
 [optimization]
 
-# Number of lowest-energy, unique solutions to generate and save.
+# The number of lowest-energy, unique solutions to generate and save.
 # Default: 1
 num-solutions = 1
 
-# Maximum number of iterations for the primary clash-resolution loop.
+# Maximum number of iterations for the main clash resolution algorithm.
 # Default: 100
-max-iterations = 100
+# max-iterations = 100
 
-# If true, the original side-chain conformation from the input structure
-# will be included as a candidate during the optimization.
+# Whether to include the input structure's original side-chain conformation as
+# a candidate solution during the optimization.
 # Default: true
-include-input-conformation = true
+# include-input-conformation = true
 
-# Number of refinement iterations (singlet optimization) to perform after the
-# main clash-resolution loop has converged. Set to 0 to disable.
+# Number of refinement iterations (singlet optimization) to run after the
+# main loop converges. Set to 0 to disable.
 # Default: 2
-final-refinement-iterations = 2
+# final-refinement-iterations = 2
 
-# -- [Optional] Simulated Annealing --
-#
-# To enable simulated annealing for better global energy landscape exploration,
-# uncomment this entire section. This may improve results but will increase runtime.
-#
-# [optimization.simulated-annealing]
-# initial-temperature = 5.0      # Starting temperature (in energy units).
-# final-temperature = 0.1        # Temperature at which to stop the annealing.
-# cooling-rate = 0.9             # Multiplicative factor to decrease temperature (e.g., T_new = T_old * 0.9).
-# steps-per-temperature = 100    # Number of Monte Carlo moves to attempt at each temperature step.
+# [optimization.convergence]
+# --- Convergence Criteria ---
+# The algorithm is considered converged if the best energy improves by less than
+# this threshold over a 'patience' number of iterations.
+# Default: 0.01 (kcal/mol)
+# energy-threshold = 0.01
 
-# -- Convergence Criteria --
-#
-# Defines the conditions for stopping the clash-resolution loop.
-#
-[optimization.convergence]
-# The loop will stop if the best energy found does not improve by at least
-# this amount (in kcal/mol) over a 'patience' number of iterations.
-# Default: 0.01
-energy-threshold = 0.01
-
-# The number of consecutive iterations without sufficient energy improvement
-# before the algorithm is considered to have converged.
+# The number of consecutive iterations with insufficient energy improvement
+# before the optimization loop terminates.
 # Default: 5
-patience-iterations = 5
+# patience-iterations = 5
 
+# [optimization.simulated-annealing]
+# --- [Optional] Simulated Annealing ---
+# To enable, uncomment this entire section. This can help the algorithm escape
+# local energy minima but will increase runtime.
+# initial-temperature = 5.0
+# final-temperature = 0.1
+# cooling-rate = 0.9
+# steps-per-temperature = 100
 
 # -----------------------------------------------------------------------------
-# [residues-to-optimize] - Defines the Scope of Optimization
+# [residues-to-optimize] - Defines which residues to modify
 # -----------------------------------------------------------------------------
 [residues-to-optimize]
 
-# TYPE 1: Optimize all residues in the protein.
+# Choose ONE of the following types: "all", "list", or "ligand-binding-site".
+
+# TYPE 1: Optimize all residues.
+# This is the default if the section is omitted.
 type = "all"
 
 # TYPE 2: Optimize a specific list of residues.
+# `include` specifies which residues to target. If `include` is empty, it defaults to all residues.
+# `exclude` specifies which residues to ignore, even if they are in the `include` selection.
 # type = "list"
-# # 'include' defines a whitelist. If 'include' is empty, all residues are selected.
 # include = [
 #   { chain-id = 'A', residue-number = 25 },
 #   { chain-id = 'A', residue-number = 101 },
 # ]
-# # 'exclude' defines a blacklist that overrides the selection.
-# exclude = [
-#   { chain-id = 'A', residue-number = 50 },
-# ]
+# exclude = []
 
-# TYPE 3: Optimize residues within a radius of a ligand.
+# TYPE 3: Optimize residues within a certain radius of a ligand.
+# The radius is measured from any heavy atom of the ligand to any heavy atom of a protein residue.
 # type = "ligand-binding-site"
-# # Specify the ligand's location.
+# radius-angstroms = 5.0
 # [residues-to-optimize.ligand-residue]
 # chain-id = 'X'
 # residue-number = 999
-# # Define the radius in Angstroms from any heavy atom of the ligand.
-# radius-angstroms = 5.0
+
+# -----------------------------------------------------------------------------
+# Global Settings
+# -----------------------------------------------------------------------------
+
+# Path or logical name for the residue topology registry.
+# In most cases, the default is sufficient.
+# Default: "default"
+# topology-registry-path = "default"
 ```
 
 ### Detailed Configuration Options
