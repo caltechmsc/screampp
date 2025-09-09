@@ -7,7 +7,7 @@ use crate::core::models::residue::{Residue, ResidueType};
 use crate::core::models::system::MolecularSystem;
 use crate::core::models::topology::BondOrder;
 use nalgebra::Point3;
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeMap, HashMap};
 use std::io::{self, BufRead, Write};
 use thiserror::Error;
 
@@ -270,25 +270,41 @@ impl MolecularFile for BgfFile {
         }
 
         // --- Phase 4: Write CONECT records using the new serial numbers ---
-        let mut bond_pairs = BTreeSet::new();
-        for bond in system.bonds() {
-            if let (Some(&serial1), Some(&serial2)) = (
-                atom_id_to_new_serial.get(&bond.atom1_id),
-                atom_id_to_new_serial.get(&bond.atom2_id),
-            ) {
-                let bond_pair = if serial1 < serial2 {
-                    (serial1, serial2)
-                } else {
-                    (serial2, serial1)
-                };
-                bond_pairs.insert(bond_pair);
+
+        // Step 4.1: Build an adjacency list using the new serial numbers.
+        let mut serial_adjacency_list = BTreeMap::<usize, Vec<usize>>::new();
+        for canonical_atom in &sorted_atoms {
+            let base_serial = atom_id_to_new_serial[&canonical_atom.id];
+
+            if let Some(neighbor_ids) = system.get_bonded_neighbors(canonical_atom.id) {
+                if neighbor_ids.is_empty() {
+                    continue;
+                }
+
+                let neighbor_serials: Vec<usize> = neighbor_ids
+                    .iter()
+                    .map(|neighbor_id| atom_id_to_new_serial[neighbor_id])
+                    .collect();
+
+                serial_adjacency_list.insert(base_serial, neighbor_serials);
             }
         }
 
         writeln!(writer, "FORMAT CONECT (a6,12i6)")?;
 
-        for (s1, s2) in bond_pairs {
-            writeln!(writer, "CONECT {:>5} {:>6}", s1, s2)?;
+        // Step 4.2: Write a CONECT record for each atom that has bonds.
+        const MAX_NEIGHBORS_PER_LINE: usize = 12;
+
+        for (base_serial, mut neighbors) in serial_adjacency_list {
+            neighbors.sort_unstable();
+
+            for neighbor_chunk in neighbors.chunks(MAX_NEIGHBORS_PER_LINE) {
+                let mut line = format!("CONECT{:>6}", base_serial);
+                for &neighbor_serial in neighbor_chunk {
+                    line.push_str(&format!("{:>6}", neighbor_serial));
+                }
+                writeln!(writer, "{}", line)?;
+            }
         }
 
         writeln!(writer, "END")?;
@@ -513,11 +529,12 @@ ATOM       6 CA    ALA B     2   3.00000   0.00000   1.00000 C_3    1 4  0.07000
 ATOM       7 CB    ALA B     2   3.50000   1.50000   1.00000 C_3    1 4 -0.18000
 FORMAT CONECT (a6,12i6)
 CONECT     1     2
-CONECT     2     3
-CONECT     3     4
-CONECT     3     5
-CONECT     5     6
-CONECT     6     7
+CONECT     2     1     3
+CONECT     3     2     4     5
+CONECT     4     3
+CONECT     5     3     6
+CONECT     6     5     7
+CONECT     7     6
 END
 "#;
 
@@ -661,7 +678,7 @@ END
             .iter()
             .filter(|l| l.starts_with("CONECT"))
             .collect();
-        assert_eq!(conect_lines.len(), 2);
+        assert_eq!(conect_lines.len(), 4);
 
         let bond1_found = conect_lines
             .iter()
