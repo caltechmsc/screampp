@@ -10,6 +10,20 @@ use std::collections::{HashMap, HashSet};
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
+/// Collects all sidechain atoms for a set of active residues.
+///
+/// This function iterates through the specified active residues and extracts
+/// all atoms classified as sidechain atoms according to their role in the molecular system.
+/// The result is a mapping from residue IDs to their corresponding sidechain atom IDs.
+///
+/// # Arguments
+///
+/// * `system` - The molecular system containing the residues and atoms.
+/// * `active_residues` - A set of residue IDs for which to collect sidechain atoms.
+///
+/// # Return
+///
+/// Returns a `HashMap` where keys are residue IDs and values are vectors of sidechain atom IDs.
 pub fn collect_active_sidechain_atoms(
     system: &MolecularSystem,
     active_residues: &HashSet<ResidueId>,
@@ -36,6 +50,20 @@ pub fn collect_active_sidechain_atoms(
     map
 }
 
+/// Precomputes the set of environment atoms for optimization.
+///
+/// Environment atoms are those that are not part of the active residues' sidechains
+/// but may interact with them during energy calculations. This includes backbone atoms
+/// from active residues and all atoms from inactive residues.
+///
+/// # Arguments
+///
+/// * `system` - The molecular system containing all atoms.
+/// * `active_residues` - A set of residue IDs that are being optimized.
+///
+/// # Return
+///
+/// Returns a vector of atom IDs representing the environment atoms.
 pub fn precompute_environment_atoms(
     system: &MolecularSystem,
     active_residues: &HashSet<ResidueId>,
@@ -54,6 +82,27 @@ pub fn precompute_environment_atoms(
         .collect()
 }
 
+/// Resolves a residue selection specification into a set of residue IDs.
+///
+/// This function interprets various types of residue selection criteria and converts
+/// them into concrete residue IDs from the molecular system. It supports selecting
+/// all residues, explicit include/exclude lists, and ligand binding site detection.
+/// The final result is filtered to only include residues that have available rotamers
+/// in the provided library.
+///
+/// # Arguments
+///
+/// * `system` - The molecular system containing the residues to select from.
+/// * `selection` - The selection criteria specifying which residues to include.
+/// * `library` - The rotamer library used to filter residues by rotamer availability.
+///
+/// # Return
+///
+/// Returns a set of residue IDs that match the selection criteria and have available rotamers.
+///
+/// # Errors
+///
+/// Returns `EngineError::ResidueNotFound` if a specified residue cannot be found in the system.
 pub fn resolve_selection_to_ids(
     system: &MolecularSystem,
     selection: &ResidueSelection,
@@ -63,12 +112,16 @@ pub fn resolve_selection_to_ids(
 
     match selection {
         ResidueSelection::All => {
+            // Select all residues in the system
             candidate_ids = system.residues_iter().map(|(id, _)| id).collect();
         }
         ResidueSelection::List { include, exclude } => {
+            // Handle explicit include/exclude lists
             if include.is_empty() && !exclude.is_empty() {
+                // If only exclusions specified, start with all residues
                 candidate_ids = system.residues_iter().map(|(id, _)| id).collect();
             } else {
+                // Add explicitly included residues
                 for spec in include {
                     let chain_id = system
                         .find_chain_by_id(spec.chain_id)
@@ -80,6 +133,7 @@ pub fn resolve_selection_to_ids(
                 }
             }
 
+            // Remove explicitly excluded residues
             for spec in exclude {
                 if let Some(chain_id) = system.find_chain_by_id(spec.chain_id) {
                     if let Some(residue_id) =
@@ -94,6 +148,7 @@ pub fn resolve_selection_to_ids(
             ligand_residue,
             radius_angstroms,
         } => {
+            // Find residues within binding distance of the ligand
             let ligand_chain_id = system
                 .find_chain_by_id(ligand_residue.chain_id)
                 .ok_or_else(|| EngineError::ResidueNotFound {
@@ -105,6 +160,7 @@ pub fn resolve_selection_to_ids(
                     spec: ligand_residue.clone(),
                 })?;
 
+            // Collect heavy atom positions from the ligand
             let mut ligand_heavy_atom_positions: Vec<[f64; 3]> = Vec::new();
             if let Some(ligand_res) = system.residue(ligand_res_id) {
                 for atom_id in ligand_res.atoms() {
@@ -124,15 +180,18 @@ pub fn resolve_selection_to_ids(
                 return Ok(HashSet::new());
             }
 
+            // Build spatial index for efficient distance queries
             let kdtree: KdTree<f64, 3> = (&ligand_heavy_atom_positions).into();
             let radius_sq = radius_angstroms * radius_angstroms;
 
+            // Use parallel iteration if available
             #[cfg(not(feature = "parallel"))]
             let iterator = system.residues_iter();
 
             #[cfg(feature = "parallel")]
             let iterator = system.residues_iter().par_bridge();
 
+            // Find protein residues within the specified radius
             let binding_site_ids: HashSet<ResidueId> = iterator
                 .filter_map(|(res_id, residue)| {
                     if res_id == ligand_res_id {
@@ -146,6 +205,7 @@ pub fn resolve_selection_to_ids(
                         return None;
                     }
 
+                    // Check if any heavy atom of this residue is within radius
                     let is_in_binding_site = residue.atoms().iter().any(|protein_atom_id| {
                         if let Some(protein_atom) = system.atom(*protein_atom_id) {
                             if is_heavy_atom(&protein_atom.name) {
@@ -173,6 +233,7 @@ pub fn resolve_selection_to_ids(
         }
     };
 
+    // Filter to only include residues with available rotamers
     let final_active_residues = candidate_ids
         .into_iter()
         .filter(|&residue_id| {
@@ -188,6 +249,20 @@ pub fn resolve_selection_to_ids(
     Ok(final_active_residues)
 }
 
+/// Determines whether an atom is a heavy atom (non-hydrogen).
+///
+/// Heavy atoms are defined as any atom whose name does not start with 'H' or 'D'
+/// (deuterium). This classification is used in various molecular calculations
+/// where hydrogen atoms are often treated differently due to their small size
+/// and different interaction properties.
+///
+/// # Arguments
+///
+/// * `atom_name` - The name of the atom to classify.
+///
+/// # Return
+///
+/// Returns `true` if the atom is a heavy atom, `false` if it is hydrogen or deuterium.
 fn is_heavy_atom(atom_name: &str) -> bool {
     let first_char = atom_name
         .trim()

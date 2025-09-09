@@ -15,26 +15,79 @@ use tracing::{info, trace};
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
+/// Manages the energy landscape for molecular optimization, enabling high-performance incremental updates.
+///
+/// The `EnergyGrid` is a cornerstone of the SCREAM++ engine's performance. A naive optimization
+/// approach would recalculate the entire system's energy (an O(N^2) operation for N active residues)
+/// after every single rotamer change. This becomes prohibitively expensive.
+///
+/// This structure solves that problem by implementing an **incremental update model**. It pre-calculates
+/// and stores all pairwise interaction energies. When a single residue's conformation changes,
+/// only the O(N) interactions involving that residue need to be recomputed. The `EnergyGrid`
+/// can then update the total energy in O(N) time by applying a `MoveDelta`.
+///
+/// It tracks:
+/// - Pairwise interaction energies between all active residue pairs.
+/// - The sum of interaction energies for each individual residue.
+/// - The pre-computed Empty Lattice (EL) energy for each residue's current rotamer.
+/// - The total optimization score, which is the sum of all interaction and EL energies.
 #[derive(Debug, Clone)]
 pub struct EnergyGrid {
+    /// Pairwise interaction energies between residue pairs.
     pair_interactions: HashMap<(ResidueId, ResidueId), EnergyTerm>,
+    /// Total interaction energy for each residue with all other active residues.
     total_residue_interactions: HashMap<ResidueId, EnergyTerm>,
+    /// Total interaction energy across all active residue pairs.
     total_interaction_energy: EnergyTerm,
+    /// Current electrostatic energies for each active residue.
     current_el_energies: HashMap<ResidueId, EnergyTerm>,
+    /// Current total optimization score (interaction + electrostatic).
     current_optimization_score: f64,
 }
 
+/// Represents the energy changes resulting from a single optimization move.
+///
+/// This struct encapsulates all the energy deltas computed when changing a residue's
+/// rotamer conformation. It provides the information needed to update the energy
+/// grid efficiently without recomputing all interactions from scratch.
 #[derive(Debug, Clone)]
 pub struct MoveDelta {
+    /// The residue being moved.
     pub res_id: ResidueId,
+    /// The new rotamer index for the residue.
     pub new_rotamer_idx: usize,
+    /// The new electrostatic energy for the residue.
     pub new_el: EnergyTerm,
+    /// The new total interaction energy for the residue.
     pub new_total_interaction: EnergyTerm,
+    /// Updated pairwise interaction energies with other residues.
     pub new_pair_interactions: HashMap<ResidueId, EnergyTerm>,
+    /// The total change in optimization score from this move.
     pub delta_score: f64,
 }
 
 impl EnergyGrid {
+    /// Creates a new energy grid with full energy calculations for the initial system state.
+    ///
+    /// This constructor performs a complete energy calculation for all active residues,
+    /// computing pairwise interactions and caching electrostatic energies. It serves
+    /// as the baseline for subsequent delta energy calculations during optimization.
+    ///
+    /// # Arguments
+    ///
+    /// * `system` - The molecular system containing the residues.
+    /// * `forcefield` - The force field parameters for energy calculations.
+    /// * `active_residues` - Set of residues that will be optimized.
+    /// * `el_cache` - Cache of pre-computed electrostatic energies.
+    /// * `initial_rotamers` - Initial rotamer assignments for active residues.
+    ///
+    /// # Return
+    ///
+    /// Returns a new `EnergyGrid` instance with computed energies.
+    ///
+    /// # Errors
+    ///
+    /// Returns `EngineError` if energy calculations fail.
     pub fn new(
         system: &MolecularSystem,
         forcefield: &Forcefield,
@@ -83,6 +136,7 @@ impl EnergyGrid {
             *total_residue_interactions.get_mut(&res_b_id).unwrap() += interaction;
         }
 
+        // The total interaction energy is double-counted in the sum above, so divide by 2
         let total_interaction_energy = total_residue_interactions
             .values()
             .fold(EnergyTerm::default(), |acc, term| acc + *term)
@@ -121,14 +175,53 @@ impl EnergyGrid {
         })
     }
 
+    /// Returns the current total optimization score.
+    ///
+    /// The optimization score is the sum of all interaction energies and
+    /// electrostatic energies for the current system configuration.
+    ///
+    /// # Return
+    ///
+    /// Returns the current total optimization score as a `f64`.
     pub fn total_score(&self) -> f64 {
         self.current_optimization_score
     }
 
+    /// Retrieves the current electrostatic energy for a specific residue.
+    ///
+    /// # Arguments
+    ///
+    /// * `res_id` - The residue ID to query.
+    ///
+    /// # Return
+    ///
+    /// Returns `Some(&EnergyTerm)` if the residue has cached electrostatic energy,
+    /// or `None` if the residue is not active or has no cached energy.
     pub fn get_el_energy(&self, res_id: ResidueId) -> Option<&EnergyTerm> {
         self.current_el_energies.get(&res_id)
     }
 
+    /// Calculates the energy change resulting from a proposed rotamer move.
+    ///
+    /// This method efficiently computes the delta energy without recalculating
+    /// all interactions. It uses a transaction-based approach to temporarily
+    /// apply the move and compute only the affected interactions.
+    ///
+    /// # Arguments
+    ///
+    /// * `res_id` - The residue to move.
+    /// * `new_rotamer_idx` - The new rotamer index for the residue.
+    /// * `system_view` - Transaction view for temporary system modifications.
+    /// * `el_cache` - Cache of pre-computed electrostatic energies.
+    /// * `active_residues` - Set of all active residues.
+    ///
+    /// # Return
+    ///
+    /// Returns a `MoveDelta` containing all energy changes from the proposed move.
+    ///
+    /// # Errors
+    ///
+    /// Returns `EngineError` if the move cannot be applied or energy calculations fail.
     pub fn calculate_delta_for_move<'a, 'ctx, C>(
         &self,
         res_id: ResidueId,
@@ -203,6 +296,7 @@ impl EnergyGrid {
                         .map(|term| Some((other_res_id, term)))
                 };
 
+                // Use parallel computation if the feature is enabled, otherwise serial
                 #[cfg(not(feature = "parallel"))]
                 let results: Result<Vec<_>, _> = active_residues_vec
                     .iter()
@@ -269,6 +363,15 @@ impl EnergyGrid {
         })
     }
 
+    /// Applies a pre-calculated move delta to update the energy grid state.
+    ///
+    /// This method efficiently updates all internal energy tracking structures
+    /// using the pre-computed deltas from `calculate_delta_for_move`, avoiding
+    /// the need for full energy recalculation.
+    ///
+    /// # Arguments
+    ///
+    /// * `move_delta` - The pre-calculated energy changes from a move.
     pub fn apply_move(&mut self, move_delta: MoveDelta) {
         let res_id = move_delta.res_id;
 

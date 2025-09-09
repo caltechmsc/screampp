@@ -6,67 +6,184 @@ use super::topology::{Bond, BondOrder};
 use slotmap::{SecondaryMap, SlotMap};
 use std::collections::HashMap;
 
+/// Represents a complete molecular system with atoms, residues, chains, and bonds.
+///
+/// This struct serves as the central data structure for molecular modeling,
+/// providing efficient storage and access to all molecular components.
+/// It maintains internal caches and lookup maps for performance optimization.
 #[derive(Debug, Clone, Default)]
 pub struct MolecularSystem {
-    // --- Primary Data Stores (Source of Truth) ---
+    /// Primary storage for atoms using a slot map for efficient ID management.
     atoms: SlotMap<AtomId, Atom>,
+    /// Primary storage for residues using a slot map for efficient ID management.
     residues: SlotMap<ResidueId, Residue>,
+    /// Primary storage for chains using a slot map for efficient ID management.
     chains: SlotMap<ChainId, Chain>,
+    /// List of all bonds in the system.
     bonds: Vec<Bond>,
-
-    // --- Lookup Maps for Fast Access ---
+    /// Lookup map for finding residues by chain ID and residue number.
     residue_id_map: HashMap<(ChainId, isize), ResidueId>,
+    /// Lookup map for finding chains by their single-character identifier.
     chain_id_map: HashMap<char, ChainId>,
-
-    // --- Adjacency information (cache for performance) ---
+    /// Cached adjacency list for bond connectivity, indexed by atom ID.
     bond_adjacency: SecondaryMap<AtomId, Vec<AtomId>>,
 }
 
 impl MolecularSystem {
+    /// Creates a new, empty molecular system.
+    ///
+    /// This constructor initializes all internal data structures
+    /// and is ready for adding chains, residues, and atoms.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Retrieves an immutable reference to an atom by its ID.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The atom ID to look up.
+    ///
+    /// # Return
+    ///
+    /// Returns `Some(&Atom)` if the atom exists, otherwise `None`.
     pub fn atom(&self, id: AtomId) -> Option<&Atom> {
         self.atoms.get(id)
     }
+
+    /// Retrieves a mutable reference to an atom by its ID.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The atom ID to look up.
+    ///
+    /// # Return
+    ///
+    /// Returns `Some(&mut Atom)` if the atom exists, otherwise `None`.
     pub fn atom_mut(&mut self, id: AtomId) -> Option<&mut Atom> {
         self.atoms.get_mut(id)
     }
+
+    /// Returns an iterator over all atoms in the system.
+    ///
+    /// # Return
+    ///
+    /// An iterator yielding `(AtomId, &Atom)` pairs.
     pub fn atoms_iter(&self) -> impl Iterator<Item = (AtomId, &Atom)> {
         self.atoms.iter()
     }
+
+    /// Returns a mutable iterator over all atoms in the system.
+    ///
+    /// # Return
+    ///
+    /// An iterator yielding `(AtomId, &mut Atom)` pairs.
     pub fn atoms_iter_mut(&mut self) -> impl Iterator<Item = (AtomId, &mut Atom)> {
         self.atoms.iter_mut()
     }
 
+    /// Retrieves an immutable reference to a residue by its ID.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The residue ID to look up.
+    ///
+    /// # Return
+    ///
+    /// Returns `Some(&Residue)` if the residue exists, otherwise `None`.
     pub fn residue(&self, id: ResidueId) -> Option<&Residue> {
         self.residues.get(id)
     }
+
+    /// Retrieves a mutable reference to a residue by its ID.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The residue ID to look up.
+    ///
+    /// # Return
+    ///
+    /// Returns `Some(&mut Residue)` if the residue exists, otherwise `None`.
     pub fn residue_mut(&mut self, id: ResidueId) -> Option<&mut Residue> {
         self.residues.get_mut(id)
     }
+
+    /// Returns an iterator over all residues in the system.
+    ///
+    /// # Return
+    ///
+    /// An iterator yielding `(ResidueId, &Residue)` pairs.
     pub fn residues_iter(&self) -> impl Iterator<Item = (ResidueId, &Residue)> {
         self.residues.iter()
     }
 
+    /// Retrieves an immutable reference to a chain by its ID.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The chain ID to look up.
+    ///
+    /// # Return
+    ///
+    /// Returns `Some(&Chain)` if the chain exists, otherwise `None`.
     pub fn chain(&self, id: ChainId) -> Option<&Chain> {
         self.chains.get(id)
     }
+
+    /// Retrieves a mutable reference to a chain by its ID.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The chain ID to look up.
+    ///
+    /// # Return
+    ///
+    /// Returns `Some(&mut Chain)` if the chain exists, otherwise `None`.
     pub fn chain_mut(&mut self, id: ChainId) -> Option<&mut Chain> {
         self.chains.get_mut(id)
     }
+
+    /// Returns an iterator over all chains in the system.
+    ///
+    /// # Return
+    ///
+    /// An iterator yielding `(ChainId, &Chain)` pairs.
     pub fn chains_iter(&self) -> impl Iterator<Item = (ChainId, &Chain)> {
         self.chains.iter()
     }
 
+    /// Returns a slice of all bonds in the system.
+    ///
+    /// # Return
+    ///
+    /// A slice containing all bonds.
     pub fn bonds(&self) -> &[Bond] {
         &self.bonds
     }
 
+    /// Finds a chain ID by its single-character identifier.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The character identifier of the chain.
+    ///
+    /// # Return
+    ///
+    /// Returns `Some(ChainId)` if the chain exists, otherwise `None`.
     pub fn find_chain_by_id(&self, id: char) -> Option<ChainId> {
         self.chain_id_map.get(&id).copied()
     }
+
+    /// Finds a residue ID by its chain ID and residue number.
+    ///
+    /// # Arguments
+    ///
+    /// * `chain_id` - The ID of the chain containing the residue.
+    /// * `residue_number` - The sequential number of the residue.
+    ///
+    /// # Return
+    ///
+    /// Returns `Some(ResidueId)` if the residue exists, otherwise `None`.
     pub fn find_residue_by_id(
         &self,
         chain_id: ChainId,
@@ -77,6 +194,19 @@ impl MolecularSystem {
             .copied()
     }
 
+    /// Adds a new chain to the system or returns the existing one.
+    ///
+    /// This method is idempotent; if a chain with the given ID already exists,
+    /// it returns the existing chain ID without creating a duplicate.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The single-character identifier for the chain.
+    /// * `chain_type` - The type of the chain.
+    ///
+    /// # Return
+    ///
+    /// The ID of the chain (new or existing).
     pub fn add_chain(&mut self, id: char, chain_type: ChainType) -> ChainId {
         *self.chain_id_map.entry(id).or_insert_with(|| {
             let chain = Chain::new(id, chain_type);
@@ -84,6 +214,21 @@ impl MolecularSystem {
         })
     }
 
+    /// Adds a new residue to the system or returns the existing one.
+    ///
+    /// This method is idempotent; if a residue with the given chain ID and
+    /// residue number already exists, it returns the existing residue ID.
+    ///
+    /// # Arguments
+    ///
+    /// * `chain_id` - The ID of the chain to add the residue to.
+    /// * `residue_number` - The sequential number of the residue.
+    /// * `name` - The name of the residue.
+    /// * `residue_type` - The type of the residue, if known.
+    ///
+    /// # Return
+    ///
+    /// Returns `Some(ResidueId)` if successful, otherwise `None` (e.g., if chain doesn't exist).
     pub fn add_residue(
         &mut self,
         chain_id: ChainId,
@@ -106,6 +251,19 @@ impl MolecularSystem {
         Some(residue_id)
     }
 
+    /// Adds an atom to a specific residue.
+    ///
+    /// This method inserts the atom into the system and registers it with the given residue.
+    /// It also initializes the bond adjacency list for the new atom.
+    ///
+    /// # Arguments
+    ///
+    /// * `residue_id` - The ID of the residue to add the atom to.
+    /// * `atom` - The atom to add.
+    ///
+    /// # Return
+    ///
+    /// Returns `Some(AtomId)` if successful, otherwise `None` (e.g., if residue doesn't exist).
     pub fn add_atom_to_residue(&mut self, residue_id: ResidueId, atom: Atom) -> Option<AtomId> {
         if !self.residues.contains_key(residue_id) {
             return None;
@@ -122,6 +280,21 @@ impl MolecularSystem {
         Some(atom_id)
     }
 
+    /// Adds a bond between two atoms.
+    ///
+    /// This method creates a bond between the specified atoms and updates
+    /// the adjacency cache. It is idempotent; adding an existing bond
+    /// succeeds without creating duplicates.
+    ///
+    /// # Arguments
+    ///
+    /// * `atom1_id` - ID of the first atom.
+    /// * `atom2_id` - ID of the second atom.
+    /// * `order` - The order of the bond.
+    ///
+    /// # Return
+    ///
+    /// Returns `Some(())` if successful, otherwise `None` (e.g., if atoms don't exist).
     pub fn add_bond(&mut self, atom1_id: AtomId, atom2_id: AtomId, order: BondOrder) -> Option<()> {
         if !self.atoms.contains_key(atom1_id) || !self.atoms.contains_key(atom2_id) {
             return None;
@@ -140,6 +313,19 @@ impl MolecularSystem {
         Some(())
     }
 
+    /// Removes an atom from the system.
+    ///
+    /// This method removes the atom and all associated data, including
+    /// bonds and adjacency information. It updates the parent residue
+    /// and cleans up all references.
+    ///
+    /// # Arguments
+    ///
+    /// * `atom_id` - The ID of the atom to remove.
+    ///
+    /// # Return
+    ///
+    /// Returns `Some(Atom)` if the atom existed and was removed, otherwise `None`.
     pub fn remove_atom(&mut self, atom_id: AtomId) -> Option<Atom> {
         let atom = self.atoms.remove(atom_id)?;
 
@@ -166,6 +352,18 @@ impl MolecularSystem {
         Some(atom)
     }
 
+    /// Removes a residue from the system.
+    ///
+    /// This method removes the residue and all its atoms, updating
+    /// the parent chain and cleaning up all references and bonds.
+    ///
+    /// # Arguments
+    ///
+    /// * `residue_id` - The ID of the residue to remove.
+    ///
+    /// # Return
+    ///
+    /// Returns `Some(Residue)` if the residue existed and was removed, otherwise `None`.
     pub fn remove_residue(&mut self, residue_id: ResidueId) -> Option<Residue> {
         let residue = self.residues.get(residue_id)?.clone(); // Clone to avoid borrow checker issues
 
@@ -188,28 +386,73 @@ impl MolecularSystem {
         self.residues.remove(residue_id)
     }
 
+    /// Retrieves the bonded neighbors of an atom.
+    ///
+    /// This method returns the list of atoms directly bonded to the given atom,
+    /// using the cached adjacency information.
+    ///
+    /// # Arguments
+    ///
+    /// * `atom_id` - The ID of the atom to query.
+    ///
+    /// # Return
+    ///
+    /// Returns `Some(&[AtomId])` if the atom exists, otherwise `None`.
     pub fn get_bonded_neighbors(&self, atom_id: AtomId) -> Option<&[AtomId]> {
         self.bond_adjacency.get(atom_id).map(|v| v.as_slice())
     }
 
+    /// Returns an iterator over atoms with a specific role.
+    ///
+    /// # Arguments
+    ///
+    /// * `role` - The atom role to filter by.
+    ///
+    /// # Return
+    ///
+    /// An iterator yielding `(AtomId, &Atom)` pairs for matching atoms.
     pub fn atoms_by_role(&self, role: AtomRole) -> impl Iterator<Item = (AtomId, &Atom)> {
         self.atoms.iter().filter(move |(_, atom)| atom.role == role)
     }
 
+    /// Returns a vector of atom IDs with a specific role.
+    ///
+    /// # Arguments
+    ///
+    /// * `role` - The atom role to filter by.
+    ///
+    /// # Return
+    ///
+    /// A vector containing the IDs of matching atoms.
     pub fn atom_ids_by_role(&self, role: AtomRole) -> Vec<AtomId> {
         self.atoms_by_role(role).map(|(id, _)| id).collect()
     }
 
+    /// Returns an iterator over protein atoms (backbone and sidechain).
+    ///
+    /// # Return
+    ///
+    /// An iterator yielding `(AtomId, &Atom)` pairs for protein atoms.
     pub fn protein_atoms(&self) -> impl Iterator<Item = (AtomId, &Atom)> {
         self.atoms
             .iter()
             .filter(|(_, atom)| matches!(atom.role, AtomRole::Backbone | AtomRole::Sidechain))
     }
 
+    /// Returns a vector of protein atom IDs.
+    ///
+    /// # Return
+    ///
+    /// A vector containing the IDs of protein atoms.
     pub fn protein_atom_ids(&self) -> Vec<AtomId> {
         self.protein_atoms().map(|(id, _)| id).collect()
     }
 
+    /// Returns an iterator over background atoms (ligands, water, other).
+    ///
+    /// # Return
+    ///
+    /// An iterator yielding `(AtomId, &Atom)` pairs for background atoms.
     pub fn background_atoms(&self) -> impl Iterator<Item = (AtomId, &Atom)> {
         self.atoms.iter().filter(|(_, atom)| {
             matches!(
@@ -219,6 +462,11 @@ impl MolecularSystem {
         })
     }
 
+    /// Returns a vector of background atom IDs.
+    ///
+    /// # Return
+    ///
+    /// A vector containing the IDs of background atoms.
     pub fn background_atom_ids(&self) -> Vec<AtomId> {
         self.background_atoms().map(|(id, _)| id).collect()
     }

@@ -3,16 +3,39 @@ use crate::core::models::ids::ResidueId;
 use crate::core::models::residue::ResidueType;
 use std::collections::HashMap;
 
+/// Caches energy terms for residue-rotamer combinations to avoid recomputation.
+///
+/// This struct provides an efficient caching mechanism for storing and retrieving
+/// energy calculations for different rotamer conformations of protein residues.
+/// It uses a nested HashMap structure to organize energies by residue identity
+/// and type, enabling fast lookups during optimization processes.
 #[derive(Debug, Default, Clone)]
 pub struct ELCache {
+    /// Internal storage mapping (residue_id, residue_type) to rotamer energies.
     data: HashMap<(ResidueId, ResidueType), HashMap<usize, EnergyTerm>>,
 }
 
 impl ELCache {
+    /// Creates a new empty energy cache.
+    ///
+    /// # Return
+    ///
+    /// Returns a new `ELCache` instance with no cached energies.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Inserts an energy term for a specific residue-rotamer combination.
+    ///
+    /// If an energy term already exists for the given residue and rotamer,
+    /// it will be overwritten with the new value.
+    ///
+    /// # Arguments
+    ///
+    /// * `residue_id` - The unique identifier of the residue.
+    /// * `residue_type` - The type of the residue (e.g., Alanine, Glycine).
+    /// * `rotamer_idx` - The index of the rotamer conformation.
+    /// * `energy` - The energy term to cache for this combination.
     pub fn insert(
         &mut self,
         residue_id: ResidueId,
@@ -26,6 +49,18 @@ impl ELCache {
             .insert(rotamer_idx, energy);
     }
 
+    /// Retrieves the cached energy term for a specific residue-rotamer combination.
+    ///
+    /// # Arguments
+    ///
+    /// * `residue_id` - The unique identifier of the residue.
+    /// * `residue_type` - The type of the residue.
+    /// * `rotamer_idx` - The index of the rotamer conformation.
+    ///
+    /// # Return
+    ///
+    /// Returns `Some(&EnergyTerm)` if the combination exists in the cache,
+    /// or `None` if no energy has been cached for this combination.
     pub fn get(
         &self,
         residue_id: ResidueId,
@@ -37,6 +72,21 @@ impl ELCache {
             .and_then(|inner_map| inner_map.get(&rotamer_idx))
     }
 
+    /// Retrieves all cached energy terms for a specific residue.
+    ///
+    /// This method returns the complete set of rotamer energies that have
+    /// been cached for the given residue, allowing iteration over all
+    /// available conformations.
+    ///
+    /// # Arguments
+    ///
+    /// * `residue_id` - The unique identifier of the residue.
+    /// * `residue_type` - The type of the residue.
+    ///
+    /// # Return
+    ///
+    /// Returns `Some(&HashMap<usize, EnergyTerm>)` containing all cached
+    /// rotamer energies for the residue, or `None` if no energies are cached.
     pub fn get_energies_for(
         &self,
         residue_id: ResidueId,
@@ -45,6 +95,22 @@ impl ELCache {
         self.data.get(&(residue_id, residue_type))
     }
 
+    /// Finds the rotamer with the lowest total energy for a specific residue.
+    ///
+    /// This method searches through all cached rotamers for the given residue
+    /// and returns the one with the minimum total energy value. This is useful
+    /// for identifying the most favorable conformation.
+    ///
+    /// # Arguments
+    ///
+    /// * `residue_id` - The unique identifier of the residue.
+    /// * `residue_type` - The type of the residue.
+    ///
+    /// # Return
+    ///
+    /// Returns `Some((usize, &EnergyTerm))` containing the rotamer index and
+    /// energy of the ground state, or `None` if no energies are cached for
+    /// the residue.
     pub fn find_ground_state_for(
         &self,
         residue_id: ResidueId,
@@ -52,6 +118,7 @@ impl ELCache {
     ) -> Option<(usize, &EnergyTerm)> {
         self.get_energies_for(residue_id, residue_type)
             .and_then(|energies| {
+                // Find the rotamer with the lowest total energy by comparing energy values
                 energies
                     .iter()
                     .min_by(|(_, term_a), (_, term_b)| {
@@ -64,10 +131,21 @@ impl ELCache {
             })
     }
 
+    /// Returns the number of residues for which energies are cached.
+    ///
+    /// # Return
+    ///
+    /// Returns the count of unique (residue_id, residue_type) combinations
+    /// that have at least one cached energy term.
     pub fn len(&self) -> usize {
         self.data.len()
     }
 
+    /// Checks whether the cache contains any cached energies.
+    ///
+    /// # Return
+    ///
+    /// Returns `true` if no energies are cached, `false` otherwise.
     pub fn is_empty(&self) -> bool {
         self.data.is_empty()
     }

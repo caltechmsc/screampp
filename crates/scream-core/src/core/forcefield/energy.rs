@@ -4,20 +4,59 @@ use crate::core::models::ids::ResidueId;
 use std::f64::consts::PI;
 use thiserror::Error;
 
+/// Represents errors that can occur during energy calculations in the force field.
+///
+/// This enum encapsulates various error conditions that may arise when computing
+/// interaction energies between atoms, providing detailed context for debugging
+/// and error handling in molecular simulations.
 #[derive(Debug, Error)]
 pub enum EnergyCalculationError {
+    /// Indicates that an atom lacks the necessary parameters for van der Waals energy calculation.
+    ///
+    /// This error occurs when attempting to compute VDW interactions for atoms that have
+    /// not been parameterized with appropriate force field parameters (e.g., Lennard-Jones
+    /// or Buckingham parameters).
     #[error(
         "Atom '{atom_name}' in residue {residue_id:?} is not parameterized for VDW calculation"
     )]
     UnparameterizedAtom {
+        /// The name of the atom that is missing parameters.
         atom_name: String,
+        /// The ID of the residue containing the unparameterized atom.
         residue_id: ResidueId,
     },
 }
 
+/// Provides static methods for calculating various types of molecular interaction energies.
+///
+/// This struct serves as a utility for computing energy contributions from different
+/// force field terms, including van der Waals, electrostatic, and hydrogen bonding
+/// interactions. All methods are designed to work with the SCREAM++ molecular
+/// data structures and follow standard force field conventions.
 pub struct EnergyCalculator;
 
 impl EnergyCalculator {
+    /// Calculates the van der Waals interaction energy between two atoms.
+    ///
+    /// This method computes the VDW energy using either Lennard-Jones 12-6 or Buckingham
+    /// exponential-6 potentials, depending on the parameterization of the atoms. It combines
+    /// parameters from both atoms using standard mixing rules and applies a flat-bottom
+    /// modification based on the atoms' delta values to handle close contacts.
+    ///
+    /// # Arguments
+    ///
+    /// * `atom1` - The first atom participating in the interaction
+    /// * `atom2` - The second atom participating in the interaction
+    ///
+    /// # Return
+    ///
+    /// Returns the calculated VDW energy in kcal/mol. Positive values indicate repulsive
+    /// interactions, negative values indicate attractive interactions.
+    ///
+    /// # Errors
+    ///
+    /// Returns `EnergyCalculationError::UnparameterizedAtom` if either atom lacks
+    /// VDW parameters.
     pub fn calculate_vdw(atom1: &Atom, atom2: &Atom) -> Result<f64, EnergyCalculationError> {
         let extract_params = |atom: &Atom| match atom.vdw_param {
             CachedVdwParam::LennardJones { radius, well_depth } => Ok((radius, well_depth, 0.0)),
@@ -37,6 +76,7 @@ impl EnergyCalculator {
 
         let dist = (atom1.position - atom2.position).norm();
 
+        // Combine delta values to determine the flat-bottom cutoff distance
         let total_delta = (atom1.delta.powi(2) + atom2.delta.powi(2)).sqrt();
         let r_min_combined = (r_min1 + r_min2) / 2.0;
         let well_depth_combined = (well_depth1 * well_depth2).sqrt();
@@ -54,11 +94,46 @@ impl EnergyCalculator {
         Ok(energy)
     }
 
+    /// Calculates the electrostatic Coulomb interaction energy between two atoms.
+    ///
+    /// This method computes the electrostatic energy using Coulomb's law with a distance-
+    /// dependent dielectric constant. The calculation assumes point charges and does not
+    /// include any cutoff or screening effects beyond the dielectric.
+    ///
+    /// # Arguments
+    ///
+    /// * `atom1` - The first atom participating in the interaction
+    /// * `atom2` - The second atom participating in the interaction
+    /// * `dielectric` - The dielectric constant of the medium (dimensionless)
+    ///
+    /// # Return
+    ///
+    /// Returns the calculated Coulomb energy in kcal/mol. The sign depends on the
+    /// charges: positive for like charges, negative for opposite charges.
     pub fn calculate_coulomb(atom1: &Atom, atom2: &Atom, dielectric: f64) -> f64 {
         let dist = (atom1.position - atom2.position).norm();
         potentials::coulomb(dist, atom1.partial_charge, atom2.partial_charge, dielectric)
     }
 
+    /// Calculates the hydrogen bonding interaction energy between donor, hydrogen, and acceptor atoms.
+    ///
+    /// This method implements the Dreiding hydrogen bond potential with a 12-10 distance
+    /// dependence and an angular term based on the donor-hydrogen-acceptor angle. The
+    /// potential is zero for angles ≤ 90° and includes a flat-bottom modification for
+    /// close contacts based on the atoms' delta values.
+    ///
+    /// # Arguments
+    ///
+    /// * `donor` - The donor atom in the hydrogen bond
+    /// * `hydrogen` - The hydrogen atom attached to the donor
+    /// * `acceptor` - The acceptor atom in the hydrogen bond
+    /// * `r_hb` - The equilibrium hydrogen bond distance in Å
+    /// * `d_hb` - The well depth of the hydrogen bond potential in kcal/mol
+    ///
+    /// # Return
+    ///
+    /// Returns the calculated hydrogen bond energy in kcal/mol. Negative values indicate
+    /// favorable hydrogen bonding interactions.
     pub fn calculate_hbond(
         donor: &Atom,
         hydrogen: &Atom,
@@ -71,10 +146,12 @@ impl EnergyCalculator {
         let v_hd = donor.position - hydrogen.position;
         let angle_ahd_deg = v_ha.angle(&v_hd).to_degrees();
 
+        // Hydrogen bonds are only considered for angles > 90°
         if angle_ahd_deg <= 90.0 {
             return 0.0;
         }
 
+        // Combine delta values for flat-bottom cutoff
         let total_delta = (acceptor.delta.powi(2) + donor.delta.powi(2)).sqrt();
         let distance_potential_fn =
             |d: f64| -> f64 { potentials::dreiding_hbond_12_10(d, r_hb, d_hb) };

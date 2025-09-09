@@ -1,13 +1,32 @@
 use std::ops::{Add, AddAssign};
 
+/// Represents the energy contributions from different molecular interaction types.
+///
+/// This struct encapsulates the separate energy components calculated during
+/// molecular mechanics simulations, allowing for detailed analysis of different
+/// force field contributions to the total system energy.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct EnergyTerm {
+    /// The van der Waals interaction energy contribution.
     pub vdw: f64,
+    /// The electrostatic (Coulomb) interaction energy contribution.
     pub coulomb: f64,
+    /// The hydrogen bond interaction energy contribution.
     pub hbond: f64,
 }
 
 impl EnergyTerm {
+    /// Creates a new `EnergyTerm` with the specified energy components.
+    ///
+    /// # Arguments
+    ///
+    /// * `vdw` - The van der Waals energy contribution.
+    /// * `coulomb` - The electrostatic energy contribution.
+    /// * `hbond` - The hydrogen bond energy contribution.
+    ///
+    /// # Return
+    ///
+    /// Returns a new `EnergyTerm` instance with the provided values.
     pub fn new(vdw: f64, coulomb: f64, hbond: f64) -> Self {
         Self {
             vdw,
@@ -16,6 +35,11 @@ impl EnergyTerm {
         }
     }
 
+    /// Calculates the total energy as the sum of all components.
+    ///
+    /// # Return
+    ///
+    /// Returns the sum of van der Waals, Coulomb, and hydrogen bond energies.
     #[inline]
     pub fn total(&self) -> f64 {
         self.vdw + self.coulomb + self.hbond
@@ -25,6 +49,18 @@ impl EnergyTerm {
 impl Add for EnergyTerm {
     type Output = Self;
 
+    /// Adds two `EnergyTerm` instances component-wise.
+    ///
+    /// This implementation allows combining energy contributions from different
+    /// sources or time steps in molecular dynamics simulations.
+    ///
+    /// # Arguments
+    ///
+    /// * `rhs` - The right-hand side `EnergyTerm` to add.
+    ///
+    /// # Return
+    ///
+    /// Returns a new `EnergyTerm` with summed components.
     fn add(self, rhs: Self) -> Self::Output {
         Self {
             vdw: self.vdw + rhs.vdw,
@@ -35,6 +71,14 @@ impl Add for EnergyTerm {
 }
 
 impl AddAssign for EnergyTerm {
+    /// Adds another `EnergyTerm` to this one in place.
+    ///
+    /// This allows accumulating energy contributions efficiently without
+    /// creating intermediate instances.
+    ///
+    /// # Arguments
+    ///
+    /// * `rhs` - The right-hand side `EnergyTerm` to add.
     fn add_assign(&mut self, rhs: Self) {
         self.vdw += rhs.vdw;
         self.coulomb += rhs.coulomb;

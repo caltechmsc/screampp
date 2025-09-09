@@ -6,49 +6,87 @@ use std::fmt;
 use std::str::FromStr;
 use thiserror::Error;
 
+/// Represents the type of an amino acid residue in a protein structure.
+///
+/// This enum defines standard amino acid types, including their protonation states
+/// for histidine variants, used in molecular modeling and simulations.
+/// Each variant corresponds to a three-letter code commonly used in PDB files.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ResidueType {
-    // --- Aliphatic, Nonpolar ---
-    Alanine,    // Alanine (ALA)
-    Glycine,    // Glycine (GLY)
-    Isoleucine, // Isoleucine (ILE)
-    Leucine,    // Leucine (LEU)
-    Proline,    // Proline (PRO)
-    Valine,     // Valine (VAL)
-
-    // --- Aromatic ---
-    Phenylalanine, // Phenylalanine (PHE)
-    Tryptophan,    // Tryptophan (TRP)
-    Tyrosine,      // Tyrosine (TYR)
-
-    // --- Polar, Uncharged ---
-    Asparagine, // Asparagine (ASN)
-    Cysteine,   // Cysteine (CYS)
-    Glutamine,  // Glutamine (GLN)
-    Serine,     // Serine (SER)
-    Threonine,  // Threonine (THR)
-    Methionine, // Methionine (MET)
-
-    // --- Positively Charged (Basic) ---
-    Arginine, // Arginine (ARG)
-    Lysine,   // Lysine (LYS)
-
-    // --- Negatively Charged (Acidic) ---
-    AsparticAcid, // Aspartic Acid (ASP)
-    GlutamicAcid, // Glutamic Acid (GLU)
-
-    // --- Special Case: Histidine and its Variants ---
-    Histidine, // Histidine (HIS) - Typically assumed to be the Epsilon-protonated state (HSE)
-    HistidineEpsilon, // Epsilon-protonated Histidine (HSE) - An alias for `Histidine`
-    HistidineProtonated, // Doubly-protonated Histidine (HSP) - The positively charged variant
+    /// Alanine (ALA).
+    Alanine,
+    /// Glycine (GLY).
+    Glycine,
+    /// Isoleucine (ILE).
+    Isoleucine,
+    /// Leucine (LEU).
+    Leucine,
+    /// Proline (PRO).
+    Proline,
+    /// Valine (VAL).
+    Valine,
+    /// Phenylalanine (PHE).
+    Phenylalanine,
+    /// Tryptophan (TRP).
+    Tryptophan,
+    /// Tyrosine (TYR).
+    Tyrosine,
+    /// Asparagine (ASN).
+    Asparagine,
+    /// Cysteine (CYS).
+    Cysteine,
+    /// Glutamine (GLN).
+    Glutamine,
+    /// Serine (SER).
+    Serine,
+    /// Threonine (THR).
+    Threonine,
+    /// Methionine (MET).
+    Methionine,
+    /// Arginine (ARG).
+    Arginine,
+    /// Lysine (LYS).
+    Lysine,
+    /// Aspartic Acid (ASP).
+    AsparticAcid,
+    /// Glutamic Acid (GLU).
+    GlutamicAcid,
+    /// Histidine (HIS), typically epsilon-protonated.
+    Histidine,
+    /// Epsilon-protonated Histidine (HSE).
+    HistidineEpsilon,
+    /// Doubly-protonated Histidine (HSP).
+    HistidineProtonated,
 }
 
+/// Error type for failed parsing of residue type strings.
+///
+/// This error is returned when attempting to parse an invalid or unsupported
+/// three-letter residue code into a `ResidueType`.
 #[derive(Debug, Error, PartialEq, Eq)]
 #[error("Unsupported or unknown three-letter residue code: '{0}'")]
 pub struct ParseResidueTypeError(pub String);
 
 impl FromStr for ResidueType {
     type Err = ParseResidueTypeError;
+
+    /// Parses a string into a `ResidueType`.
+    ///
+    /// This implementation converts a three-letter residue code (case-insensitive)
+    /// into the corresponding `ResidueType` variant. It supports standard amino acids
+    /// and histidine variants.
+    ///
+    /// # Arguments
+    ///
+    /// * `s` - The string to parse, expected to be a three-letter code.
+    ///
+    /// # Return
+    ///
+    /// Returns the parsed `ResidueType` if the code is recognized.
+    ///
+    /// # Errors
+    ///
+    /// Returns `ParseResidueTypeError` if the code is invalid or unsupported.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         ResidueType::from_str_optional(s)
             .ok_or_else(|| ParseResidueTypeError(s.trim().to_uppercase()))
@@ -56,12 +94,28 @@ impl FromStr for ResidueType {
 }
 
 impl fmt::Display for ResidueType {
+    /// Formats the `ResidueType` as its three-letter code.
+    ///
+    /// This implementation allows `ResidueType` to be displayed as a string
+    /// using the standard three-letter amino acid codes.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.to_three_letter())
     }
 }
 
 impl ResidueType {
+    /// Parses a three-letter residue code into a `ResidueType`.
+    ///
+    /// This is an internal helper function that performs case-insensitive matching
+    /// of standard three-letter codes to `ResidueType` variants.
+    ///
+    /// # Arguments
+    ///
+    /// * `s` - The string to parse.
+    ///
+    /// # Return
+    ///
+    /// Returns `Some(ResidueType)` if the code is recognized, otherwise `None`.
     fn parse_code(s: &str) -> Option<Self> {
         match s.trim().to_uppercase().as_str() {
             "ALA" => Some(ResidueType::Alanine),
@@ -90,10 +144,30 @@ impl ResidueType {
         }
     }
 
+    /// Attempts to parse a string into a `ResidueType` without error handling.
+    ///
+    /// This method provides a fallible alternative to `FromStr::from_str`,
+    /// returning `None` for invalid codes instead of an error.
+    ///
+    /// # Arguments
+    ///
+    /// * `s` - The string to parse.
+    ///
+    /// # Return
+    ///
+    /// Returns `Some(ResidueType)` if parsing succeeds, otherwise `None`.
     pub fn from_str_optional(s: &str) -> Option<Self> {
         Self::parse_code(s)
     }
 
+    /// Converts the `ResidueType` to its standard three-letter code.
+    ///
+    /// This method returns the canonical three-letter abbreviation for the amino acid,
+    /// as used in PDB files and molecular databases.
+    ///
+    /// # Return
+    ///
+    /// A static string slice containing the three-letter code.
     pub fn to_three_letter(self) -> &'static str {
         match self {
             ResidueType::Alanine => "ALA",
@@ -122,19 +196,44 @@ impl ResidueType {
     }
 }
 
+/// Represents a residue in a molecular structure.
+///
+/// This struct encapsulates the properties and atoms of a single residue.
+/// It uses lazy caching for backbone and sidechain atom lookups to improve
+/// performance in frequently accessed operations. The cache is automatically
+/// invalidated when atoms are added or removed.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Residue {
+    /// The sequential number of the residue in its chain.
     pub residue_number: isize,
+    /// The name of the residue.
     pub name: String,
+    /// The type of the residue, if known.
     pub residue_type: Option<ResidueType>,
+    /// The ID of the chain this residue belongs to.
     pub chain_id: ChainId,
+    /// List of atom IDs belonging to this residue.
     atoms: Vec<AtomId>,
+    /// Mapping from atom names to lists of atom IDs for quick lookup.
     atom_name_map: HashMap<String, Vec<AtomId>>,
+    /// Cached list of sidechain atom IDs.
     sidechain_atoms_cache: Vec<AtomId>,
+    /// Cached list of backbone atom IDs.
     backbone_atoms_cache: Vec<AtomId>,
 }
 
 impl Residue {
+    /// Creates a new `Residue` with the specified properties.
+    ///
+    /// This constructor initializes a residue with empty atom lists and caches.
+    /// Atoms can be added later using `add_atom`.
+    ///
+    /// # Arguments
+    ///
+    /// * `residue_number` - The sequential number of the residue.
+    /// * `name` - The name of the residue.
+    /// * `residue_type` - The type of the residue, if known.
+    /// * `chain_id` - The ID of the chain this residue belongs to.
     pub(crate) fn new(
         residue_number: isize,
         name: &str,
@@ -153,11 +252,24 @@ impl Residue {
         }
     }
 
+    /// Clears the cached lists of backbone and sidechain atoms.
+    ///
+    /// This method is called whenever the atom list changes to ensure
+    /// that cached data remains consistent.
     fn invalidate_caches(&mut self) {
         self.sidechain_atoms_cache.clear();
         self.backbone_atoms_cache.clear();
     }
 
+    /// Adds an atom to the residue.
+    ///
+    /// This method registers an atom with the given name and ID, updating
+    /// the internal lists and invalidating caches as necessary.
+    ///
+    /// # Arguments
+    ///
+    /// * `atom_name` - The name of the atom.
+    /// * `atom_id` - The ID of the atom to add.
     pub(crate) fn add_atom(&mut self, atom_name: &str, atom_id: AtomId) {
         self.atoms.push(atom_id);
         self.atom_name_map
@@ -167,6 +279,15 @@ impl Residue {
         self.invalidate_caches();
     }
 
+    /// Removes an atom from the residue.
+    ///
+    /// This method removes the specified atom by name and ID, cleaning up
+    /// the internal data structures and invalidating caches.
+    ///
+    /// # Arguments
+    ///
+    /// * `atom_name` - The name of the atom to remove.
+    /// * `atom_id_to_remove` - The ID of the atom to remove.
     pub(crate) fn remove_atom(&mut self, atom_name: &str, atom_id_to_remove: AtomId) {
         self.atoms.retain(|&id| id != atom_id_to_remove);
 
@@ -179,10 +300,29 @@ impl Residue {
         self.invalidate_caches();
     }
 
+    /// Returns a slice of all atom IDs in the residue.
+    ///
+    /// This provides read-only access to the list of atoms belonging to the residue.
+    ///
+    /// # Return
+    ///
+    /// A slice containing all atom IDs.
     pub fn atoms(&self) -> &[AtomId] {
         &self.atoms
     }
 
+    /// Returns a slice of sidechain atom IDs, building the cache if necessary.
+    ///
+    /// This method lazily computes and caches the list of sidechain atoms
+    /// by querying the molecular system for atom roles.
+    ///
+    /// # Arguments
+    ///
+    /// * `system` - The molecular system containing the atoms.
+    ///
+    /// # Return
+    ///
+    /// A slice containing sidechain atom IDs.
     pub fn sidechain_atoms<'a>(&'a mut self, system: &'a MolecularSystem) -> &'a [AtomId] {
         if self.sidechain_atoms_cache.is_empty() && !self.atoms.is_empty() {
             self.build_caches(system);
@@ -190,6 +330,18 @@ impl Residue {
         &self.sidechain_atoms_cache
     }
 
+    /// Returns a slice of backbone atom IDs, building the cache if necessary.
+    ///
+    /// This method lazily computes and caches the list of backbone atoms
+    /// by querying the molecular system for atom roles.
+    ///
+    /// # Arguments
+    ///
+    /// * `system` - The molecular system containing the atoms.
+    ///
+    /// # Return
+    ///
+    /// A slice containing backbone atom IDs.
     pub fn backbone_atoms<'a>(&'a mut self, system: &'a MolecularSystem) -> &'a [AtomId] {
         if self.backbone_atoms_cache.is_empty() && !self.atoms.is_empty() {
             self.build_caches(system);
@@ -197,6 +349,14 @@ impl Residue {
         &self.backbone_atoms_cache
     }
 
+    /// Builds the caches for backbone and sidechain atoms.
+    ///
+    /// This method iterates through all atoms in the residue, determines their roles
+    /// using the molecular system, and populates the respective caches.
+    ///
+    /// # Arguments
+    ///
+    /// * `system` - The molecular system for querying atom roles.
     fn build_caches(&mut self, system: &MolecularSystem) {
         self.invalidate_caches();
         for &atom_id in &self.atoms {
@@ -210,10 +370,33 @@ impl Residue {
         }
     }
 
+    /// Retrieves atom IDs by atom name.
+    ///
+    /// This method looks up atoms with the specified name in the residue.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name of the atom to search for.
+    ///
+    /// # Return
+    ///
+    /// Returns `Some` slice of atom IDs if found, otherwise `None`.
     pub fn get_atom_ids_by_name(&self, name: &str) -> Option<&[AtomId]> {
         self.atom_name_map.get(name).map(|v| v.as_slice())
     }
 
+    /// Retrieves the first atom ID by atom name.
+    ///
+    /// This method returns the first atom with the specified name, useful
+    /// when there is expected to be only one atom of that name.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name of the atom to search for.
+    ///
+    /// # Return
+    ///
+    /// Returns `Some` atom ID if found, otherwise `None`.
     pub fn get_first_atom_id_by_name(&self, name: &str) -> Option<AtomId> {
         self.get_atom_ids_by_name(name)
             .and_then(|ids| ids.first().copied())
