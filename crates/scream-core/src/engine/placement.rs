@@ -13,25 +13,57 @@ use nalgebra::{Matrix3, Point3, Rotation3, Vector3};
 use std::collections::HashMap;
 use thiserror::Error;
 
+/// Errors that can occur during rotamer placement operations.
+///
+/// This enum defines the specific error conditions that may arise when attempting
+/// to place a rotamer onto a molecular system, providing detailed information
+/// about what went wrong during the placement process.
 #[derive(Debug, Error)]
 pub enum PlacementError {
+    /// An anchor atom required for alignment was not found in the target residue.
     #[error("Anchor atom '{atom_name}' not found in the target residue in the system")]
     AnchorAtomNotFoundInSystem { atom_name: String },
 
+    /// An anchor atom required for alignment was not found in the rotamer template.
     #[error("Anchor atom '{atom_name}' not found in the rotamer template")]
     AnchorAtomNotFoundInRotamer { atom_name: String },
 
+    /// No atoms with the specified name were found in the rotamer for building the index map.
     #[error(
         "Could not find any atoms with name '{atom_name}' in the rotamer to build the index map"
     )]
     RotamerAtomNameNotFound { atom_name: String },
 
+    /// Insufficient anchor atoms were available for stable alignment.
     #[error(
         "Insufficient anchor atoms for stable alignment: requires at least 3, but found {found}"
     )]
     InsufficientAnchors { found: usize },
 }
 
+/// Places a rotamer onto a target residue in the molecular system.
+///
+/// This function performs a complete rotamer placement operation, which involves
+/// three main phases: alignment calculation, side-chain replacement, and topology
+/// reconstruction. The rotamer is aligned to the target residue using backbone
+/// anchor atoms, then the old side-chain is removed and replaced with the new
+/// rotamer's side-chain atoms, and finally the bonding topology is rebuilt.
+///
+/// # Arguments
+///
+/// * `system` - The molecular system to modify.
+/// * `target_residue_id` - The ID of the residue to place the rotamer on.
+/// * `rotamer` - The rotamer template to place.
+/// * `topology` - The residue topology defining anchor and side-chain atoms.
+///
+/// # Return
+///
+/// Returns `Ok(())` on successful placement.
+///
+/// # Errors
+///
+/// Returns `EngineError::Placement` if any step of the placement process fails,
+/// with detailed information about the specific error condition.
 #[inline]
 pub fn place_rotamer_on_system(
     system: &mut MolecularSystem,
@@ -66,6 +98,27 @@ pub fn place_rotamer_on_system(
     })
 }
 
+/// Calculates the rotation and translation needed to align the rotamer with the target residue.
+///
+/// This function determines the optimal rigid-body transformation (rotation and translation)
+/// to align the rotamer's backbone atoms with the corresponding atoms in the target residue.
+/// The alignment uses the anchor atoms defined in the residue topology to ensure proper
+/// positioning of the rotamer relative to the existing molecular structure.
+///
+/// # Arguments
+///
+/// * `system` - The molecular system containing the target residue.
+/// * `target_residue_id` - The ID of the residue to align to.
+/// * `rotamer` - The rotamer to be aligned.
+/// * `topology` - The topology defining which atoms to use for alignment.
+///
+/// # Return
+///
+/// Returns a tuple of `(Rotation3<f64>, Vector3<f64>)` representing the rotation and translation.
+///
+/// # Errors
+///
+/// Returns `PlacementError` if anchor atoms are missing or insufficient for alignment.
 fn calculate_alignment_transform(
     system: &MolecularSystem,
     target_residue_id: ResidueId,
@@ -122,6 +175,25 @@ fn calculate_alignment_transform(
     calculate_transformation(&rotamer_points, &system_points)
 }
 
+/// Removes all side-chain atoms from the target residue.
+///
+/// This function identifies and removes all atoms marked as side-chain atoms
+/// from the target residue, preparing it for the placement of a new rotamer's
+/// side-chain. Backbone atoms are preserved to maintain the residue's position
+/// in the molecular structure.
+///
+/// # Arguments
+///
+/// * `system` - The molecular system to modify.
+/// * `target_residue_id` - The ID of the residue to clean.
+///
+/// # Return
+///
+/// Returns `Ok(())` after removing all side-chain atoms.
+///
+/// # Errors
+///
+/// This function does not return errors under normal circumstances.
 fn remove_old_sidechain(
     system: &mut MolecularSystem,
     target_residue_id: ResidueId,
@@ -143,6 +215,28 @@ fn remove_old_sidechain(
     Ok(())
 }
 
+/// Adds new side-chain atoms from the rotamer and creates an index-to-ID mapping.
+///
+/// This function processes all atoms in the rotamer, applying the calculated
+/// transformation to position them correctly. For backbone atoms, it maps to
+/// existing system atoms. For side-chain atoms, it creates new atoms with
+/// transformed positions and adds them to the system.
+///
+/// # Arguments
+///
+/// * `system` - The molecular system to modify.
+/// * `target_residue_id` - The ID of the residue to add atoms to.
+/// * `rotamer` - The rotamer containing the atoms to add.
+/// * `rotation` - The rotation transformation to apply.
+/// * `translation` - The translation transformation to apply.
+///
+/// # Return
+///
+/// Returns a `HashMap` mapping rotamer atom indices to system atom IDs.
+///
+/// # Errors
+///
+/// Returns `PlacementError` if backbone atoms cannot be matched or other issues occur.
 fn add_new_sidechain_atoms_and_map(
     system: &mut MolecularSystem,
     target_residue_id: ResidueId,
@@ -202,6 +296,25 @@ fn add_new_sidechain_atoms_and_map(
     Ok(index_to_id_map)
 }
 
+/// Rebuilds the bonding topology for the newly placed rotamer.
+///
+/// This function recreates all the chemical bonds defined in the rotamer template
+/// using the atom ID mapping created during atom placement. Only bonds between
+/// atoms that were successfully mapped are created.
+///
+/// # Arguments
+///
+/// * `system` - The molecular system to modify.
+/// * `rotamer` - The rotamer containing the bond definitions.
+/// * `index_to_id_map` - Mapping from rotamer atom indices to system atom IDs.
+///
+/// # Return
+///
+/// Returns `Ok(())` after adding all valid bonds.
+///
+/// # Errors
+///
+/// This function does not return errors under normal circumstances.
 fn rebuild_topology(
     system: &mut MolecularSystem,
     rotamer: &Rotamer,
@@ -217,33 +330,57 @@ fn rebuild_topology(
     Ok(())
 }
 
+/// Calculates the optimal rigid-body transformation between two point sets.
+///
+/// This function uses the Kabsch algorithm (via SVD) to find the rotation and
+/// translation that best aligns the 'from' points to the 'to' points. It handles
+/// the reflection case by ensuring the rotation matrix has a positive determinant.
+///
+/// # Arguments
+///
+/// * `from_points` - The source point set to transform from.
+/// * `to_points` - The target point set to transform to.
+///
+/// # Return
+///
+/// Returns a tuple of `(Rotation3<f64>, Vector3<f64>)` representing the optimal rotation and translation.
+///
+/// # Errors
+///
+/// Returns `PlacementError` if the point sets are incompatible.
 fn calculate_transformation(
     from_points: &[Point3<f64>],
     to_points: &[Point3<f64>],
 ) -> Result<(Rotation3<f64>, Vector3<f64>), PlacementError> {
+    // Calculate centroids of both point sets
     let from_centroid_sum: Vector3<f64> = from_points.iter().map(|p| p.coords).sum();
     let from_centroid = Point3::from(from_centroid_sum / from_points.len() as f64);
     let to_centroid_sum: Vector3<f64> = to_points.iter().map(|p| p.coords).sum();
     let to_centroid = Point3::from(to_centroid_sum / to_points.len() as f64);
 
+    // Center both point sets around their centroids
     let centered_from: Vec<_> = from_points.iter().map(|p| p - from_centroid).collect();
     let centered_to: Vec<_> = to_points.iter().map(|p| p - to_centroid).collect();
 
+    // Compute the covariance matrix H
     let h = centered_from
         .iter()
         .zip(centered_to.iter())
         .fold(Matrix3::zeros(), |acc, (f, t)| acc + t * f.transpose());
 
+    // Perform SVD on H to find optimal rotation
     let svd = h.svd(true, true);
     let u = svd.u.unwrap();
     let v_t = svd.v_t.unwrap();
 
+    // Handle reflection case by correcting the rotation matrix
     let d = (u * v_t.transpose()).determinant();
     let mut correction = Matrix3::identity();
     if d < 0.0 {
         correction[(2, 2)] = -1.0;
     }
 
+    // Compute final rotation matrix and convert to Rotation3
     let rotation_matrix = u * correction * v_t;
     let rotation = Rotation3::from_matrix(&rotation_matrix);
     let translation = to_centroid.coords - rotation * from_centroid.coords;

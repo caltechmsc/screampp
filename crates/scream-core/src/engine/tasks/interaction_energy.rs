@@ -13,6 +13,26 @@ use rayon::prelude::*;
 use std::sync::Mutex;
 use tracing::instrument;
 
+/// Calculates the total interaction energy between sidechains of active residues.
+///
+/// This function computes the non-bonded interaction energy (van der Waals, Coulomb, hydrogen bonding)
+/// between all pairs of sidechain atoms from active residues. It uses an efficient pairwise
+/// approach and supports both serial and parallel computation modes depending on compilation features.
+///
+/// # Arguments
+///
+/// * `system` - The molecular system containing the residues and atoms.
+/// * `forcefield` - The forcefield parameters used for energy calculations.
+/// * `active_residues` - A set of residue IDs that are currently being optimized.
+///
+/// # Return
+///
+/// Returns an `EnergyTerm` representing the total interaction energy between all active residue pairs.
+/// If there are fewer than 2 active residues, returns zero energy.
+///
+/// # Errors
+///
+/// Returns `EngineError` if energy scoring fails due to invalid system state or forcefield parameters.
 #[instrument(skip_all, name = "interaction_energy_task")]
 pub fn run(
     system: &MolecularSystem,
@@ -64,6 +84,7 @@ pub fn run(
 
     #[cfg(feature = "parallel")]
     let total_interaction_energy = {
+        // Use a mutex-protected accumulator for thread-safe energy summation in parallel mode.
         let acc = Mutex::new(EnergyTerm::default());
 
         iterator

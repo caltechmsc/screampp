@@ -5,12 +5,30 @@ use crate::core::models::ids::ResidueId;
 use crate::core::models::system::MolecularSystem;
 use std::collections::HashMap;
 
+/// Provides a transactional, temporary view into a `MolecularSystem` for "what-if" calculations.
+///
+/// A critical challenge in optimization algorithms is evaluating the energy of a proposed
+/// move without permanently altering the system state. The naive approach is to `clone()` the
+/// entire `MolecularSystem` for each evaluation, which is extremely costly in terms of both
+/// memory allocation and CPU time, especially for large proteins.
+///
+/// `SystemView` solves this problem by providing a safe, temporary mutable view. The `transaction`
+/// and `transaction_doublet` methods work by:
+/// 1. Saving the original state (rotamer indices) of the target residue(s).
+/// 2. Executing a user-provided closure that is allowed to make temporary modifications.
+/// 3. **Guaranteeing** that the original state is restored after the closure completes.
+///
+/// This provides the illusion of a temporary copy with virtually zero overhead, dramatically
+/// improving performance and reducing memory pressure.
 pub struct SystemView<'a, 'ctx, C>
 where
     C: super::context::ProvidesResidueSelections + Sync,
 {
+    /// Mutable reference to the molecular system being modified.
     pub system: &'a mut MolecularSystem,
+    /// Reference to the optimization context providing necessary data.
     pub context: &'ctx OptimizationContext<'ctx, C>,
+    /// Mutable reference to the current rotamer assignments map.
     pub current_rotamers: &'a mut HashMap<ResidueId, usize>,
 }
 
@@ -18,6 +36,17 @@ impl<'a, 'ctx, C> SystemView<'a, 'ctx, C>
 where
     C: super::context::ProvidesResidueSelections + Sync,
 {
+    /// Creates a new system view with the provided components.
+    ///
+    /// # Arguments
+    ///
+    /// * `system` - Mutable reference to the molecular system.
+    /// * `context` - Reference to the optimization context.
+    /// * `current_rotamers` - Mutable reference to the rotamer assignments map.
+    ///
+    /// # Return
+    ///
+    /// Returns a new `SystemView` instance.
     pub fn new(
         system: &'a mut MolecularSystem,
         context: &'ctx OptimizationContext<'ctx, C>,
@@ -30,6 +59,23 @@ where
         }
     }
 
+    /// Applies a rotamer move to the specified residue.
+    ///
+    /// This method updates both the molecular system structure and the rotamer
+    /// tracking map to reflect the new conformation.
+    ///
+    /// # Arguments
+    ///
+    /// * `res_id` - The residue to modify.
+    /// * `new_rotamer_idx` - The index of the new rotamer to apply.
+    ///
+    /// # Return
+    ///
+    /// Returns `Ok(())` on success.
+    ///
+    /// # Errors
+    ///
+    /// Returns `EngineError` if the rotamer placement fails.
     pub fn apply_move(
         &mut self,
         res_id: ResidueId,
@@ -40,6 +86,10 @@ where
         Ok(())
     }
 
+    /// Places a specific rotamer on the given residue in the molecular system.
+    ///
+    /// This is an internal method that handles the actual placement of rotamer
+    /// atoms using the placement module.
     fn place_rotamer(&mut self, res_id: ResidueId, rotamer_idx: usize) -> Result<(), EngineError> {
         let residue = self.system.residue(res_id).unwrap();
         let res_type = residue.residue_type.unwrap();
@@ -54,6 +104,25 @@ where
         placement::place_rotamer_on_system(self.system, res_id, rotamer, topology)
     }
 
+    /// Executes an action within a transaction that automatically reverts changes.
+    ///
+    /// This method provides transactional semantics for system modifications. The
+    /// action is executed, and any changes to the specified residue are automatically
+    /// reverted after the action completes, regardless of success or failure.
+    ///
+    /// # Arguments
+    ///
+    /// * `res_id_to_modify` - The residue that may be modified during the action.
+    /// * `action` - A closure that performs the desired operation on the system view.
+    ///
+    /// # Return
+    ///
+    /// Returns the result of the action closure.
+    ///
+    /// # Errors
+    ///
+    /// Returns `EngineError` if the residue is not found in the rotamer map or if
+    /// the action fails.
     pub fn transaction<F, R>(
         &mut self,
         res_id_to_modify: ResidueId,
@@ -89,6 +158,26 @@ where
 
         Ok(result)
     }
+    /// Executes an action within a transaction for two residues, automatically reverting changes.
+    ///
+    /// This method extends the transaction concept to handle simultaneous modifications
+    /// of two residues. Both residues are tracked and reverted to their original states
+    /// after the action completes.
+    ///
+    /// # Arguments
+    ///
+    /// * `res_a_id` - The first residue that may be modified.
+    /// * `res_b_id` - The second residue that may be modified.
+    /// * `action` - A closure that performs the desired operation on the system view.
+    ///
+    /// # Return
+    ///
+    /// Returns the result of the action closure.
+    ///
+    /// # Errors
+    ///
+    /// Returns `EngineError` if either residue is not found in the rotamer map or if
+    /// the action fails.
     pub fn transaction_doublet<F, R>(
         &mut self,
         res_a_id: ResidueId,
