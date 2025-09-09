@@ -529,11 +529,12 @@ ATOM       6 CA    ALA B     2   3.00000   0.00000   1.00000 C_3    1 4  0.07000
 ATOM       7 CB    ALA B     2   3.50000   1.50000   1.00000 C_3    1 4 -0.18000
 FORMAT CONECT (a6,12i6)
 CONECT     1     2
-CONECT     2     3
-CONECT     3     4
-CONECT     3     5
-CONECT     5     6
-CONECT     6     7
+CONECT     2     1     3
+CONECT     3     2     4     5
+CONECT     4     3
+CONECT     5     3     6
+CONECT     6     5     7
+CONECT     7     6
 END
 "#;
 
@@ -677,7 +678,7 @@ END
             .iter()
             .filter(|l| l.starts_with("CONECT"))
             .collect();
-        assert_eq!(conect_lines.len(), 2);
+        assert_eq!(conect_lines.len(), 4);
 
         let bond1_found = conect_lines
             .iter()
