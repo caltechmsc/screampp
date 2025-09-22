@@ -4,7 +4,9 @@ use super::ids::{AtomId, ChainId, ResidueId};
 use super::residue::{Residue, ResidueType};
 use super::topology::{Bond, BondOrder};
 use slotmap::{SecondaryMap, SlotMap};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+
+const CYSTEINE_SULFUR_GAMMA_ATOM_NAME: &str = "SG";
 
 /// Represents a complete molecular system with atoms, residues, chains, and bonds.
 ///
@@ -469,6 +471,68 @@ impl MolecularSystem {
     /// A vector containing the IDs of background atoms.
     pub fn background_atom_ids(&self) -> Vec<AtomId> {
         self.background_atoms().map(|(id, _)| id).collect()
+    }
+
+    /// Detects and returns the residue IDs of all Cysteine residues involved in disulfide bonds.
+    ///
+    /// A disulfide bond is identified by a covalent bond between the Sulfur-Gamma (SG)
+    /// atoms of two different Cysteine residues. This method correctly handles both
+    /// `CYS` and `CYX` residue names by relying on the `ResidueType`.
+    ///
+    /// # Returns
+    ///
+    /// A `HashSet<ResidueId>` containing the IDs of all residues participating in
+    /// any disulfide bond within the system.
+    pub fn find_disulfide_bonded_residues(&self) -> HashSet<ResidueId> {
+        let mut bonded_residue_ids = HashSet::new();
+
+        // 1. Collect all Cysteine residues and their SG atoms
+        let cysteine_sg_atoms: HashMap<ResidueId, AtomId> = self
+            .residues_iter()
+            .filter_map(|(res_id, residue)| {
+                if matches!(residue.residue_type, Some(ResidueType::Cysteine)) {
+                    residue
+                        .get_first_atom_id_by_name(CYSTEINE_SULFUR_GAMMA_ATOM_NAME)
+                        .map(|sg_id| (res_id, sg_id))
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        // If there are fewer than two Cysteines, no disulfide bonds are possible
+        if cysteine_sg_atoms.len() < 2 {
+            return bonded_residue_ids;
+        }
+
+        // Create a reverse map from SG AtomId to ResidueId for quick lookups
+        let sg_atom_to_residue: HashMap<AtomId, ResidueId> = cysteine_sg_atoms
+            .iter()
+            .map(|(&res_id, &atom_id)| (atom_id, res_id))
+            .collect();
+
+        // 2. Iterate through the collected SG atoms and check their bonds
+        for (res_id_a, sg_atom_id_a) in &cysteine_sg_atoms {
+            if bonded_residue_ids.contains(res_id_a) {
+                continue;
+            }
+
+            if let Some(neighbors) = self.get_bonded_neighbors(*sg_atom_id_a) {
+                for &neighbor_atom_id in neighbors {
+                    // 3. Check if the neighbor is also an SG atom of another Cysteine
+                    if let Some(res_id_b) = sg_atom_to_residue.get(&neighbor_atom_id) {
+                        if res_id_a != res_id_b {
+                            // Found a disulfide bond!
+                            bonded_residue_ids.insert(*res_id_a);
+                            bonded_residue_ids.insert(*res_id_b);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        bonded_residue_ids
     }
 }
 
