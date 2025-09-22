@@ -128,7 +128,7 @@ impl ResidueType {
             "TRP" => Some(ResidueType::Tryptophan),
             "TYR" => Some(ResidueType::Tyrosine),
             "ASN" => Some(ResidueType::Asparagine),
-            "CYS" => Some(ResidueType::Cysteine),
+            "CYS" | "CYX" => Some(ResidueType::Cysteine),
             "GLN" => Some(ResidueType::Glutamine),
             "SER" => Some(ResidueType::Serine),
             "THR" => Some(ResidueType::Threonine),
