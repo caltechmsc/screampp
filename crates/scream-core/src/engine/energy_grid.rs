@@ -8,7 +8,6 @@ use crate::core::forcefield::term::EnergyTerm;
 use crate::core::models::atom::AtomRole;
 use crate::core::models::ids::ResidueId;
 use crate::core::models::system::MolecularSystem;
-use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 use tracing::{info, trace};
 
@@ -105,42 +104,43 @@ impl EnergyGrid {
 
         let scorer = Scorer::new(system, forcefield);
 
-        for pair in active_residues.iter().combinations(2) {
-            let res_a_id = *pair[0];
-            let res_b_id = *pair[1];
+        let active_residue_vec: Vec<_> = active_residues.iter().cloned().collect();
+        for i in 0..active_residue_vec.len() {
+            for j in (i + 1)..active_residue_vec.len() {
+                let res_a_id = active_residue_vec[i];
+                let res_b_id = active_residue_vec[j];
 
-            let atoms_a = collect_active_sidechain_atoms(system, &HashSet::from([res_a_id]));
-            let atoms_b = collect_active_sidechain_atoms(system, &HashSet::from([res_b_id]));
+                let atoms_a = collect_active_sidechain_atoms(system, &HashSet::from([res_a_id]));
+                let atoms_b = collect_active_sidechain_atoms(system, &HashSet::from([res_b_id]));
 
-            let atoms_a_slice = atoms_a
-                .get(&res_a_id)
-                .map_or([].as_slice(), |v| v.as_slice());
-            let atoms_b_slice = atoms_b
-                .get(&res_b_id)
-                .map_or([].as_slice(), |v| v.as_slice());
+                let atoms_a_slice = atoms_a
+                    .get(&res_a_id)
+                    .map_or([].as_slice(), |v| v.as_slice());
+                let atoms_b_slice = atoms_b
+                    .get(&res_b_id)
+                    .map_or([].as_slice(), |v| v.as_slice());
 
-            if atoms_a_slice.is_empty() || atoms_b_slice.is_empty() {
-                continue;
+                if atoms_a_slice.is_empty() || atoms_b_slice.is_empty() {
+                    continue;
+                }
+
+                let interaction = scorer.score_interaction(atoms_a_slice, atoms_b_slice)?;
+
+                let key = (res_a_id, res_b_id);
+                pair_interactions.insert(key, interaction);
+
+                *total_residue_interactions.get_mut(&res_a_id).unwrap() += interaction;
+                *total_residue_interactions.get_mut(&res_b_id).unwrap() += interaction;
             }
-
-            let interaction = scorer.score_interaction(atoms_a_slice, atoms_b_slice)?;
-
-            let key = if res_a_id < res_b_id {
-                (res_a_id, res_b_id)
-            } else {
-                (res_b_id, res_a_id)
-            };
-            pair_interactions.insert(key, interaction);
-
-            *total_residue_interactions.get_mut(&res_a_id).unwrap() += interaction;
-            *total_residue_interactions.get_mut(&res_b_id).unwrap() += interaction;
         }
 
-        // The total interaction energy is double-counted in the sum above, so divide by 2
-        let total_interaction_energy = total_residue_interactions
+        for term in total_residue_interactions.values_mut() {
+            *term = *term * 0.5;
+        }
+
+        let total_interaction_energy = pair_interactions
             .values()
-            .fold(EnergyTerm::default(), |acc, term| acc + *term)
-            * 0.5;
+            .fold(EnergyTerm::default(), |acc, term| acc + *term);
 
         let mut current_el_energies = HashMap::with_capacity(active_residues.len());
         let mut total_el_energy = EnergyTerm::default();
