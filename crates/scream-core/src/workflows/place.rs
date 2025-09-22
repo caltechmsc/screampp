@@ -19,7 +19,7 @@ use crate::engine::utils::query;
 use rand::prelude::IteratorRandom;
 use rand::{Rng, seq::SliceRandom, thread_rng};
 use std::collections::{HashMap, HashSet};
-use tracing::{info, instrument};
+use tracing::{debug, info, instrument};
 
 const CLASH_THRESHOLD_KCAL_MOL: f64 = 25.0;
 
@@ -42,7 +42,7 @@ pub struct PlacementResult {
 /// into a set of optimized, low-energy solutions.
 ///
 /// The workflow follows the multi-stage algorithm described in the original SCREAM paper:
-/// 1. **Preparation**: Loads all necessary resources (forcefield, rotamers) and identifies active residues.
+/// 1. **Preparation**: Loads all necessary resources (forcefield, rotamers), identifies active residues, and excludes disulfide-bonded cysteines from optimization.
 /// 2. **Pre-computation**: Calculates the Empty Lattice (EL) energy for every possible rotamer of every active residue.
 /// 3. **Initialization**: Creates an initial "ground state" conformation by selecting the lowest EL-energy rotamer for each residue.
 /// 4. **Clash Resolution**: Iteratively identifies and resolves the worst energetic clashes using doublet optimization.
@@ -196,7 +196,8 @@ pub fn run(
 /// Prepares the optimization context by resolving active residues from the configuration.
 ///
 /// This function determines which residues will be optimized based on the user's selection
-/// criteria and ensures the rotamer library contains appropriate conformations.
+/// criteria, ensures the rotamer library contains appropriate conformations, and automatically
+/// excludes any cysteine residues that are part of disulfide bonds to prevent invalid structures.
 ///
 /// # Arguments
 ///
@@ -206,7 +207,7 @@ pub fn run(
 ///
 /// # Return
 ///
-/// A set of residue IDs that will be optimized.
+/// A set of residue IDs that will be optimized, with disulfide-bonded cysteines excluded.
 ///
 /// # Errors
 ///
@@ -216,11 +217,35 @@ fn prepare_context(
     config: &PlacementConfig,
     rotamer_library: &mut RotamerLibrary,
 ) -> Result<HashSet<ResidueId>, EngineError> {
-    let active_residues = query::resolve_selection_to_ids(
+    let mut active_residues = query::resolve_selection_to_ids(
         initial_system,
         &config.residues_to_optimize,
         rotamer_library,
     )?;
+
+    info!("Detecting disulfide bonds to exclude from optimization.");
+    let disulfide_bonded_residues = initial_system.find_disulfide_bonded_residues();
+
+    if !disulfide_bonded_residues.is_empty() {
+        let original_count = active_residues.len();
+
+        active_residues.retain(|res_id| !disulfide_bonded_residues.contains(res_id));
+
+        let final_count = active_residues.len();
+
+        if original_count > final_count {
+            let excluded_count = original_count - final_count;
+            info!(
+                "Excluded {} residue(s) from optimization because they are part of disulfide bonds.",
+                excluded_count
+            );
+            debug!(
+                "Disulfide-bonded residues excluded: {:?}",
+                disulfide_bonded_residues
+            );
+        }
+    }
+
     Ok(active_residues)
 }
 
