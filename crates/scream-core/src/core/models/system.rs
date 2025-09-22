@@ -961,4 +961,174 @@ mod tests {
             assert!(background_ids.contains(id_map.get("UNKNOWN").unwrap()));
         }
     }
+
+    mod disulfide_bond_detection {
+        use super::*;
+        use crate::core::models::topology::BondOrder;
+        use nalgebra::Point3;
+
+        fn create_disulfide_test_system()
+        -> (MolecularSystem, ResidueId, ResidueId, ResidueId, ResidueId) {
+            let mut system = MolecularSystem::new();
+            let chain_a_id = system.add_chain('A', ChainType::Protein);
+
+            let cys1_id = system
+                .add_residue(chain_a_id, 1, "CYS", Some(ResidueType::Cysteine))
+                .unwrap();
+            let cys1_sg_id = system
+                .add_atom_to_residue(
+                    cys1_id,
+                    Atom::new(
+                        CYSTEINE_SULFUR_GAMMA_ATOM_NAME,
+                        cys1_id,
+                        Point3::new(0.0, 0.0, 0.0),
+                    ),
+                )
+                .unwrap();
+
+            let cys2_id = system
+                .add_residue(chain_a_id, 2, "CYX", Some(ResidueType::Cysteine))
+                .unwrap();
+            let cys2_sg_id = system
+                .add_atom_to_residue(
+                    cys2_id,
+                    Atom::new(
+                        CYSTEINE_SULFUR_GAMMA_ATOM_NAME,
+                        cys2_id,
+                        Point3::new(2.0, 0.0, 0.0),
+                    ),
+                )
+                .unwrap();
+
+            let cys3_id = system
+                .add_residue(chain_a_id, 3, "CYS", Some(ResidueType::Cysteine))
+                .unwrap();
+            system
+                .add_atom_to_residue(
+                    cys3_id,
+                    Atom::new(
+                        CYSTEINE_SULFUR_GAMMA_ATOM_NAME,
+                        cys3_id,
+                        Point3::new(10.0, 0.0, 0.0),
+                    ),
+                )
+                .unwrap();
+
+            let ala4_id = system
+                .add_residue(chain_a_id, 4, "ALA", Some(ResidueType::Alanine))
+                .unwrap();
+            system
+                .add_atom_to_residue(
+                    ala4_id,
+                    Atom::new("CB", ala4_id, Point3::new(12.0, 0.0, 0.0)),
+                )
+                .unwrap();
+
+            system
+                .add_bond(cys1_sg_id, cys2_sg_id, BondOrder::Single)
+                .unwrap();
+
+            (system, cys1_id, cys2_id, cys3_id, ala4_id)
+        }
+
+        #[test]
+        fn find_disulfide_bonded_residues_identifies_correct_pair() {
+            let (system, cys1_id, cys2_id, cys3_id, ala4_id) = create_disulfide_test_system();
+
+            let bonded_residues = system.find_disulfide_bonded_residues();
+
+            assert_eq!(bonded_residues.len(), 2);
+            assert!(bonded_residues.contains(&cys1_id));
+            assert!(bonded_residues.contains(&cys2_id));
+            assert!(!bonded_residues.contains(&cys3_id));
+            assert!(!bonded_residues.contains(&ala4_id));
+        }
+
+        #[test]
+        fn find_disulfide_bonded_residues_returns_empty_for_no_bonds() {
+            let (mut system, cys1_id, cys2_id, _, _) = create_disulfide_test_system();
+            let cys1_sg_id = system
+                .residue(cys1_id)
+                .unwrap()
+                .get_first_atom_id_by_name(CYSTEINE_SULFUR_GAMMA_ATOM_NAME)
+                .unwrap();
+            let cys2_sg_id = system
+                .residue(cys2_id)
+                .unwrap()
+                .get_first_atom_id_by_name(CYSTEINE_SULFUR_GAMMA_ATOM_NAME)
+                .unwrap();
+
+            system
+                .bonds
+                .retain(|bond| !(bond.contains(cys1_sg_id) && bond.contains(cys2_sg_id)));
+            system.bond_adjacency.get_mut(cys1_sg_id).unwrap().clear();
+            system.bond_adjacency.get_mut(cys2_sg_id).unwrap().clear();
+
+            let bonded_residues = system.find_disulfide_bonded_residues();
+            assert!(
+                bonded_residues.is_empty(),
+                "Expected no bonded residues after removing the bond"
+            );
+        }
+
+        #[test]
+        fn find_disulfide_bonded_residues_returns_empty_for_no_cysteines() {
+            let mut system = MolecularSystem::new();
+            let chain_a_id = system.add_chain('A', ChainType::Protein);
+            system
+                .add_residue(chain_a_id, 4, "ALA", Some(ResidueType::Alanine))
+                .unwrap();
+
+            let bonded_residues = system.find_disulfide_bonded_residues();
+            assert!(bonded_residues.is_empty());
+        }
+
+        #[test]
+        fn find_disulfide_bonded_residues_handles_multiple_bonds() {
+            let (mut system, cys1_id, cys2_id, cys3_id, ala4_id) = create_disulfide_test_system();
+
+            let chain_b_id = system.add_chain('B', ChainType::Protein);
+            let cys10_id = system
+                .add_residue(chain_b_id, 10, "CYS", Some(ResidueType::Cysteine))
+                .unwrap();
+            let cys10_sg_id = system
+                .add_atom_to_residue(
+                    cys10_id,
+                    Atom::new(
+                        CYSTEINE_SULFUR_GAMMA_ATOM_NAME,
+                        cys10_id,
+                        Point3::new(50.0, 0.0, 0.0),
+                    ),
+                )
+                .unwrap();
+
+            let cys20_id = system
+                .add_residue(chain_b_id, 20, "CYS", Some(ResidueType::Cysteine))
+                .unwrap();
+            let cys20_sg_id = system
+                .add_atom_to_residue(
+                    cys20_id,
+                    Atom::new(
+                        CYSTEINE_SULFUR_GAMMA_ATOM_NAME,
+                        cys20_id,
+                        Point3::new(52.0, 0.0, 0.0),
+                    ),
+                )
+                .unwrap();
+
+            system
+                .add_bond(cys10_sg_id, cys20_sg_id, BondOrder::Single)
+                .unwrap();
+
+            let bonded_residues = system.find_disulfide_bonded_residues();
+
+            assert_eq!(bonded_residues.len(), 4);
+            assert!(bonded_residues.contains(&cys1_id));
+            assert!(bonded_residues.contains(&cys2_id));
+            assert!(!bonded_residues.contains(&cys3_id));
+            assert!(!bonded_residues.contains(&ala4_id));
+            assert!(bonded_residues.contains(&cys10_id));
+            assert!(bonded_residues.contains(&cys20_id));
+        }
+    }
 }
