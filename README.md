@@ -1,3 +1,7 @@
+> ⚠️ **Repository Archived**
+>
+> This repository has been archived. A better alternative is available at: **[https://github.com/caltechmsc/dreid-pack](https://github.com/caltechmsc/dreid-pack)**
+
 # SCREAM++
 
 **SCREAM++** is an enhanced, high-performance software package for automated protein side-chain placement. It builds upon the scientific foundation of the original SCREAM (Side-Chain Rotamer Excitation Analysis Method), which predicts accurate side-chain conformations using rotamer libraries and a unique flat-bottom potential strategy. This new generation of SCREAM has been completely re-engineered from the ground up in **Rust** for superior memory safety, performance, and modern development practices, replacing the original C++ 98/Python 2 implementation.
